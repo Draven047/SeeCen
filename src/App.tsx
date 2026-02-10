@@ -7,6 +7,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Catalogue from "./pages/Catalogue";
 import Customers from "./pages/Customers";
+import Customer360 from "./pages/Customer360";
 import Orders from "./pages/Orders";
 import OrderInbox from "./pages/OrderInbox";
 import CreateOrder from "./pages/CreateOrder";
@@ -61,6 +62,7 @@ function AppRoutes() {
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/catalogue" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><Catalogue /></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><Customers /></ProtectedRoute>} />
+        <Route path="/customers/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><Customer360 /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Orders /></ProtectedRoute>} />
         <Route path="/order-inbox" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><OrderInbox /></ProtectedRoute>} />
         <Route path="/orders/new" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><CreateOrder /></ProtectedRoute>} />

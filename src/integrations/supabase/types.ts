@@ -261,6 +261,7 @@ export type Database = {
       customers: {
         Row: {
           address: string | null
+          communication_opt_in: boolean
           created_at: string
           created_by: string | null
           date_of_birth: string | null
@@ -269,16 +270,21 @@ export type Database = {
           id: string
           imported_order_count: number
           imported_total_spent: number
+          instagram_handle: string | null
           is_blacklisted: boolean
           last_order_date: string | null
           name: string
           notes: string | null
           phone: string | null
+          preferred_channel: string | null
           store_id: string | null
+          tags: string[] | null
           updated_at: string
+          whatsapp_number: string | null
         }
         Insert: {
           address?: string | null
+          communication_opt_in?: boolean
           created_at?: string
           created_by?: string | null
           date_of_birth?: string | null
@@ -287,16 +293,21 @@ export type Database = {
           id?: string
           imported_order_count?: number
           imported_total_spent?: number
+          instagram_handle?: string | null
           is_blacklisted?: boolean
           last_order_date?: string | null
           name: string
           notes?: string | null
           phone?: string | null
+          preferred_channel?: string | null
           store_id?: string | null
+          tags?: string[] | null
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Update: {
           address?: string | null
+          communication_opt_in?: boolean
           created_at?: string
           created_by?: string | null
           date_of_birth?: string | null
@@ -305,13 +316,17 @@ export type Database = {
           id?: string
           imported_order_count?: number
           imported_total_spent?: number
+          instagram_handle?: string | null
           is_blacklisted?: boolean
           last_order_date?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
+          preferred_channel?: string | null
           store_id?: string | null
+          tags?: string[] | null
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Relationships: [
           {
