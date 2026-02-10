@@ -13,6 +13,7 @@ import OrderInbox from "./pages/OrderInbox";
 import CreateOrder from "./pages/CreateOrder";
 import OrderDetail from "./pages/OrderDetail";
 import Analytics from "./pages/Analytics";
+import Returns from "./pages/Returns";
 import OperationsPanel from "./pages/OperationsPanel";
 import AdminPanel from "./pages/AdminPanel";
 import SalesCoach from "./pages/SalesCoach";
@@ -73,6 +74,7 @@ function AppRoutes() {
         <Route path="/operations" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><OperationsPanel /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminPanel /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'finance']}><Analytics /></ProtectedRoute>} />
+        <Route path="/returns" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Returns /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       {showChatBubble && <AICoachChatBubble />}

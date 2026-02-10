@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Plus, Package, Users, Clock, Warehouse, Settings, LogOut, ShoppingBag, ChevronLeft, BarChart3, DollarSign, Eye, Inbox } from 'lucide-react';
+import { LayoutDashboard, Plus, Package, Users, Clock, Warehouse, Settings, LogOut, ShoppingBag, ChevronLeft, BarChart3, DollarSign, Eye, Inbox, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
@@ -34,6 +34,10 @@ const operationsItems = [{
   icon: Warehouse,
   label: 'Operations',
   path: '/operations'
+}, {
+  icon: RotateCcw,
+  label: 'Returns',
+  path: '/returns'
 }];
 
 const financeItems = [{
