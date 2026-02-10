@@ -51,7 +51,7 @@ const adminItems = [{
 const analyticsItems = [{
   icon: BarChart3,
   label: 'Analytics',
-  path: '/dashboard' // placeholder, will get own route later
+  path: '/analytics'
 }];
 
 // Roles that can access main selling features
@@ -139,6 +139,21 @@ export function Sidebar() {
             </div>
             {financeItems.map(item => (
               <NavLink key={item.path + '-finance'} to={item.path} className={cn("sidebar-item", collapsed && "justify-center px-3")} title={collapsed ? item.label : undefined}>
+                <item.icon className="w-5 h-5 flex-shrink-0" />
+                {!collapsed && <span>{item.label}</span>}
+              </NavLink>
+            ))}
+          </>
+        )}
+
+        {/* Analytics Section */}
+        {(isAdmin || role === 'manager' || role === 'finance') && (
+          <>
+            <div className="pt-4 pb-2">
+              {!collapsed && <p className="sidebar-section-label">Analytics</p>}
+            </div>
+            {analyticsItems.map(item => (
+              <NavLink key={item.path} to={item.path} className={cn("sidebar-item", isActive(item.path) && "sidebar-item-active", collapsed && "justify-center px-3")} title={collapsed ? item.label : undefined}>
                 <item.icon className="w-5 h-5 flex-shrink-0" />
                 {!collapsed && <span>{item.label}</span>}
               </NavLink>

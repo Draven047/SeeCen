@@ -12,7 +12,8 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Lock, FileText, Ban, CreditCard, Download, AlertTriangle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Lock, FileText, Ban, CreditCard, Download, AlertTriangle, CheckCircle, Truck, PackageCheck, RotateCcw } from 'lucide-react';
+import { FULFILLMENT_CONFIG, type FulfillmentStatus } from '@/lib/channelConnectors';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { INDIAN_STATES } from '@/lib/indianStates';
@@ -26,6 +27,9 @@ interface OrderDetail {
   invoice_number: string | null;
   invoice_date: string | null;
   status: string;
+  channel: string;
+  fulfillment_status: string;
+  external_channel_order_number: string | null;
   is_finalized: boolean;
   is_voided: boolean;
   void_reason: string | null;
@@ -438,8 +442,28 @@ export default function OrderDetail() {
   const canFinalize = !isLocked && !isVoided && storeTaxSettings;
   const canVoid = isLocked && !isVoided && (role === 'admin' || role === 'operations');
   const canCreateCreditNote = isLocked && !isVoided;
+  const canUpdateFulfillment = !isVoided && (role === 'admin' || role === 'manager' || role === 'operations' || role === 'sales');
   const totalCreditNotes = creditNotes.reduce((sum, cn) => sum + cn.total_amount, 0);
   const netAmount = order.total - totalCreditNotes;
+
+  const handleFulfillmentChange = async (newStatus: FulfillmentStatus) => {
+    if (!order) return;
+    const { error } = await supabase
+      .from('orders')
+      .update({ fulfillment_status: newStatus })
+      .eq('id', order.id);
+    if (error) { toast.error('Failed to update fulfillment status'); return; }
+    await logAudit({
+      entityType: 'order',
+      entityId: order.id,
+      actionType: 'update_fulfillment',
+      storeId: order.store_id,
+      beforeData: { fulfillment_status: order.fulfillment_status },
+      afterData: { fulfillment_status: newStatus },
+    });
+    toast.success(`Fulfillment status updated to ${FULFILLMENT_CONFIG[newStatus].label}`);
+    fetchOrder();
+  };
 
   return (
     <DashboardLayout>
@@ -465,6 +489,16 @@ export default function OrderDetail() {
                     <Ban className="w-3 h-3" /> Voided
                   </Badge>
                 )}
+                {/* Fulfillment Status Badge */}
+                {(() => {
+                  const ffCfg = FULFILLMENT_CONFIG[(order.fulfillment_status || 'unfulfilled') as FulfillmentStatus] || FULFILLMENT_CONFIG.unfulfilled;
+                  return (
+                    <Badge variant="outline" className={cn('text-xs', ffCfg.color)}>
+                      <Truck className="w-3 h-3 mr-1" />
+                      {ffCfg.label}
+                    </Badge>
+                  );
+                })()}
               </div>
               <p className="text-muted-foreground text-sm mt-1">
                 {order.store?.name} • Created {new Date(order.created_at).toLocaleDateString()}
@@ -472,7 +506,21 @@ export default function OrderDetail() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Fulfillment Actions */}
+            {canUpdateFulfillment && !isVoided && (
+              <Select value={order.fulfillment_status || 'unfulfilled'} onValueChange={(v) => handleFulfillmentChange(v as FulfillmentStatus)}>
+                <SelectTrigger className="w-44">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unfulfilled">Unfulfilled</SelectItem>
+                  <SelectItem value="partially_fulfilled">Partially Fulfilled</SelectItem>
+                  <SelectItem value="fulfilled">Fulfilled</SelectItem>
+                  <SelectItem value="returned">Returned</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
             {isLocked && !isVoided && (
               <Button variant="outline" onClick={downloadInvoice}>
                 <Download className="w-4 h-4 mr-2" /> Download Invoice
