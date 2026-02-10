@@ -14,26 +14,30 @@ interface Store {
   name: string;
 }
 
+interface ProductOption {
+  id: string;
+  name: string;
+  base_price: number;
+}
+
 interface InventoryItem {
   id: string;
   quantity: number;
   min_stock_level: number | null;
   store_id: string;
   cigar_id: string;
-  cigar: { id: string; name: string; price: number };
-}
-
-interface Cigar {
-  id: string;
-  name: string;
-  price: number;
+  product_id: string | null;
+  variant_id: string | null;
+  // joined
+  cigar: { id: string; name: string; price: number } | null;
+  product: { id: string; name: string; base_price: number } | null;
 }
 
 export default function InventoryManagement() {
   const [stores, setStores] = useState<Store[]>([]);
   const [selectedStore, setSelectedStore] = useState<string>('');
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [cigars, setCigars] = useState<Cigar[]>([]);
+  const [products, setProducts] = useState<ProductOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [editDialog, setEditDialog] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
@@ -42,53 +46,48 @@ export default function InventoryManagement() {
 
   useEffect(() => {
     fetchStores();
-    fetchCigars();
+    fetchProducts();
   }, []);
 
   useEffect(() => {
-    if (selectedStore) {
-      fetchInventory();
-    }
+    if (selectedStore) fetchInventory();
   }, [selectedStore]);
 
   const fetchStores = async () => {
     const { data } = await supabase.from('stores').select('*').order('name');
     setStores(data || []);
-    if (data && data.length > 0) {
-      setSelectedStore(data[0].id);
-    }
+    if (data && data.length > 0) setSelectedStore(data[0].id);
     setLoading(false);
   };
 
-  const fetchCigars = async () => {
-    const { data } = await supabase.from('cigars').select('id, name, price').order('name');
-    setCigars(data || []);
+  const fetchProducts = async () => {
+    const { data } = await supabase.from('products').select('id, name, base_price').eq('is_active', true).order('name');
+    setProducts(data || []);
   };
 
   const fetchInventory = async () => {
     setLoading(true);
+    // Fetch inventory with both cigar and product joins
     const { data } = await supabase
       .from('store_inventory')
-      .select('*, cigar:cigars(id, name, price)')
+      .select('*, cigar:cigars(id, name, price), product:products(id, name, base_price)')
       .eq('store_id', selectedStore);
     setInventory((data as unknown as InventoryItem[]) || []);
     setLoading(false);
   };
 
-  const addInventoryItem = async (cigarId: string) => {
+  const addProductToInventory = async (productId: string) => {
     const { error } = await supabase.from('store_inventory').insert({
       store_id: selectedStore,
-      cigar_id: cigarId,
+      cigar_id: productId, // backward compat - use cigar_id column
+      product_id: productId,
       quantity: 0,
       min_stock_level: 10
     });
 
     if (error) {
-      if (error.code === '23505') {
-        toast.error('Product already exists in this store');
-      } else {
-        toast.error('Failed to add product');
-      }
+      if (error.code === '23505') toast.error('Product already exists in this store');
+      else toast.error('Failed to add product');
     } else {
       toast.success('Product added to inventory');
       fetchInventory();
@@ -97,19 +96,13 @@ export default function InventoryManagement() {
 
   const updateInventory = async () => {
     if (!editItem) return;
-
     const { error } = await supabase
       .from('store_inventory')
       .update({ quantity: editQty, min_stock_level: editMin })
       .eq('id', editItem.id);
 
-    if (error) {
-      toast.error('Failed to update inventory');
-    } else {
-      toast.success('Inventory updated');
-      setEditDialog(false);
-      fetchInventory();
-    }
+    if (error) toast.error('Failed to update inventory');
+    else { toast.success('Inventory updated'); setEditDialog(false); fetchInventory(); }
   };
 
   const openEditDialog = (item: InventoryItem) => {
@@ -126,7 +119,12 @@ export default function InventoryManagement() {
   };
 
   const currentStore = stores.find(s => s.id === selectedStore);
-  const availableCigars = cigars.filter(c => !inventory.some(i => i.cigar_id === c.id));
+  const getItemName = (item: InventoryItem) => item.product?.name || item.cigar?.name || 'Unknown';
+  const getItemPrice = (item: InventoryItem) => item.product?.base_price || item.cigar?.price || 0;
+
+  // Products not yet in inventory for this store
+  const existingProductIds = new Set(inventory.map(i => i.product_id || i.cigar_id));
+  const availableProducts = products.filter(p => !existingProductIds.has(p.id));
 
   return (
     <div className="space-y-6">
@@ -140,12 +138,7 @@ export default function InventoryManagement() {
       {/* Store Selector */}
       <div className="flex flex-wrap gap-2">
         {stores.map(store => (
-          <Button
-            key={store.id}
-            variant={selectedStore === store.id ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedStore(store.id)}
-          >
+          <Button key={store.id} variant={selectedStore === store.id ? 'default' : 'outline'} size="sm" onClick={() => setSelectedStore(store.id)}>
             {store.name}
           </Button>
         ))}
@@ -155,23 +148,23 @@ export default function InventoryManagement() {
         <>
           {/* Add Product */}
           <div className="flex items-center gap-4">
-            <Select onValueChange={addInventoryItem}>
+            <Select onValueChange={addProductToInventory}>
               <SelectTrigger className="w-64">
                 <SelectValue placeholder="Add product to store..." />
               </SelectTrigger>
               <SelectContent>
-                {availableCigars.map(cigar => (
-                  <SelectItem key={cigar.id} value={cigar.id}>
+                {availableProducts.map(p => (
+                  <SelectItem key={p.id} value={p.id}>
                     <div className="flex items-center gap-2">
                       <Plus className="w-4 h-4" />
-                      {cigar.name}
+                      {p.name}
                     </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <span className="text-sm text-muted-foreground">
-              {availableCigars.length} products available to add
+              {availableProducts.length} products available to add
             </span>
           </div>
 
@@ -206,8 +199,8 @@ export default function InventoryManagement() {
                     const status = getStockStatus(item.quantity, item.min_stock_level || 10);
                     return (
                       <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.cigar?.name || 'Unknown'}</TableCell>
-                        <TableCell>₹{item.cigar?.price?.toLocaleString('en-IN') || 0}</TableCell>
+                        <TableCell className="font-medium">{getItemName(item)}</TableCell>
+                        <TableCell>₹{getItemPrice(item).toLocaleString('en-IN')}</TableCell>
                         <TableCell className="font-semibold">{item.quantity}</TableCell>
                         <TableCell className="text-muted-foreground">{item.min_stock_level || 10}</TableCell>
                         <TableCell>
@@ -240,25 +233,15 @@ export default function InventoryManagement() {
           <div className="space-y-4 py-4">
             <div>
               <label className="text-sm font-medium">Product</label>
-              <p className="text-muted-foreground">{editItem?.cigar?.name}</p>
+              <p className="text-muted-foreground">{editItem ? getItemName(editItem) : ''}</p>
             </div>
             <div>
               <label className="text-sm font-medium">Current Stock</label>
-              <Input
-                type="number"
-                min="0"
-                value={editQty}
-                onChange={e => setEditQty(parseInt(e.target.value) || 0)}
-              />
+              <Input type="number" min="0" value={editQty} onChange={e => setEditQty(parseInt(e.target.value) || 0)} />
             </div>
             <div>
               <label className="text-sm font-medium">Minimum Stock Level</label>
-              <Input
-                type="number"
-                min="0"
-                value={editMin}
-                onChange={e => setEditMin(parseInt(e.target.value) || 0)}
-              />
+              <Input type="number" min="0" value={editMin} onChange={e => setEditMin(parseInt(e.target.value) || 0)} />
             </div>
           </div>
           <DialogFooter>

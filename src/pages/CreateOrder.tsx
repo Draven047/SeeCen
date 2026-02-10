@@ -318,7 +318,7 @@ export default function CreateOrder() {
 
   const generateQRCode = async (orderNumber: string, amount: number) => {
     // UPI payment link format
-    const upiLink = `upi://pay?pa=cigartrax@upi&pn=CigarTrax&am=${amount}&tn=Order%20${orderNumber}`;
+    const upiLink = `upi://pay?pa=clozzet@upi&pn=Clozzet&am=${amount}&tn=Order%20${orderNumber}`;
     const qrUrl = await QRCode.toDataURL(upiLink, { width: 200, margin: 2 });
     return qrUrl;
   };
@@ -453,7 +453,7 @@ export default function CreateOrder() {
     const doc = new jsPDF({ format: [100, 150] }); // Label size
     
     doc.setFontSize(14);
-    doc.text('CigarTrax', 50, 15, { align: 'center' });
+    doc.text('Clozzet', 50, 15, { align: 'center' });
     doc.setFontSize(10);
     doc.text(`Order: ${createdOrder.order_number}`, 50, 25, { align: 'center' });
     
@@ -536,7 +536,7 @@ export default function CreateOrder() {
               <div className="glass-card p-4">
                 <div className="flex items-center gap-2 mb-4">
                   <Filter className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium text-sm">Search & Filter Cigars</span>
+                  <span className="font-medium text-sm">Search & Filter Products</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="relative flex-1 min-w-[200px]">
@@ -574,7 +574,7 @@ export default function CreateOrder() {
 
               <div className="glass-card p-4">
                 <div className="mb-4">
-                  <h3 className="font-semibold">Available Cigars ({filtered.length})</h3>
+                  <h3 className="font-semibold">Available Products ({filtered.length})</h3>
                 </div>
                 
                 {loading ? (
@@ -584,7 +584,7 @@ export default function CreateOrder() {
                 ) : filtered.length === 0 ? (
                   <div className="py-12 text-center">
                     <ShoppingCart className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-30" />
-                    <p className="text-muted-foreground">No cigars found</p>
+                    <p className="text-muted-foreground">No products found</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto pr-1">
