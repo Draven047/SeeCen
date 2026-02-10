@@ -594,11 +594,16 @@ export type Database = {
           cess_rate: number
           cgst_amount: number
           cgst_rate: number
+          channel: string
+          channel_metadata: Json | null
           created_at: string
           created_by: string
           customer_id: string | null
+          external_channel_order_number: string | null
+          external_order_id: string | null
           finalized_at: string | null
           finalized_by: string | null
+          fulfillment_status: string
           fume_points_earned: number
           fume_points_redeemed: number
           id: string
@@ -633,11 +638,16 @@ export type Database = {
           cess_rate?: number
           cgst_amount?: number
           cgst_rate?: number
+          channel?: string
+          channel_metadata?: Json | null
           created_at?: string
           created_by: string
           customer_id?: string | null
+          external_channel_order_number?: string | null
+          external_order_id?: string | null
           finalized_at?: string | null
           finalized_by?: string | null
+          fulfillment_status?: string
           fume_points_earned?: number
           fume_points_redeemed?: number
           id?: string
@@ -672,11 +682,16 @@ export type Database = {
           cess_rate?: number
           cgst_amount?: number
           cgst_rate?: number
+          channel?: string
+          channel_metadata?: Json | null
           created_at?: string
           created_by?: string
           customer_id?: string | null
+          external_channel_order_number?: string | null
+          external_order_id?: string | null
           finalized_at?: string | null
           finalized_by?: string | null
+          fulfillment_status?: string
           fume_points_earned?: number
           fume_points_redeemed?: number
           id?: string
