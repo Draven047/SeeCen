@@ -258,7 +258,7 @@ export default function CatalogueManager() {
         <div>
           <h2 className="font-display text-xl font-bold">Catalogue Manager</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Add new cigars to catalogue or manage store-specific inventory
+            Add new products to catalogue or manage store-specific inventory
           </p>
         </div>
       </div>
@@ -286,7 +286,7 @@ export default function CatalogueManager() {
               <div>
                 <h3 className="font-semibold text-lg">Upload Master Catalogue</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Add or update the master cigar database. New cigars will be added, existing ones updated by name.
+                  Add or update the master product database. New products will be added, existing ones updated by name.
                 </p>
               </div>
             </div>

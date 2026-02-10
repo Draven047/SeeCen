@@ -528,27 +528,33 @@ export type Database = {
           created_at: string
           id: string
           order_id: string
+          product_id: string | null
           quantity: number
           total_price: number
           unit_price: number
+          variant_id: string | null
         }
         Insert: {
           cigar_id: string
           created_at?: string
           id?: string
           order_id: string
+          product_id?: string | null
           quantity?: number
           total_price: number
           unit_price: number
+          variant_id?: string | null
         }
         Update: {
           cigar_id?: string
           created_at?: string
           id?: string
           order_id?: string
+          product_id?: string | null
           quantity?: number
           total_price?: number
           unit_price?: number
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -563,6 +569,20 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -702,6 +722,98 @@ export type Database = {
           },
         ]
       }
+      product_variants: {
+        Row: {
+          barcode: string | null
+          color: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          price_override: number | null
+          product_id: string
+          size: string | null
+          sku: string | null
+          weight_grams: number | null
+        }
+        Insert: {
+          barcode?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          price_override?: number | null
+          product_id: string
+          size?: string | null
+          sku?: string | null
+          weight_grams?: number | null
+        }
+        Update: {
+          barcode?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          price_override?: number | null
+          product_id?: string
+          size?: string | null
+          sku?: string | null
+          weight_grams?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          base_price: number
+          brand: string | null
+          category: string
+          created_at: string
+          description: string | null
+          hsn_code: string | null
+          id: string
+          image_urls: string[] | null
+          is_active: boolean
+          mrp: number | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          base_price?: number
+          brand?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          hsn_code?: string | null
+          id?: string
+          image_urls?: string[] | null
+          is_active?: boolean
+          mrp?: number | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          base_price?: number
+          brand?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          hsn_code?: string | null
+          id?: string
+          image_urls?: string[] | null
+          is_active?: boolean
+          mrp?: number | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -827,11 +939,13 @@ export type Database = {
           created_at: string
           id: string
           notes: string | null
+          product_id: string | null
           quantity: number
           requested_by: string
           status: Database["public"]["Enums"]["stock_request_status"]
           store_id: string
           updated_at: string
+          variant_id: string | null
         }
         Insert: {
           approved_at?: string | null
@@ -840,11 +954,13 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
+          product_id?: string | null
           quantity: number
           requested_by: string
           status?: Database["public"]["Enums"]["stock_request_status"]
           store_id: string
           updated_at?: string
+          variant_id?: string | null
         }
         Update: {
           approved_at?: string | null
@@ -853,11 +969,13 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
+          product_id?: string | null
           quantity?: number
           requested_by?: string
           status?: Database["public"]["Enums"]["stock_request_status"]
           store_id?: string
           updated_at?: string
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -868,10 +986,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stock_requests_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stock_requests_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_requests_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -910,25 +1042,31 @@ export type Database = {
           cigar_id: string
           id: string
           min_stock_level: number | null
+          product_id: string | null
           quantity: number
           store_id: string
           updated_at: string
+          variant_id: string | null
         }
         Insert: {
           cigar_id: string
           id?: string
           min_stock_level?: number | null
+          product_id?: string | null
           quantity?: number
           store_id: string
           updated_at?: string
+          variant_id?: string | null
         }
         Update: {
           cigar_id?: string
           id?: string
           min_stock_level?: number | null
+          product_id?: string | null
           quantity?: number
           store_id?: string
           updated_at?: string
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -939,10 +1077,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "store_inventory_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "store_inventory_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_inventory_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
