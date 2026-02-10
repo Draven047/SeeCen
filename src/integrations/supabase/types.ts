@@ -604,7 +604,9 @@ export type Database = {
       }
       orders: {
         Row: {
+          accepted_at: string | null
           billing_address: string | null
+          cancelled_reason: string | null
           cess_amount: number
           cess_rate: number
           cgst_amount: number
@@ -614,11 +616,14 @@ export type Database = {
           created_at: string
           created_by: string
           customer_id: string | null
+          declined_reason: string | null
+          delivered_at: string | null
           external_channel_order_number: string | null
           external_order_id: string | null
           finalized_at: string | null
           finalized_by: string | null
           fulfillment_status: string
+          fulfillment_type: string
           fume_points_earned: number
           fume_points_redeemed: number
           id: string
@@ -629,14 +634,19 @@ export type Database = {
           invoice_snapshot: Json | null
           is_finalized: boolean
           is_voided: boolean
+          items_count: number
           notes: string | null
           order_number: string
+          packed_at: string | null
           payment_qr_code: string | null
+          payment_type: string
           place_of_supply_code: string | null
           place_of_supply_state: string | null
           sgst_amount: number
           sgst_rate: number
+          shipped_at: string | null
           shipping_address: string | null
+          sla_deadline: string | null
           status: Database["public"]["Enums"]["order_status"]
           store_id: string | null
           subtotal: number
@@ -648,7 +658,9 @@ export type Database = {
           voided_by: string | null
         }
         Insert: {
+          accepted_at?: string | null
           billing_address?: string | null
+          cancelled_reason?: string | null
           cess_amount?: number
           cess_rate?: number
           cgst_amount?: number
@@ -658,11 +670,14 @@ export type Database = {
           created_at?: string
           created_by: string
           customer_id?: string | null
+          declined_reason?: string | null
+          delivered_at?: string | null
           external_channel_order_number?: string | null
           external_order_id?: string | null
           finalized_at?: string | null
           finalized_by?: string | null
           fulfillment_status?: string
+          fulfillment_type?: string
           fume_points_earned?: number
           fume_points_redeemed?: number
           id?: string
@@ -673,14 +688,19 @@ export type Database = {
           invoice_snapshot?: Json | null
           is_finalized?: boolean
           is_voided?: boolean
+          items_count?: number
           notes?: string | null
           order_number: string
+          packed_at?: string | null
           payment_qr_code?: string | null
+          payment_type?: string
           place_of_supply_code?: string | null
           place_of_supply_state?: string | null
           sgst_amount?: number
           sgst_rate?: number
+          shipped_at?: string | null
           shipping_address?: string | null
+          sla_deadline?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           store_id?: string | null
           subtotal?: number
@@ -692,7 +712,9 @@ export type Database = {
           voided_by?: string | null
         }
         Update: {
+          accepted_at?: string | null
           billing_address?: string | null
+          cancelled_reason?: string | null
           cess_amount?: number
           cess_rate?: number
           cgst_amount?: number
@@ -702,11 +724,14 @@ export type Database = {
           created_at?: string
           created_by?: string
           customer_id?: string | null
+          declined_reason?: string | null
+          delivered_at?: string | null
           external_channel_order_number?: string | null
           external_order_id?: string | null
           finalized_at?: string | null
           finalized_by?: string | null
           fulfillment_status?: string
+          fulfillment_type?: string
           fume_points_earned?: number
           fume_points_redeemed?: number
           id?: string
@@ -717,14 +742,19 @@ export type Database = {
           invoice_snapshot?: Json | null
           is_finalized?: boolean
           is_voided?: boolean
+          items_count?: number
           notes?: string | null
           order_number?: string
+          packed_at?: string | null
           payment_qr_code?: string | null
+          payment_type?: string
           place_of_supply_code?: string | null
           place_of_supply_state?: string | null
           sgst_amount?: number
           sgst_rate?: number
+          shipped_at?: string | null
           shipping_address?: string | null
+          sla_deadline?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           store_id?: string | null
           subtotal?: number
