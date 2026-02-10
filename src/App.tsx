@@ -10,7 +10,7 @@ import Catalogue from "./pages/Catalogue";
 import Customers from "./pages/Customers";
 import Customer360 from "./pages/Customer360";
 import Orders from "./pages/Orders";
-import OrderInbox from "./pages/OrderInbox";
+// OrderInbox merged into Orders
 import CreateOrder from "./pages/CreateOrder";
 import OrderDetail from "./pages/OrderDetail";
 import Fulfillment from "./pages/Fulfillment";
@@ -71,7 +71,7 @@ function AppRoutes() {
         <Route path="/orders" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Orders /></ProtectedRoute>} />
         <Route path="/orders/new" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><CreateOrder /></ProtectedRoute>} />
         <Route path="/orders/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><OrderDetail /></ProtectedRoute>} />
-        <Route path="/order-inbox" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><OrderInbox /></ProtectedRoute>} />
+        {/* order-inbox merged into /orders */}
         <Route path="/fulfillment" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Fulfillment /></ProtectedRoute>} />
         <Route path="/shipping" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><Shipping /></ProtectedRoute>} />
 
