@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -70,6 +71,7 @@ interface CsvPreviewData {
 
 export default function Customers() {
   const { user, role } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = role === 'admin';
   const [customers, setCustomers] = useState<CustomerWithStats[]>([]);
   const [search, setSearch] = useState('');
@@ -1074,7 +1076,7 @@ export default function Customers() {
                             variant="ghost" 
                             size="icon" 
                             className="h-8 w-8"
-                            onClick={() => openViewDialog(customer)}
+                            onClick={() => navigate(`/customers/${customer.id}`)}
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
