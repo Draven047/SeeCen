@@ -24,13 +24,21 @@ export function Header() {
   }, [user]);
 
   const displayName = profile?.full_name || user?.email?.split('@')[0] || 'User';
-  const roleLabel = role === 'admin' ? 'Administrator' : role === 'operations' ? 'Operations' : 'Sales';
+  const roleLabels: Record<string, string> = {
+    admin: 'Owner / Admin',
+    manager: 'Store Manager',
+    sales: 'Sales',
+    operations: 'Operations',
+    finance: 'Finance',
+    viewer: 'Viewer',
+  };
+  const roleLabel = roleLabels[role || ''] || 'User';
 
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
       <div className="flex items-center gap-4">
         <div>
-          <h1 className="font-display text-xl font-bold text-foreground">Cigatrax</h1>
+          <h1 className="font-display text-xl font-bold text-foreground">Clozzet SellerOS</h1>
           <span className="text-sm text-muted-foreground">Welcome back, {displayName}</span>
         </div>
       </div>

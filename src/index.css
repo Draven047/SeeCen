@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* Light theme - Clean white with orange accents */
+    /* Light theme - Clean white with brand accents */
     --background: 40 30% 98%;
     --foreground: 20 14% 12%;
     
@@ -72,7 +72,7 @@
   }
 
   .dark {
-    /* Dark theme - Warm cigar-inspired */
+    /* Dark theme - Fashion-inspired */
     --background: 20 14% 8%;
     --foreground: 38 30% 90%;
     

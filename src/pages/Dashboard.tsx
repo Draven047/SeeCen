@@ -22,9 +22,9 @@ const dummySalesData = [
 ];
 
 const dummyDistributionData = [
-  { name: 'Premium Cigars', value: 60, color: 'hsl(28, 85%, 52%)' },
-  { name: 'Limited Edition', value: 25, color: 'hsl(220, 70%, 55%)' },
-  { name: 'Accessories', value: 15, color: 'hsl(280, 60%, 55%)' },
+  { name: 'Tops & Shirts', value: 45, color: 'hsl(28, 85%, 52%)' },
+  { name: 'Dresses', value: 30, color: 'hsl(220, 70%, 55%)' },
+  { name: 'Accessories', value: 25, color: 'hsl(280, 60%, 55%)' },
 ];
 
 export default function Dashboard() {
@@ -110,7 +110,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-display text-2xl font-bold">
-              {role === 'admin' ? 'Admin Dashboard' : 'Sales Dashboard'}
+              {role === 'admin' ? 'Seller Dashboard' : role === 'manager' ? 'Store Dashboard' : 'Dashboard'}
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
               Overview of your business performance and team management
