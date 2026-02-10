@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Flame, Loader2 } from 'lucide-react';
+import { ShoppingBag, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSafeErrorMessage } from '@/lib/errorUtils';
 
@@ -43,11 +43,11 @@ export default function Auth() {
     <div className="min-h-screen hero-gradient flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-4 gold-glow">
-            <Flame className="w-8 h-8 text-primary" />
+          <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-4">
+            <ShoppingBag className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="font-display text-3xl font-bold text-foreground">Cigatrax</h1>
-          <p className="text-muted-foreground mt-2">Premium Cigar Management Dashboard</p>
+          <h1 className="font-display text-3xl font-bold text-foreground">Clozzet SellerOS</h1>
+          <p className="text-muted-foreground mt-2">Fashion Seller Dashboard</p>
         </div>
 
         <div className="glass-card rounded-2xl p-8">
