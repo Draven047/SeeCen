@@ -44,6 +44,7 @@ export default function Analytics() {
   const { role } = useAuth();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [customers, setCustomers] = useState<{ id: string; created_at: string }[]>([]);
+  const [topProducts, setTopProducts] = useState<ProductSale[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<'7d' | '30d' | '90d' | '12m'>('30d');
 
@@ -51,12 +52,24 @@ export default function Analytics() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [ordersRes, customersRes] = await Promise.all([
+    const [ordersRes, customersRes, itemsRes] = await Promise.all([
       supabase.from('orders').select('id, total, subtotal, channel, status, fulfillment_status, created_at, customer_id').eq('is_voided', false).order('created_at', { ascending: true }),
       supabase.from('customers').select('id, created_at').order('created_at', { ascending: true }),
+      supabase.from('order_items').select('quantity, unit_price, total_price, cigar:cigars(name), product:products(name)'),
     ]);
     setOrders((ordersRes.data as OrderRow[]) || []);
     setCustomers(customersRes.data || []);
+
+    // Aggregate top products
+    const productMap: Record<string, ProductSale> = {};
+    (itemsRes.data || []).forEach((item: any) => {
+      const name = item.product?.name || item.cigar?.name || 'Unknown';
+      if (!productMap[name]) productMap[name] = { product_name: name, total_qty: 0, total_revenue: 0 };
+      productMap[name].total_qty += item.quantity;
+      productMap[name].total_revenue += Number(item.total_price);
+    });
+    setTopProducts(Object.values(productMap).sort((a, b) => b.total_revenue - a.total_revenue).slice(0, 10));
+
     setLoading(false);
   };
 
@@ -266,6 +279,24 @@ export default function Analytics() {
               </ResponsiveContainer>
             )}
           </div>
+        </div>
+
+        {/* Top Selling Products */}
+        <div className="glass-card p-6">
+          <h3 className="font-semibold mb-4">Top Selling Products</h3>
+          {topProducts.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic text-center py-8">No product data</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={topProducts} layout="vertical" margin={{ left: 100 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis type="number" tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                <YAxis type="category" dataKey="product_name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" width={90} />
+                <Tooltip formatter={(v: number, name: string) => [name === 'total_revenue' ? fmt(v) : v, name === 'total_revenue' ? 'Revenue' : 'Qty']} />
+                <Bar dataKey="total_revenue" fill="hsl(142, 76%, 36%)" radius={[0, 4, 4, 0]} name="Revenue" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         {/* Customer Acquisition */}
