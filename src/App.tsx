@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Catalogue from "./pages/Catalogue";
 import Customers from "./pages/Customers";
 import Orders from "./pages/Orders";
+import OrderInbox from "./pages/OrderInbox";
 import CreateOrder from "./pages/CreateOrder";
 import OrderDetail from "./pages/OrderDetail";
 import OperationsPanel from "./pages/OperationsPanel";
@@ -61,6 +62,7 @@ function AppRoutes() {
         <Route path="/catalogue" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><Catalogue /></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><Customers /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Orders /></ProtectedRoute>} />
+        <Route path="/order-inbox" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><OrderInbox /></ProtectedRoute>} />
         <Route path="/orders/new" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><CreateOrder /></ProtectedRoute>} />
         <Route path="/orders/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><OrderDetail /></ProtectedRoute>} />
         <Route path="/sales-coach" element={<ProtectedRoute allowedRoles={['admin', 'sales']}><SalesCoach /></ProtectedRoute>} />

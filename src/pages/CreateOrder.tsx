@@ -396,6 +396,8 @@ export default function CreateOrder() {
           place_of_supply_state: storeTaxSettings?.state_name || 'Maharashtra',
           place_of_supply_code: storeTaxSettings?.state_code || '27',
           status: 'created' as const,
+          channel: 'in_store',
+          fulfillment_status: 'unfulfilled',
           notes,
           shipping_address: shippingAddress || customer?.address || null,
           billing_address: customer?.address || null,
