@@ -245,6 +245,63 @@ export type Database = {
         }
         Relationships: []
       }
+      cod_reconciliation: {
+        Row: {
+          collected_amount: number
+          created_at: string
+          expected_amount: number
+          id: string
+          notes: string | null
+          order_id: string
+          remittance_date: string | null
+          remitted_amount: number
+          status: string
+          store_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          collected_amount?: number
+          created_at?: string
+          expected_amount?: number
+          id?: string
+          notes?: string | null
+          order_id: string
+          remittance_date?: string | null
+          remitted_amount?: number
+          status?: string
+          store_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          collected_amount?: number
+          created_at?: string
+          expected_amount?: number
+          id?: string
+          notes?: string | null
+          order_id?: string
+          remittance_date?: string | null
+          remitted_amount?: number
+          status?: string
+          store_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cod_reconciliation_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cod_reconciliation_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_note_series: {
         Row: {
           created_at: string
@@ -1236,6 +1293,62 @@ export type Database = {
         }
         Relationships: []
       }
+      settlements: {
+        Row: {
+          channel: string
+          commission: number
+          created_at: string
+          gross_amount: number
+          id: string
+          net_amount: number
+          orders_count: number
+          reference_number: string | null
+          settlement_date: string
+          shipping_deduction: number
+          status: string
+          store_id: string | null
+          tds: number
+        }
+        Insert: {
+          channel?: string
+          commission?: number
+          created_at?: string
+          gross_amount?: number
+          id?: string
+          net_amount?: number
+          orders_count?: number
+          reference_number?: string | null
+          settlement_date?: string
+          shipping_deduction?: number
+          status?: string
+          store_id?: string | null
+          tds?: number
+        }
+        Update: {
+          channel?: string
+          commission?: number
+          created_at?: string
+          gross_amount?: number
+          id?: string
+          net_amount?: number
+          orders_count?: number
+          reference_number?: string | null
+          settlement_date?: string
+          shipping_deduction?: number
+          status?: string
+          store_id?: string | null
+          tds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipment_tracking_events: {
         Row: {
           description: string | null
@@ -1524,6 +1637,59 @@ export type Database = {
             foreignKeyName: "store_assignments_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_finance_settings: {
+        Row: {
+          account_holder: string | null
+          account_number: string | null
+          bank_name: string | null
+          created_at: string
+          gstin: string | null
+          id: string
+          ifsc_code: string | null
+          invoice_footer: string | null
+          store_id: string
+          terms_and_conditions: string | null
+          updated_at: string
+          upi_id: string | null
+        }
+        Insert: {
+          account_holder?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          created_at?: string
+          gstin?: string | null
+          id?: string
+          ifsc_code?: string | null
+          invoice_footer?: string | null
+          store_id: string
+          terms_and_conditions?: string | null
+          updated_at?: string
+          upi_id?: string | null
+        }
+        Update: {
+          account_holder?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          created_at?: string
+          gstin?: string | null
+          id?: string
+          ifsc_code?: string | null
+          invoice_footer?: string | null
+          store_id?: string
+          terms_and_conditions?: string | null
+          updated_at?: string
+          upi_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_finance_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
