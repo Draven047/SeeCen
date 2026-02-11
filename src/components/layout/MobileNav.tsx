@@ -55,6 +55,7 @@ const drawerNavGroups: NavGroup[] = [
     label: 'Admin',
     items: [
       { icon: Package, label: 'Stores', path: '/admin' },
+      { icon: Users, label: 'Approvals', path: '/admin/approvals' },
       { icon: Package, label: 'Channels', path: '/channels' },
       { icon: Package, label: 'Settings', path: '/settings' },
     ],
@@ -63,7 +64,7 @@ const drawerNavGroups: NavGroup[] = [
 
 const roleAccess: Record<string, string[]> = {
   admin: ['*'],
-  manager: ['/dashboard', '/orders', '/fulfillment', '/shipping', '/catalogue', '/inventory', '/returns', '/customers', '/employees', '/analytics', '/finance', '/ai-coach'],
+  manager: ['/dashboard', '/orders', '/fulfillment', '/shipping', '/catalogue', '/inventory', '/returns', '/customers', '/employees', '/analytics', '/finance', '/ai-coach', '/admin/approvals'],
   sales: ['/dashboard', '/orders', '/fulfillment', '/catalogue', '/customers', '/returns', '/ai-coach', '/sales-coach'],
   operations: ['/dashboard', '/orders', '/fulfillment', '/shipping', '/catalogue', '/inventory', '/returns'],
   finance: ['/dashboard', '/orders', '/analytics', '/finance'],
