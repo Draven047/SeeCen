@@ -30,6 +30,16 @@ export function GlobalSearch({ results = [], onSearch, placeholder = "Search ord
   const [open, setOpen] = React.useState(false);
   const navigate = useNavigate();
 
+  // Built-in quick actions
+  const quickActions: SearchResult[] = [
+    { id: '__new_order', title: 'Create New Order', subtitle: 'Shift+N', category: 'Quick Actions', href: '/orders/new' },
+    { id: '__orders', title: 'View Orders', category: 'Quick Actions', href: '/orders' },
+    { id: '__customers', title: 'View Customers', category: 'Quick Actions', href: '/customers' },
+    { id: '__dashboard', title: 'Go to Dashboard', category: 'Quick Actions', href: '/dashboard' },
+  ];
+
+  const allResults = [...quickActions, ...results];
+
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -43,11 +53,11 @@ export function GlobalSearch({ results = [], onSearch, placeholder = "Search ord
 
   const grouped = React.useMemo(() => {
     const groups: Record<string, SearchResult[]> = {};
-    results.forEach((r) => {
+    allResults.forEach((r) => {
       (groups[r.category] ??= []).push(r);
     });
     return groups;
-  }, [results]);
+  }, [allResults]);
 
   return (
     <>
