@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Lock, FileText, Ban, CreditCard, Download, AlertTriangle, CheckCircle, Truck, Package, RotateCcw, Check, Circle, X } from 'lucide-react';
+import { DispatchDrawer } from '@/components/shipping/DispatchDrawer';
 import { FULFILLMENT_CONFIG, TIMELINE_STEPS, EDGE_STATES, CHANNEL_CONFIG, getSlaStatus, type SalesChannel } from '@/lib/channelConnectors';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -87,6 +88,7 @@ export default function OrderDetailPage() {
   const [showCreditNoteDialog, setShowCreditNoteDialog] = useState(false);
   const [showDeclineDialog, setShowDeclineDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showDispatchDrawer, setShowDispatchDrawer] = useState(false);
 
   const [placeOfSupply, setPlaceOfSupply] = useState('');
   const [voidReason, setVoidReason] = useState('');
@@ -266,7 +268,7 @@ export default function OrderDetailPage() {
       if (isMarketplace) {
         actions.push({ label: 'Mark Ready for Pickup', status: 'ready' });
       } else {
-        actions.push({ label: 'Book Pickup / Ship', status: 'ready' });
+        actions.push({ label: 'Book Pickup', status: '_dispatch' });
       }
     }
     if (fs === 'ready') {
@@ -294,6 +296,7 @@ export default function OrderDetailPage() {
   const handleAction = (status: string) => {
     if (status === '_decline') { setShowDeclineDialog(true); return; }
     if (status === '_cancel') { setShowCancelDialog(true); return; }
+    if (status === '_dispatch') { setShowDispatchDrawer(true); return; }
     transitionFulfillment(status);
   };
 
@@ -574,6 +577,16 @@ export default function OrderDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dispatch Drawer */}
+      <DispatchDrawer
+        open={showDispatchDrawer}
+        onOpenChange={setShowDispatchDrawer}
+        orderId={order.id}
+        storeId={order.store_id}
+        storeAddress={order.store?.name}
+        onSuccess={fetchOrder}
+      />
     </DashboardLayout>
   );
 }
