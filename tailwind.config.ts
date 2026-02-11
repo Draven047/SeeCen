@@ -19,8 +19,19 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Playfair Display", "Georgia", "serif"],
+        sans: ["Inter", "system-ui", "sans-serif"],
+        display: ["Inter", "system-ui", "sans-serif"],
         body: ["Inter", "system-ui", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+      },
+      fontSize: {
+        "display": ["1.875rem", { lineHeight: "1.2", fontWeight: "700" }],
+        "heading": ["1.25rem", { lineHeight: "1.3", fontWeight: "600" }],
+        "subheading": ["1rem", { lineHeight: "1.4", fontWeight: "600" }],
+        "body": ["0.875rem", { lineHeight: "1.5", fontWeight: "400" }],
+        "body-medium": ["0.875rem", { lineHeight: "1.5", fontWeight: "500" }],
+        "caption": ["0.75rem", { lineHeight: "1.4", fontWeight: "400" }],
+        "mono": ["0.8125rem", { lineHeight: "1.4", fontWeight: "500" }],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -79,6 +90,14 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
           muted: "hsl(var(--sidebar-muted))",
         },
+        status: {
+          new: "hsl(var(--status-new))",
+          processing: "hsl(var(--status-processing))",
+          shipped: "hsl(var(--status-shipped))",
+          delivered: "hsl(var(--status-delivered))",
+          cancelled: "hsl(var(--status-cancelled))",
+          rto: "hsl(var(--status-rto))",
+        },
         chart: {
           "1": "hsl(var(--chart-1))",
           "2": "hsl(var(--chart-2))",
@@ -93,6 +112,11 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      boxShadow: {
+        sm: "var(--shadow-sm)",
+        md: "var(--shadow-md)",
+        lg: "var(--shadow-lg)",
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
@@ -103,29 +127,29 @@ export default {
           to: { height: "0" },
         },
         "fade-in": {
-          from: { opacity: "0", transform: "translateY(10px)" },
+          from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
-        "slide-in-left": {
-          from: { opacity: "0", transform: "translateX(-20px)" },
+        "slide-in-right": {
+          from: { opacity: "0", transform: "translateX(12px)" },
           to: { opacity: "1", transform: "translateX(0)" },
         },
         "scale-in": {
-          from: { opacity: "0", transform: "scale(0.95)" },
+          from: { opacity: "0", transform: "scale(0.96)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
-        pulse: {
+        "sla-pulse": {
           "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.5" },
+          "50%": { opacity: "0.4" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-in": "fade-in 0.4s ease-out",
-        "slide-in-left": "slide-in-left 0.3s ease-out",
+        "fade-in": "fade-in 0.3s ease-out",
+        "slide-in-right": "slide-in-right 0.3s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
-        pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "sla-pulse": "sla-pulse 1.5s ease-in-out infinite",
       },
     },
   },
