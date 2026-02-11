@@ -140,7 +140,7 @@ export default function StockRequests() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-display text-xl font-bold">Stock Requests</h2>
+        <h2 className="text-heading">Stock Requests</h2>
         <p className="text-muted-foreground text-sm mt-1">Review and process stock requests from sales team</p>
       </div>
 

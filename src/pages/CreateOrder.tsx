@@ -489,7 +489,7 @@ export default function CreateOrder() {
       <div className="space-y-6 animate-fade-in">
         {/* Header */}
         <div>
-          <h1 className="font-display text-2xl font-bold">Create New Order</h1>
+          <h1 className="text-display">Create New Order</h1>
           <p className="text-muted-foreground text-sm mt-1">
             For customers visiting the store or ordering via phone call
           </p>

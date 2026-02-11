@@ -47,10 +47,10 @@ export default function Employees() {
 
   const roleColors: Record<string, string> = {
     admin: 'bg-primary/10 text-primary',
-    manager: 'bg-blue-500/10 text-blue-600',
-    sales: 'bg-emerald-500/10 text-emerald-600',
-    operations: 'bg-orange-500/10 text-orange-600',
-    finance: 'bg-violet-500/10 text-violet-600',
+    manager: 'bg-info/10 text-info',
+    sales: 'bg-success/10 text-success',
+    operations: 'bg-warning/10 text-warning',
+    finance: 'bg-accent text-accent-foreground',
     viewer: 'bg-muted text-muted-foreground',
   };
 
@@ -58,7 +58,7 @@ export default function Employees() {
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
         <div>
-          <h1 className="font-display text-2xl font-bold">Employees</h1>
+          <h1 className="text-display">Employees</h1>
           <p className="text-muted-foreground text-sm mt-1">View and manage team members across stores</p>
         </div>
 
@@ -87,7 +87,7 @@ export default function Employees() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={emp.is_approved ? 'default' : 'outline'} className={emp.is_approved ? 'bg-emerald-500/10 text-emerald-600' : 'bg-yellow-500/10 text-yellow-600'}>
+                    <Badge variant={emp.is_approved ? 'success' : 'warning'}>
                       {emp.is_approved ? 'Active' : 'Pending'}
                     </Badge>
                   </TableCell>

@@ -745,7 +745,7 @@ export default function Customers() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold">Customer Management</h1>
+            <h1 className="text-display">Customer Management</h1>
             <p className="text-muted-foreground text-sm mt-1">Manage your customer relationships and data</p>
           </div>
           <div className="flex items-center gap-3">
@@ -789,7 +789,7 @@ export default function Customers() {
               </DialogTrigger>
               <DialogContent className="glass-card">
                 <DialogHeader>
-                  <DialogTitle className="font-display">
+                  <DialogTitle>
                     {editingCustomer ? 'Edit Customer' : 'Add New Customer'}
                   </DialogTitle>
                 </DialogHeader>
@@ -1124,7 +1124,7 @@ export default function Customers() {
         <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
           <DialogContent className="glass-card max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="font-display">Customer Details</DialogTitle>
+              <DialogTitle>Customer Details</DialogTitle>
             </DialogHeader>
             {viewingCustomer && (
               <div className="space-y-4">
@@ -1290,7 +1290,7 @@ export default function Customers() {
         <Dialog open={csvPreviewOpen} onOpenChange={setCsvPreviewOpen}>
           <DialogContent className="glass-card max-w-4xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="font-display">Preview Import Data</DialogTitle>
+              <DialogTitle>Preview Import Data</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               {/* Duplicate handling */}

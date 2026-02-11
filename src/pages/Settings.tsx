@@ -6,7 +6,7 @@ export default function SettingsPage() {
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
         <div>
-          <h1 className="font-display text-2xl font-bold">Settings</h1>
+          <h1 className="text-display">Settings</h1>
           <p className="text-muted-foreground text-sm mt-1">Configure your store, tax, and app preferences</p>
         </div>
         <div className="glass-card p-12 text-center">

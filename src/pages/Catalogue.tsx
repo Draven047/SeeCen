@@ -82,7 +82,7 @@ export default function Catalogue() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="font-display text-2xl font-bold">Product Catalogue</h1>
+            <h1 className="text-display">Product Catalogue</h1>
             <p className="text-muted-foreground text-sm mt-1">
               Browse and manage your fashion product inventory
             </p>

@@ -52,7 +52,7 @@ export default function OperationsDashboard() {
     <DashboardLayout>
       <div className="space-y-8 animate-fade-in">
         <div>
-          <h1 className="font-display text-3xl font-bold">Operations Dashboard</h1>
+          <h1 className="text-display">Operations Dashboard</h1>
           <p className="text-muted-foreground mt-1">Manage inventory and stock requests</p>
         </div>
 

@@ -186,7 +186,7 @@ export default function Orders() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold">Orders</h1>
+            <h1 className="text-display">Orders</h1>
             <p className="text-muted-foreground text-sm mt-1">
               {filtered.length} orders across all channels
               {urgentCount > 0 && <span className="text-destructive ml-2">• {urgentCount} SLA at risk</span>}

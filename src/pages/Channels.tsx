@@ -290,7 +290,7 @@ export default function Channels() {
       <div className="space-y-6 animate-fade-in">
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
-            <h1 className="font-display text-2xl font-bold">Channels & Integrations</h1>
+            <h1 className="text-display">Channels & Integrations</h1>
             <p className="text-muted-foreground text-sm mt-1">Connect marketplaces, sync orders, and manage SKU mappings</p>
           </div>
           <div className="flex gap-2">

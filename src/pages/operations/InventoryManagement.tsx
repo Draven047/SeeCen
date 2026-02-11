@@ -130,7 +130,7 @@ export default function InventoryManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-display text-xl font-bold">Inventory Management</h2>
+          <h2 className="text-heading">Inventory Management</h2>
           <p className="text-muted-foreground text-sm mt-1">Manage stock levels across all stores</p>
         </div>
       </div>

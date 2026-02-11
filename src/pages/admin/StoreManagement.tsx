@@ -139,7 +139,7 @@ export default function StoreManagement() {
       <div className="space-y-6 animate-fade-in">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold">Store Management</h1>
+            <h1 className="text-display">Store Management</h1>
             <p className="text-muted-foreground text-sm mt-1">Manage store profiles and user assignments</p>
           </div>
           <div className="flex gap-2">
