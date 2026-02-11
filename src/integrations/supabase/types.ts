@@ -792,7 +792,11 @@ export type Database = {
           notes: string | null
           order_number: string
           packed_at: string | null
+          payment_confirmed_at: string | null
+          payment_failed_at: string | null
+          payment_failure_reason: string | null
           payment_qr_code: string | null
+          payment_status: string
           payment_type: string
           place_of_supply_code: string | null
           place_of_supply_state: string | null
@@ -846,7 +850,11 @@ export type Database = {
           notes?: string | null
           order_number: string
           packed_at?: string | null
+          payment_confirmed_at?: string | null
+          payment_failed_at?: string | null
+          payment_failure_reason?: string | null
           payment_qr_code?: string | null
+          payment_status?: string
           payment_type?: string
           place_of_supply_code?: string | null
           place_of_supply_state?: string | null
@@ -900,7 +908,11 @@ export type Database = {
           notes?: string | null
           order_number?: string
           packed_at?: string | null
+          payment_confirmed_at?: string | null
+          payment_failed_at?: string | null
+          payment_failure_reason?: string | null
           payment_qr_code?: string | null
+          payment_status?: string
           payment_type?: string
           place_of_supply_code?: string | null
           place_of_supply_state?: string | null

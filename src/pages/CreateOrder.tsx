@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,13 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, ShoppingCart, Filter, Plus, Minus, Trash2, AlertCircle, X, QrCode, FileText, CheckCircle, User, Eye, MapPin, Package } from 'lucide-react';
+import { Search, ShoppingCart, Filter, Plus, Minus, Trash2, AlertCircle, X, QrCode, FileText, CheckCircle, User, Eye, MapPin, Package, Clock, RefreshCw, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import QRCode from 'qrcode';
 import jsPDF from 'jspdf';
 import { getSafeErrorMessage, sanitizeForLike, isValidPhoneInput } from '@/lib/errorUtils';
 import { generateTaxInvoice, type InvoiceData } from '@/lib/invoiceGenerator';
+import { useFinanceAudit } from '@/hooks/useFinanceAudit';
 
 interface Cigar {
   id: string;
@@ -61,10 +62,15 @@ interface StoreTaxSettings {
   cess_enabled: boolean;
 }
 
+type PaymentStatus = 'pending_payment' | 'payment_confirmed' | 'payment_failed';
+
+const PAYMENT_TIMEOUT_SECONDS = 180; // 3 minutes
+
 export default function CreateOrder() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { logAudit } = useFinanceAudit();
   
   const [step, setStep] = useState(1);
   const [cigars, setCigars] = useState<Cigar[]>([]);
@@ -91,10 +97,14 @@ export default function CreateOrder() {
   const [notes, setNotes] = useState('');
   const [shippingAddress, setShippingAddress] = useState('');
   
-  // Success dialog state
-  const [showSuccess, setShowSuccess] = useState(false);
+  // Payment flow state
   const [createdOrder, setCreatedOrder] = useState<{ id: string; order_number: string; total: number } | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState(PAYMENT_TIMEOUT_SECONDS);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const paymentConfirmedRef = useRef(false);
   
   // Quick view modal state
   const [quickViewCigar, setQuickViewCigar] = useState<Cigar | null>(null);
@@ -107,12 +117,94 @@ export default function CreateOrder() {
     fetchCigars();
     fetchStores();
     
-    // Check if cigar ID is in URL params
     const cigarId = searchParams.get('cigar');
     if (cigarId) {
       addCigarById(cigarId);
     }
   }, []);
+
+  // Payment timeout countdown
+  useEffect(() => {
+    if (paymentStatus === 'pending_payment') {
+      paymentConfirmedRef.current = false;
+      setTimeRemaining(PAYMENT_TIMEOUT_SECONDS);
+      
+      timerRef.current = setInterval(() => {
+        setTimeRemaining(prev => {
+          if (prev <= 1) {
+            // Timeout reached
+            if (!paymentConfirmedRef.current) {
+              handlePaymentTimeout();
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      return () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+      };
+    }
+  }, [paymentStatus]);
+
+  // Handle beforeunload (browser close/refresh) during pending payment
+  useEffect(() => {
+    if (paymentStatus !== 'pending_payment') return;
+    
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!paymentConfirmedRef.current) {
+        e.preventDefault();
+        e.returnValue = 'Payment is pending. Are you sure you want to leave?';
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [paymentStatus]);
+
+  // Handle back navigation during pending payment
+  useEffect(() => {
+    if (paymentStatus !== 'pending_payment') return;
+    
+    const handlePopState = () => {
+      if (!paymentConfirmedRef.current && createdOrder) {
+        markPaymentFailed(createdOrder.id, 'user_exit');
+      }
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [paymentStatus, createdOrder]);
+
+  const handlePaymentTimeout = useCallback(async () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (createdOrder && !paymentConfirmedRef.current) {
+      await markPaymentFailed(createdOrder.id, 'timeout');
+    }
+  }, [createdOrder]);
+
+  const markPaymentFailed = async (orderId: string, reason: string) => {
+    setPaymentStatus('payment_failed');
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    await supabase.from('orders').update({
+      payment_status: 'payment_failed',
+      payment_failed_at: new Date().toISOString(),
+      payment_failure_reason: reason,
+    }).eq('id', orderId);
+    
+    await logAudit({
+      entityType: 'order',
+      entityId: orderId,
+      actionType: 'payment_failed',
+      storeId: selectedStore || null,
+      afterData: { payment_status: 'payment_failed', reason },
+      reason: reason === 'timeout' ? 'Payment timed out after 3 minutes' : 'User exited payment screen',
+    });
+    
+    toast.error(reason === 'timeout' ? 'Payment timed out. Order not confirmed.' : 'Payment cancelled.');
+  };
 
   const fetchCigars = async () => {
     const { data } = await supabase.from('cigars').select('*').order('name');
@@ -139,7 +231,6 @@ export default function CreateOrder() {
     if (data) {
       setStoreTaxSettings(data as StoreTaxSettings);
     } else {
-      // Default tax settings if not configured
       setStoreTaxSettings({
         store_id: storeId,
         state_name: 'Maharashtra',
@@ -153,7 +244,6 @@ export default function CreateOrder() {
     }
   };
 
-  // Refetch tax settings when store changes
   useEffect(() => {
     if (selectedStore) {
       fetchStoreTaxSettings(selectedStore);
@@ -171,21 +261,17 @@ export default function CreateOrder() {
     const trimmedPhone = customerPhone.trim();
     if (!trimmedPhone) return;
     
-    // Validate phone input to prevent pattern abuse
     if (!isValidPhoneInput(trimmedPhone)) {
       toast.error('Please enter a valid phone number');
       return;
     }
     
-    // Require minimum 3 characters to prevent broad searches
     if (trimmedPhone.length < 3) {
       toast.error('Please enter at least 3 digits');
       return;
     }
     
     setLookingUp(true);
-    
-    // Sanitize input to escape LIKE pattern special characters
     const sanitizedPhone = sanitizeForLike(trimmedPhone);
     
     const { data } = await supabase
@@ -242,7 +328,6 @@ export default function CreateOrder() {
     } else {
       setCart([...cart, { cigar, quantity: qty }]);
     }
-    // Reset card quantity after adding
     setCardQuantities(prev => ({ ...prev, [cigar.id]: 1 }));
     toast.success(`Added ${qty} × ${cigar.name} to cart`);
   };
@@ -286,7 +371,6 @@ export default function CreateOrder() {
 
   const wrappers = [...new Set(cigars.map(c => c.wrapper))];
   const shapes = [...new Set(cigars.map(c => c.shape))];
-  // Extract brand as first word of cigar name
   const brands = [...new Set(cigars.map(c => c.name.split(' ')[0]))].sort();
 
   const filtered = cigars.filter(c => {
@@ -305,7 +389,6 @@ export default function CreateOrder() {
 
   const subtotal = cart.reduce((sum, item) => sum + (item.cigar.price * item.quantity), 0);
   
-  // Calculate taxes based on store settings
   const cgstRate = storeTaxSettings?.default_cgst_rate || 14;
   const sgstRate = storeTaxSettings?.default_sgst_rate || 14;
   const cessRate = storeTaxSettings?.cess_enabled ? (storeTaxSettings?.default_cess_rate || 0) : 0;
@@ -317,7 +400,6 @@ export default function CreateOrder() {
   const total = subtotal + totalTax;
 
   const generateQRCode = async (orderNumber: string, amount: number) => {
-    // UPI payment link format
     const upiLink = `upi://pay?pa=clozzet@upi&pn=Clozzet&am=${amount}&tn=Order%20${orderNumber}`;
     const qrUrl = await QRCode.toDataURL(upiLink, { width: 200, margin: 2 });
     return qrUrl;
@@ -339,7 +421,7 @@ export default function CreateOrder() {
       shippingAddress: shippingAddress || customer?.address,
       items: items.map(item => ({
         name: item.cigar.name,
-        hsn: '24021010', // Default HSN for cigars
+        hsn: '24021010',
         uom: 'Pcs',
         quantity: item.quantity,
         rate: item.cigar.price,
@@ -361,6 +443,7 @@ export default function CreateOrder() {
     return generateTaxInvoice(invoiceData);
   };
 
+  // Step 3: Create order with pending_payment status (does NOT count as successful yet)
   const handleCreateOrder = async () => {
     if (cart.length === 0) {
       toast.error('Please add items to your cart');
@@ -375,7 +458,6 @@ export default function CreateOrder() {
     setSubmitting(true);
     
     try {
-      // Create the order - use placeholder, database trigger will override with proper format
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert([{
@@ -396,12 +478,13 @@ export default function CreateOrder() {
           place_of_supply_state: storeTaxSettings?.state_name || 'Maharashtra',
           place_of_supply_code: storeTaxSettings?.state_code || '27',
           status: 'created' as const,
+          payment_status: 'pending_payment',
           channel: 'in_store',
           fulfillment_status: 'unfulfilled',
           notes,
           shipping_address: shippingAddress || customer?.address || null,
           billing_address: customer?.address || null,
-          order_number: 'PENDING' // Placeholder - database trigger overwrites this
+          order_number: 'PENDING'
         }])
         .select()
         .single();
@@ -420,11 +503,6 @@ export default function CreateOrder() {
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
       if (itemsError) throw itemsError;
       
-      // Update customer's last order date
-      if (customer) {
-        await supabase.from('customers').update({ last_order_date: new Date().toISOString() }).eq('id', customer.id);
-      }
-      
       // Generate QR code
       const qrUrl = await generateQRCode(orderData.order_number, total);
       setQrCodeUrl(qrUrl);
@@ -432,9 +510,17 @@ export default function CreateOrder() {
       // Update order with QR code
       await supabase.from('orders').update({ payment_qr_code: qrUrl }).eq('id', orderData.id);
       
+      await logAudit({
+        entityType: 'order',
+        entityId: orderData.id,
+        actionType: 'order_created_pending_payment',
+        storeId: selectedStore,
+        afterData: { payment_status: 'pending_payment', total },
+      });
+      
       setCreatedOrder(orderData);
-      setShowSuccess(true);
-      toast.success('Order created successfully!');
+      setPaymentStatus('pending_payment');
+      setStep(4); // Move to payment step
       
     } catch (error: any) {
       console.error('Order creation failed:', error);
@@ -442,6 +528,73 @@ export default function CreateOrder() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Confirm payment — idempotent (prevents double-click)
+  const handleConfirmPayment = async () => {
+    if (!createdOrder || confirmingPayment || paymentConfirmedRef.current) return;
+    
+    setConfirmingPayment(true);
+    paymentConfirmedRef.current = true;
+    
+    if (timerRef.current) clearInterval(timerRef.current);
+    
+    try {
+      const { error } = await supabase.from('orders').update({
+        payment_status: 'payment_confirmed',
+        payment_confirmed_at: new Date().toISOString(),
+      }).eq('id', createdOrder.id);
+      
+      if (error) throw error;
+      
+      // Update customer's last order date only on confirmed payment
+      if (customer) {
+        await supabase.from('customers').update({ last_order_date: new Date().toISOString() }).eq('id', customer.id);
+      }
+      
+      await logAudit({
+        entityType: 'order',
+        entityId: createdOrder.id,
+        actionType: 'payment_confirmed',
+        storeId: selectedStore || null,
+        beforeData: { payment_status: 'pending_payment' },
+        afterData: { payment_status: 'payment_confirmed' },
+      });
+      
+      setPaymentStatus('payment_confirmed');
+      toast.success('Payment confirmed. Order created.');
+      
+    } catch (error: any) {
+      paymentConfirmedRef.current = false;
+      toast.error(getSafeErrorMessage(error));
+    } finally {
+      setConfirmingPayment(false);
+    }
+  };
+
+  // Retry payment — resets to pending
+  const handleRetryPayment = async () => {
+    if (!createdOrder) return;
+    
+    paymentConfirmedRef.current = false;
+    
+    await supabase.from('orders').update({
+      payment_status: 'pending_payment',
+      payment_failed_at: null,
+      payment_failure_reason: null,
+    }).eq('id', createdOrder.id);
+    
+    await logAudit({
+      entityType: 'order',
+      entityId: createdOrder.id,
+      actionType: 'payment_retry',
+      storeId: selectedStore || null,
+      beforeData: { payment_status: 'payment_failed' },
+      afterData: { payment_status: 'pending_payment' },
+    });
+    
+    setPaymentStatus('pending_payment');
+    toast.info('Payment retried. Scan QR to pay.');
   };
 
   const downloadInvoice = () => {
@@ -452,7 +605,7 @@ export default function CreateOrder() {
 
   const downloadLabel = () => {
     if (!createdOrder) return;
-    const doc = new jsPDF({ format: [100, 150] }); // Label size
+    const doc = new jsPDF({ format: [100, 150] });
     
     doc.setFontSize(14);
     doc.text('Clozzet', 50, 15, { align: 'center' });
@@ -479,9 +632,14 @@ export default function CreateOrder() {
     doc.save(`Label-${createdOrder.order_number}.pdf`);
   };
 
-  const handleCloseSuccess = () => {
-    setShowSuccess(false);
+  const handleDone = () => {
     navigate('/orders');
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -500,14 +658,21 @@ export default function CreateOrder() {
           {[
             { num: 1, label: 'Select Items' },
             { num: 2, label: 'Customer' },
-            { num: 3, label: 'Review' }
+            { num: 3, label: 'Review' },
+            { num: 4, label: 'Payment' }
           ].map((s, i) => (
             <div key={s.num} className="flex items-center gap-4">
               <button 
-                onClick={() => setStep(s.num)}
+                onClick={() => {
+                  // Don't allow going back from payment step
+                  if (step === 4) return;
+                  if (s.num < step) setStep(s.num);
+                }}
+                disabled={step === 4}
                 className={cn(
                   "flex flex-col items-center gap-1 transition-all",
-                  step >= s.num ? "opacity-100" : "opacity-50"
+                  step >= s.num ? "opacity-100" : "opacity-50",
+                  step === 4 && "cursor-not-allowed"
                 )}
               >
                 <div className={cn(
@@ -520,9 +685,9 @@ export default function CreateOrder() {
                 </div>
                 <span className="text-xs font-medium">{s.label}</span>
               </button>
-              {i < 2 && (
+              {i < 3 && (
                 <div className={cn(
-                  "w-16 h-0.5 transition-all mb-6",
+                  "w-12 h-0.5 transition-all mb-6",
                   step > s.num ? "bg-primary" : "bg-border"
                 )} />
               )}
@@ -597,7 +762,6 @@ export default function CreateOrder() {
                           key={cigar.id} 
                           className="group bg-muted/30 rounded-lg overflow-hidden hover:bg-muted/50 transition-all hover:shadow-md border border-transparent hover:border-primary/20"
                         >
-                          {/* Product Image */}
                           <div 
                             className="aspect-square bg-muted/50 relative overflow-hidden cursor-pointer"
                             onClick={() => openQuickView(cigar)}
@@ -613,7 +777,6 @@ export default function CreateOrder() {
                                 <div className="text-4xl opacity-30">🚬</div>
                               </div>
                             )}
-                            {/* Stock Badge */}
                             <div className={cn(
                               "absolute top-2 right-2 text-[10px] font-medium px-1.5 py-0.5 rounded-full",
                               cigar.stock_status === 'in_stock' && "bg-success/90 text-white",
@@ -622,7 +785,6 @@ export default function CreateOrder() {
                             )}>
                               {cigar.stock_status === 'in_stock' ? 'In Stock' : cigar.stock_status === 'low_stock' ? 'Low' : 'Out'}
                             </div>
-                            {/* Quick View Button */}
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                               <span className="text-white text-xs font-medium flex items-center gap-1 bg-black/50 px-2 py-1 rounded">
                                 <Eye className="w-3 h-3" /> Quick View
@@ -630,7 +792,6 @@ export default function CreateOrder() {
                             </div>
                           </div>
                           
-                          {/* Product Info */}
                           <div className="p-3 space-y-2">
                             <h4 className="font-medium text-sm leading-tight line-clamp-2">{cigar.name}</h4>
                             <div className="text-xs text-muted-foreground">
@@ -638,7 +799,6 @@ export default function CreateOrder() {
                             </div>
                             <div className="font-bold text-primary">₹{cigar.price.toLocaleString()}</div>
                             
-                            {/* Add Button / Quantity Stepper */}
                             <div className="pt-1">
                               {qty === 0 ? (
                                 <Button 
@@ -887,14 +1047,12 @@ export default function CreateOrder() {
               <h3 className="font-semibold mb-4">Order Summary</h3>
               
               <div className="space-y-4">
-                {/* Customer */}
                 <div className="p-3 bg-muted/30 rounded-lg">
                   <p className="text-sm text-muted-foreground">Customer</p>
                   <p className="font-medium">{customer?.name || 'Walk-in Customer'}</p>
                   {customer?.phone && <p className="text-sm text-muted-foreground">{customer.phone}</p>}
                 </div>
                 
-                {/* Store & Tax Info */}
                 <div className="p-3 bg-muted/30 rounded-lg">
                   <p className="text-sm text-muted-foreground">Store & Tax Settings</p>
                   <p className="font-medium">{stores.find(s => s.id === selectedStore)?.name || 'Store'}</p>
@@ -904,7 +1062,6 @@ export default function CreateOrder() {
                   </p>
                 </div>
                 
-                {/* Items */}
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">Items ({cart.length})</p>
                   {cart.map(item => (
@@ -918,7 +1075,6 @@ export default function CreateOrder() {
                   ))}
                 </div>
                 
-                {/* Totals */}
                 <div className="pt-4 border-t border-border space-y-2">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
@@ -959,8 +1115,140 @@ export default function CreateOrder() {
                 onClick={handleCreateOrder}
                 disabled={submitting}
               >
-                {submitting ? 'Creating...' : 'Create Order'}
+                {submitting ? 'Processing...' : 'Proceed to Payment'}
               </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Payment Confirmation */}
+        {step === 4 && createdOrder && (
+          <div className="max-w-md mx-auto space-y-6">
+            {/* Payment Status Badge */}
+            <div className="glass-card p-6 text-center space-y-5">
+              {/* Status indicator */}
+              <div className="flex justify-center">
+                {paymentStatus === 'pending_payment' && (
+                  <div className="w-16 h-16 rounded-full bg-warning/20 flex items-center justify-center animate-pulse">
+                    <Clock className="w-8 h-8 text-warning" />
+                  </div>
+                )}
+                {paymentStatus === 'payment_confirmed' && (
+                  <div className="w-16 h-16 rounded-full bg-success/20 flex items-center justify-center">
+                    <CheckCircle className="w-8 h-8 text-success" />
+                  </div>
+                )}
+                {paymentStatus === 'payment_failed' && (
+                  <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center">
+                    <XCircle className="w-8 h-8 text-destructive" />
+                  </div>
+                )}
+              </div>
+
+              {/* Status text */}
+              <div>
+                {paymentStatus === 'pending_payment' && (
+                  <>
+                    <h2 className="text-xl font-bold">Awaiting Payment</h2>
+                    <p className="text-muted-foreground text-sm">Order #{createdOrder.order_number}</p>
+                  </>
+                )}
+                {paymentStatus === 'payment_confirmed' && (
+                  <>
+                    <h2 className="text-xl font-bold text-success">Payment Confirmed!</h2>
+                    <p className="text-muted-foreground text-sm">Order #{createdOrder.order_number} is now active</p>
+                  </>
+                )}
+                {paymentStatus === 'payment_failed' && (
+                  <>
+                    <h2 className="text-xl font-bold text-destructive">Payment Failed</h2>
+                    <p className="text-muted-foreground text-sm">Order #{createdOrder.order_number} was not confirmed</p>
+                  </>
+                )}
+              </div>
+
+              {/* Countdown timer for pending */}
+              {paymentStatus === 'pending_payment' && (
+                <div className={cn(
+                  "inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-mono font-semibold",
+                  timeRemaining <= 30 ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"
+                )}>
+                  <Clock className="w-4 h-4" />
+                  {formatTime(timeRemaining)} remaining
+                </div>
+              )}
+
+              {/* QR Code — show for pending */}
+              {paymentStatus === 'pending_payment' && qrCodeUrl && (
+                <div className="p-4 bg-white rounded-lg inline-block">
+                  <img src={qrCodeUrl} alt="Payment QR Code" className="w-48 h-48" />
+                  <p className="text-xs text-center mt-2 text-muted-foreground">
+                    Scan to pay ₹{Math.round(total).toLocaleString()}
+                  </p>
+                </div>
+              )}
+
+              {/* Payment Done button */}
+              {paymentStatus === 'pending_payment' && (
+                <Button 
+                  className="w-full btn-primary h-12 text-base"
+                  onClick={handleConfirmPayment}
+                  disabled={confirmingPayment}
+                >
+                  {confirmingPayment ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                      Confirming...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5" />
+                      Payment Done
+                    </div>
+                  )}
+                </Button>
+              )}
+
+              {/* Retry button for failed */}
+              {paymentStatus === 'payment_failed' && (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    The payment was not completed. You can retry or go back to orders.
+                  </p>
+                  <Button 
+                    className="w-full btn-primary"
+                    onClick={handleRetryPayment}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Retry Payment
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleDone}
+                  >
+                    Back to Orders
+                  </Button>
+                </div>
+              )}
+
+              {/* Post-confirmation actions */}
+              {paymentStatus === 'payment_confirmed' && (
+                <div className="space-y-4">
+                  <div className="flex gap-3 justify-center">
+                    <Button variant="outline" onClick={downloadInvoice}>
+                      <FileText className="w-4 h-4 mr-2" /> Invoice
+                    </Button>
+                    <Button variant="outline" onClick={downloadLabel}>
+                      <QrCode className="w-4 h-4 mr-2" /> Label
+                    </Button>
+                  </div>
+                  
+                  <Button className="w-full btn-primary" onClick={handleDone}>
+                    Done
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1012,42 +1300,6 @@ export default function CreateOrder() {
           </DialogContent>
         </Dialog>
 
-        {/* Success Dialog */}
-        <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-          <DialogContent className="glass-card max-w-md">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-success/20 flex items-center justify-center mx-auto">
-                <CheckCircle className="w-8 h-8 text-success" />
-              </div>
-              
-              <div>
-                <h2 className="text-xl font-bold">Order Created!</h2>
-                <p className="text-muted-foreground">Order #{createdOrder?.order_number}</p>
-              </div>
-              
-              {qrCodeUrl && (
-                <div className="p-4 bg-white rounded-lg inline-block">
-                  <img src={qrCodeUrl} alt="Payment QR Code" className="w-48 h-48" />
-                  <p className="text-xs text-center mt-2 text-muted-foreground">Scan to pay ₹{total.toLocaleString()}</p>
-                </div>
-              )}
-              
-              <div className="flex gap-3 justify-center">
-                <Button variant="outline" onClick={downloadInvoice}>
-                  <FileText className="w-4 h-4 mr-2" /> Invoice
-                </Button>
-                <Button variant="outline" onClick={downloadLabel}>
-                  <QrCode className="w-4 h-4 mr-2" /> Label
-                </Button>
-              </div>
-              
-              <Button className="w-full btn-primary" onClick={handleCloseSuccess}>
-                Done
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
         {/* Quick View Modal */}
         <Dialog open={!!quickViewCigar} onOpenChange={() => setQuickViewCigar(null)}>
           <DialogContent className="glass-card max-w-lg">
@@ -1058,7 +1310,6 @@ export default function CreateOrder() {
                 </DialogHeader>
                 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Image */}
                   <div className="aspect-square bg-muted/50 rounded-lg overflow-hidden">
                     {quickViewCigar.image_url ? (
                       <img 
@@ -1073,7 +1324,6 @@ export default function CreateOrder() {
                     )}
                   </div>
                   
-                  {/* Details */}
                   <div className="space-y-3">
                     <div className={cn(
                       "inline-flex text-xs font-medium px-2 py-1 rounded-full",
@@ -1117,14 +1367,12 @@ export default function CreateOrder() {
                   </div>
                 </div>
                 
-                {/* Description */}
                 {quickViewCigar.description && (
                   <div className="pt-2 border-t border-border">
                     <p className="text-sm text-muted-foreground">{quickViewCigar.description}</p>
                   </div>
                 )}
                 
-                {/* Add to Cart Section */}
                 <div className="flex items-center gap-3 pt-4 border-t border-border">
                   <div className="flex items-center border border-border rounded-md bg-background">
                     <Button 
