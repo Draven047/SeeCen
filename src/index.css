@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,119 +6,136 @@
 
 @layer base {
   :root {
-    /* Light theme - Clean white with brand accents */
-    --background: 40 30% 98%;
-    --foreground: 20 14% 12%;
-    
+    /* SellerOS Light — Electric Indigo + Warm Neutrals */
+    --background: 0 0% 98.5%;
+    --foreground: 220 20% 14%;
+
     --card: 0 0% 100%;
-    --card-foreground: 20 14% 12%;
-    
+    --card-foreground: 220 20% 14%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 20 14% 12%;
-    
-    --primary: 28 85% 52%;
+    --popover-foreground: 220 20% 14%;
+
+    --primary: 250 65% 54%;
     --primary-foreground: 0 0% 100%;
-    
-    --secondary: 40 20% 96%;
-    --secondary-foreground: 20 14% 20%;
-    
-    --muted: 40 15% 94%;
-    --muted-foreground: 20 10% 45%;
-    
-    --accent: 28 75% 55%;
-    --accent-foreground: 0 0% 100%;
-    
+
+    --secondary: 220 14% 94%;
+    --secondary-foreground: 220 14% 28%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 10% 46%;
+
+    --accent: 250 60% 96%;
+    --accent-foreground: 250 65% 44%;
+
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    
-    --success: 142 70% 45%;
+
+    --success: 152 60% 40%;
     --success-foreground: 0 0% 100%;
-    
+
     --warning: 38 92% 50%;
     --warning-foreground: 20 14% 8%;
-    
-    --info: 220 70% 55%;
+
+    --info: 210 90% 56%;
     --info-foreground: 0 0% 100%;
-    
-    --border: 40 15% 88%;
-    --input: 40 15% 94%;
-    --ring: 28 85% 52%;
-    
-    --chart-1: 28 85% 52%;
-    --chart-2: 142 70% 45%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 250 65% 54%;
+
+    --chart-1: 250 65% 54%;
+    --chart-2: 152 60% 40%;
     --chart-3: 38 92% 50%;
     --chart-4: 0 72% 51%;
-    --chart-5: 220 70% 55%;
+    --chart-5: 210 90% 56%;
     --chart-6: 280 60% 55%;
-    
-    --radius: 0.5rem;
-    
-    /* Status colors */
-    --status-vip: 28 85% 52%;
-    --status-regular: 142 70% 45%;
-    --status-new: 220 70% 55%;
-    --status-inactive: 0 0% 60%;
-    
-    /* Sidebar - Light */
+
+    --radius: 0.625rem;
+
+    /* Status semantic tokens */
+    --status-new: 210 90% 56%;
+    --status-processing: 38 92% 50%;
+    --status-shipped: 250 65% 54%;
+    --status-delivered: 152 60% 40%;
+    --status-cancelled: 0 72% 51%;
+    --status-rto: 25 95% 53%;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.04);
+    --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.06);
+    --shadow-lg: 0 8px 30px -4px hsl(0 0% 0% / 0.08);
+
+    /* Sidebar */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 20 14% 30%;
-    --sidebar-primary: 28 85% 52%;
+    --sidebar-foreground: 220 14% 36%;
+    --sidebar-primary: 250 65% 54%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 28 85% 52%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 40 15% 90%;
-    --sidebar-ring: 28 85% 52%;
-    --sidebar-muted: 20 10% 55%;
+    --sidebar-accent: 250 60% 96%;
+    --sidebar-accent-foreground: 250 65% 44%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 250 65% 54%;
+    --sidebar-muted: 220 10% 46%;
   }
 
   .dark {
-    /* Dark theme - Fashion-inspired */
-    --background: 20 14% 8%;
-    --foreground: 38 30% 90%;
-    
-    --card: 20 12% 12%;
-    --card-foreground: 38 30% 90%;
-    
-    --popover: 20 12% 10%;
-    --popover-foreground: 38 30% 90%;
-    
-    --primary: 28 85% 52%;
+    --background: 220 20% 7%;
+    --foreground: 220 14% 92%;
+
+    --card: 220 18% 10%;
+    --card-foreground: 220 14% 92%;
+
+    --popover: 220 18% 9%;
+    --popover-foreground: 220 14% 92%;
+
+    --primary: 250 70% 65%;
     --primary-foreground: 0 0% 100%;
-    
-    --secondary: 20 10% 18%;
-    --secondary-foreground: 38 30% 85%;
-    
-    --muted: 20 10% 16%;
-    --muted-foreground: 38 20% 55%;
-    
-    --accent: 28 75% 55%;
-    --accent-foreground: 0 0% 100%;
-    
+
+    --secondary: 220 14% 16%;
+    --secondary-foreground: 220 14% 80%;
+
+    --muted: 220 14% 14%;
+    --muted-foreground: 220 10% 50%;
+
+    --accent: 250 40% 18%;
+    --accent-foreground: 250 70% 75%;
+
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 98%;
-    
-    --success: 142 55% 40%;
+
+    --success: 152 55% 38%;
     --success-foreground: 0 0% 98%;
-    
+
     --warning: 38 92% 50%;
     --warning-foreground: 20 14% 8%;
-    
-    --info: 220 55% 50%;
+
+    --info: 210 70% 50%;
     --info-foreground: 0 0% 98%;
-    
-    --border: 20 12% 20%;
-    --input: 20 12% 15%;
-    --ring: 28 85% 52%;
-    
-    --sidebar-background: 20 12% 10%;
-    --sidebar-foreground: 38 30% 85%;
-    --sidebar-primary: 28 85% 52%;
+
+    --border: 220 15% 18%;
+    --input: 220 15% 16%;
+    --ring: 250 70% 65%;
+
+    --status-new: 210 70% 50%;
+    --status-processing: 38 92% 50%;
+    --status-shipped: 250 70% 65%;
+    --status-delivered: 152 55% 38%;
+    --status-cancelled: 0 62% 50%;
+    --status-rto: 25 85% 50%;
+
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.2);
+    --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.3);
+    --shadow-lg: 0 8px 30px -4px hsl(0 0% 0% / 0.4);
+
+    --sidebar-background: 220 18% 9%;
+    --sidebar-foreground: 220 14% 75%;
+    --sidebar-primary: 250 70% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 28 85% 52%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 20 12% 18%;
-    --sidebar-ring: 28 85% 52%;
-    --sidebar-muted: 38 20% 55%;
+    --sidebar-accent: 250 40% 18%;
+    --sidebar-accent-foreground: 250 70% 75%;
+    --sidebar-border: 220 15% 16%;
+    --sidebar-ring: 250 70% 65%;
+    --sidebar-muted: 220 10% 50%;
   }
 }
 
@@ -128,156 +145,55 @@
   }
 
   body {
-    @apply bg-background text-foreground font-body antialiased;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-semibold tracking-tight;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv11", "ss01";
   }
 }
 
 @layer components {
-  /* Card styles */
-  .stat-card {
-    @apply bg-card rounded-xl border border-border p-6 transition-all duration-200 hover:shadow-md;
-  }
-  
-  .stat-card-highlight {
-    @apply bg-card rounded-xl border-2 border-primary p-6 transition-all duration-200;
-  }
-  
-  .glass-card {
-    @apply bg-card border border-border rounded-xl shadow-sm;
-  }
+  /* Compat aliases — used across pages, maps to new tokens */
+  .glass-card { @apply bg-card border border-border rounded-lg shadow-sm; }
+  .stat-card { @apply bg-card rounded-lg border border-border p-5 transition-shadow hover:shadow-md; }
+  .stat-card-highlight { @apply bg-card rounded-lg border-2 border-primary p-5; }
+  .filter-card { @apply bg-card border border-border rounded-lg p-5; }
+  .quick-action-btn { @apply flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent rounded-lg transition-colors border border-border; }
 
-  /* Sidebar styles */
-  .sidebar-item {
-    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-muted/50 transition-all duration-200 text-sm font-medium;
-  }
-  
-  .sidebar-item-active {
-    @apply bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground;
-  }
-  
-  .sidebar-section-label {
-    @apply px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider;
-  }
+  .sidebar-item { @apply flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-accent transition-colors text-sm font-medium; }
+  .sidebar-item-active { @apply bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground; }
+  .sidebar-section-label { @apply px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider; }
 
-  /* Status badges */
-  .status-badge {
-    @apply px-2.5 py-1 rounded-full text-xs font-medium inline-flex items-center justify-center;
-  }
-  
-  .status-vip {
-    @apply bg-primary/15 text-primary;
-  }
-  
-  .status-regular {
-    @apply bg-success/15 text-success;
-  }
-  
-  .status-new {
-    @apply bg-info/15 text-info;
-  }
-  
-  .status-inactive {
-    @apply bg-muted text-muted-foreground;
-  }
-  
-  .status-pending {
-    @apply bg-warning/15 text-warning;
-  }
-  
-  .status-approved {
-    @apply bg-success/15 text-success;
-  }
-  
-  .status-fulfilled {
-    @apply bg-primary/15 text-primary;
-  }
-  
-  .status-high {
-    @apply bg-destructive/15 text-destructive;
-  }
-  
-  .status-medium {
-    @apply bg-warning/15 text-warning;
-  }
+  .status-badge { @apply px-2.5 py-0.5 rounded-full text-xs font-medium inline-flex items-center justify-center; }
+  .status-vip { @apply bg-primary/10 text-primary; }
+  .status-regular { @apply bg-success/10 text-success; }
+  .status-new { @apply bg-info/10 text-info; }
+  .status-inactive { @apply bg-muted text-muted-foreground; }
+  .status-pending { @apply bg-warning/10 text-warning; }
+  .status-approved { @apply bg-success/10 text-success; }
+  .status-fulfilled { @apply bg-primary/10 text-primary; }
+  .status-high { @apply bg-destructive/10 text-destructive; }
+  .status-medium { @apply bg-warning/10 text-warning; }
+  .status-created { @apply bg-muted text-muted-foreground; }
+  .status-paid { @apply bg-primary/10 text-primary; }
+  .status-shipped { @apply bg-warning/10 text-warning; }
+  .status-delivered { @apply bg-success/10 text-success; }
 
-  /* Order status */
-  .status-created {
-    @apply bg-muted text-muted-foreground;
-  }
-  
-  .status-paid {
-    @apply bg-primary/15 text-primary;
-  }
-  
-  .status-shipped {
-    @apply bg-warning/15 text-warning;
-  }
-  
-  .status-delivered {
-    @apply bg-success/15 text-success;
-  }
+  .stock-in-stock { @apply bg-success/10 text-success; }
+  .stock-low-stock { @apply bg-warning/10 text-warning; }
+  .stock-out-of-stock { @apply bg-destructive/10 text-destructive; }
 
-  /* Stock status */
-  .stock-in-stock {
-    @apply bg-success/15 text-success;
-  }
-  
-  .stock-low-stock {
-    @apply bg-warning/15 text-warning;
-  }
-  
-  .stock-out-of-stock {
-    @apply bg-destructive/15 text-destructive;
-  }
+  .btn-primary { @apply bg-primary text-primary-foreground hover:bg-primary/90 transition-colors; }
+  .btn-ghost { @apply hover:bg-accent text-foreground/80 hover:text-foreground transition-colors; }
+  .btn-outline-primary { @apply border border-border hover:border-primary hover:text-primary transition-colors; }
 
-  /* Table styles */
-  .table-row-hover {
-    @apply transition-colors duration-200 hover:bg-muted/30;
-  }
+  .tab-item { @apply px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground border-b-2 border-transparent transition-colors; }
+  .tab-item-active { @apply text-foreground border-primary; }
 
-  /* Button styles */
-  .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200;
-  }
-  
-  .btn-ghost {
-    @apply hover:bg-muted/50 text-foreground/80 hover:text-foreground transition-all duration-200;
-  }
-  
-  .btn-outline-primary {
-    @apply border border-border hover:border-primary hover:text-primary transition-all duration-200;
-  }
+  .alert-warning { @apply bg-warning/10 border border-warning/30 text-warning rounded-lg p-4 flex items-center gap-3; }
+  .alert-info { @apply bg-info/10 border border-info/30 text-info rounded-lg p-4 flex items-center gap-3; }
+  .alert-success { @apply bg-success/10 border border-success/30 text-success rounded-lg p-4 flex items-center gap-3; }
 
-  /* Tab styles */
-  .tab-item {
-    @apply px-6 py-3 text-sm font-medium text-muted-foreground hover:text-foreground border-b-2 border-transparent transition-all duration-200;
-  }
-  
-  .tab-item-active {
-    @apply text-foreground border-primary;
-  }
-
-  /* Alert styles */
-  .alert-warning {
-    @apply bg-warning/10 border border-warning/30 text-warning rounded-lg p-4 flex items-center gap-3;
-  }
-  
-  .alert-info {
-    @apply bg-info/10 border border-info/30 text-info rounded-lg p-4 flex items-center gap-3;
-  }
-  
-  .alert-success {
-    @apply bg-success/10 border border-success/30 text-success rounded-lg p-4 flex items-center gap-3;
-  }
-
-  /* Days badge for birthdays */
-  .days-badge {
-    @apply px-2 py-1 rounded-full text-xs font-medium bg-primary text-primary-foreground;
-  }
+  .days-badge { @apply px-2 py-0.5 rounded-full text-xs font-medium bg-primary text-primary-foreground; }
+  .table-row-hover { @apply transition-colors hover:bg-muted/30; }
 
   /* Shimmer animation for loading states */
   .animate-shimmer {
@@ -290,20 +206,10 @@
     background-size: 200% 100%;
     animation: shimmer 2s infinite;
   }
-  
+
   @keyframes shimmer {
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
-  }
-
-  /* Filter card */
-  .filter-card {
-    @apply bg-card border border-border rounded-xl p-6;
-  }
-
-  /* Quick action button */
-  .quick-action-btn {
-    @apply flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-muted/50 rounded-lg transition-all duration-200 border border-border;
   }
 }
 
@@ -312,22 +218,18 @@
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted)) transparent;
   }
-  
+
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
-  
+
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
-  
+
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--muted));
+    background-color: hsl(var(--muted-foreground) / 0.3);
     border-radius: 3px;
-  }
-  
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
   }
 }
