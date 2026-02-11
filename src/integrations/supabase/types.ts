@@ -97,6 +97,103 @@ export type Database = {
         }
         Relationships: []
       }
+      channel_accounts: {
+        Row: {
+          channel_name: string
+          channel_type: string
+          created_at: string
+          created_by: string
+          credentials: Json | null
+          id: string
+          is_active: boolean
+          last_sync_at: string | null
+          settings: Json | null
+          store_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel_name: string
+          channel_type: string
+          created_at?: string
+          created_by: string
+          credentials?: Json | null
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          settings?: Json | null
+          store_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel_name?: string
+          channel_type?: string
+          created_at?: string
+          created_by?: string
+          credentials?: Json | null
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          settings?: Json | null
+          store_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_accounts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channel_sync_logs: {
+        Row: {
+          channel_account_id: string
+          completed_at: string | null
+          details: Json | null
+          error_message: string | null
+          id: string
+          records_failed: number
+          records_processed: number
+          started_at: string
+          status: string
+          sync_type: string
+        }
+        Insert: {
+          channel_account_id: string
+          completed_at?: string | null
+          details?: Json | null
+          error_message?: string | null
+          id?: string
+          records_failed?: number
+          records_processed?: number
+          started_at?: string
+          status?: string
+          sync_type?: string
+        }
+        Update: {
+          channel_account_id?: string
+          completed_at?: string | null
+          details?: Json | null
+          error_message?: string | null
+          id?: string
+          records_failed?: number
+          records_processed?: number
+          started_at?: string
+          status?: string
+          sync_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_sync_logs_channel_account_id_fkey"
+            columns: ["channel_account_id"]
+            isOneToOne: false
+            referencedRelation: "channel_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cigars: {
         Row: {
           created_at: string
@@ -1251,6 +1348,77 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sku_mappings: {
+        Row: {
+          channel_account_id: string
+          created_at: string
+          external_product_id: string | null
+          external_product_name: string | null
+          external_sku: string
+          id: string
+          internal_cigar_id: string | null
+          internal_product_id: string | null
+          internal_variant_id: string | null
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          channel_account_id: string
+          created_at?: string
+          external_product_id?: string | null
+          external_product_name?: string | null
+          external_sku: string
+          id?: string
+          internal_cigar_id?: string | null
+          internal_product_id?: string | null
+          internal_variant_id?: string | null
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          channel_account_id?: string
+          created_at?: string
+          external_product_id?: string | null
+          external_product_name?: string | null
+          external_sku?: string
+          id?: string
+          internal_cigar_id?: string | null
+          internal_product_id?: string | null
+          internal_variant_id?: string | null
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sku_mappings_channel_account_id_fkey"
+            columns: ["channel_account_id"]
+            isOneToOne: false
+            referencedRelation: "channel_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sku_mappings_internal_cigar_id_fkey"
+            columns: ["internal_cigar_id"]
+            isOneToOne: false
+            referencedRelation: "cigars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sku_mappings_internal_product_id_fkey"
+            columns: ["internal_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sku_mappings_internal_variant_id_fkey"
+            columns: ["internal_variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
