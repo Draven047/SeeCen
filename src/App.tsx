@@ -27,6 +27,7 @@ import AdminPanel from "./pages/AdminPanel";
 import SalesCoach from "./pages/SalesCoach";
 import AICoachPage from "./pages/AICoachPage";
 import PendingApproval from "./pages/PendingApproval";
+import UIKit from "./pages/UIKit";
 import NotFound from "./pages/NotFound";
 import { AICoachChatBubble } from "./components/ai-coach/AICoachChatBubble";
 
@@ -98,6 +99,7 @@ function AppRoutes() {
         {/* AI */}
         <Route path="/sales-coach" element={<ProtectedRoute allowedRoles={['admin', 'sales']}><SalesCoach /></ProtectedRoute>} />
         <Route path="/ai-coach" element={<ProtectedRoute allowedRoles={['admin', 'sales']}><AICoachPage /></ProtectedRoute>} />
+        <Route path="/ui-kit" element={<ProtectedRoute allowedRoles={['admin']}><UIKit /></ProtectedRoute>} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>
