@@ -1139,6 +1139,122 @@ export type Database = {
         }
         Relationships: []
       }
+      shipment_tracking_events: {
+        Row: {
+          description: string | null
+          id: string
+          location: string | null
+          metadata: Json | null
+          shipment_id: string
+          status: string
+          timestamp: string
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          location?: string | null
+          metadata?: Json | null
+          shipment_id: string
+          status: string
+          timestamp?: string
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          location?: string | null
+          metadata?: Json | null
+          shipment_id?: string
+          status?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_tracking_events_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipments: {
+        Row: {
+          awb_number: string | null
+          created_at: string
+          created_by: string
+          estimated_delivery_at: string | null
+          id: string
+          label_url: string | null
+          order_id: string
+          pickup_address: string | null
+          pickup_scheduled_at: string | null
+          provider_name: string
+          quote_amount: number
+          rider_name: string | null
+          rider_phone: string | null
+          service_type: string
+          status: string
+          store_id: string | null
+          tracking_id: string
+          updated_at: string
+        }
+        Insert: {
+          awb_number?: string | null
+          created_at?: string
+          created_by: string
+          estimated_delivery_at?: string | null
+          id?: string
+          label_url?: string | null
+          order_id: string
+          pickup_address?: string | null
+          pickup_scheduled_at?: string | null
+          provider_name?: string
+          quote_amount?: number
+          rider_name?: string | null
+          rider_phone?: string | null
+          service_type?: string
+          status?: string
+          store_id?: string | null
+          tracking_id: string
+          updated_at?: string
+        }
+        Update: {
+          awb_number?: string | null
+          created_at?: string
+          created_by?: string
+          estimated_delivery_at?: string | null
+          id?: string
+          label_url?: string | null
+          order_id?: string
+          pickup_address?: string | null
+          pickup_scheduled_at?: string | null
+          provider_name?: string
+          quote_amount?: number
+          rider_name?: string | null
+          rider_phone?: string | null
+          service_type?: string
+          status?: string
+          store_id?: string | null
+          tracking_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_requests: {
         Row: {
           approved_at: string | null
