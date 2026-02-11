@@ -228,7 +228,7 @@ export default function Shipping() {
                       {(tab === 'active' ? activeShipments : completedShipments)
                         .filter(s => filtered.includes(s))
                         .map(s => {
-                          const cfg = SHIPMENT_STATUSES[s.status] || { label: s.status, color: 'bg-gray-500/10 text-gray-600' };
+                          const cfg = SHIPMENT_STATUSES[s.status] || { label: s.status, color: 'bg-muted text-muted-foreground' };
                           return (
                             <TableRow key={s.id} className="cursor-pointer" onClick={() => openTracking(s)}>
                               <TableCell className="font-mono text-sm font-medium">{s.tracking_id}</TableCell>
@@ -299,13 +299,13 @@ export default function Shipping() {
                       <div className="flex flex-col items-center">
                         <div className={cn('w-6 h-6 rounded-full flex items-center justify-center text-[10px]',
                           isCurrent ? 'bg-primary text-primary-foreground' :
-                          isComplete ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'
+                          isComplete ? 'bg-success text-success-foreground' : 'bg-muted text-muted-foreground'
                         )}>
                           {isComplete && !isCurrent ? <CheckCircle className="w-3 h-3" /> : <Circle className="w-3 h-3" />}
                         </div>
                         <span className={cn('text-[9px] mt-1 whitespace-nowrap', isCurrent ? 'font-semibold' : 'text-muted-foreground')}>{step.label}</span>
                       </div>
-                      {i < SHIPMENT_TIMELINE.length - 1 && <div className={cn('w-6 h-0.5 mt-[-12px]', isComplete ? 'bg-emerald-500' : 'bg-muted')} />}
+                      {i < SHIPMENT_TIMELINE.length - 1 && <div className={cn('w-6 h-0.5 mt-[-12px]', isComplete ? 'bg-success' : 'bg-muted')} />}
                     </div>
                   );
                 })}

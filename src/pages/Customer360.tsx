@@ -166,7 +166,7 @@ export default function Customer360() {
   else if (totalSpent >= 100000) tier = 'Gold';
   else if (totalSpent >= 25000) tier = 'Silver';
 
-  const tierColors = { VIP: 'bg-amber-500/10 text-amber-600 border-amber-500/30', Gold: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/30', Silver: 'bg-slate-400/10 text-slate-500 border-slate-400/30', New: 'bg-blue-500/10 text-blue-600 border-blue-500/30' };
+  const tierColors = { VIP: 'bg-warning/10 text-warning border-warning/30', Gold: 'bg-warning/10 text-warning border-warning/30', Silver: 'bg-muted text-muted-foreground border-border', New: 'bg-info/10 text-info border-info/30' };
 
   const fmt = (v: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v);
   const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });

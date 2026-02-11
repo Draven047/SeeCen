@@ -328,13 +328,13 @@ export default function Channels() {
                             <CardTitle className="text-base">{connector.name}</CardTitle>
                             <p className="text-xs text-muted-foreground mt-0.5">
                               {isConnected ? (
-                                <span className="flex items-center gap-1 text-emerald-600"><Check className="w-3 h-3" /> Connected</span>
+                                <span className="flex items-center gap-1 text-success"><Check className="w-3 h-3" /> Connected</span>
                               ) : 'Not connected'}
                             </p>
                           </div>
                         </div>
                         {isConnected && (
-                          <Badge variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-600">Active</Badge>
+                          <Badge variant="success" className="text-[10px]">Active</Badge>
                         )}
                       </div>
                     </CardHeader>
@@ -459,7 +459,7 @@ export default function Channels() {
                       <div className="text-xs space-y-1 text-muted-foreground">
                         <p>Last sync: {account.last_sync_at ? format(new Date(account.last_sync_at), 'dd MMM HH:mm') : 'Never'}</p>
                         {lastLog && <p>Last action: {lastLog.sync_type} — {lastLog.status}</p>}
-                        {health && <p className={health.ok ? 'text-emerald-600' : 'text-destructive'}>{health.message}</p>}
+                        {health && <p className={health.ok ? 'text-success' : 'text-destructive'}>{health.message}</p>}
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => runHealthCheck(account)}>

@@ -131,10 +131,10 @@ export default function StockRequests() {
   };
 
   const statusConfig: Record<string, { class: string; icon: React.ReactNode; label: string }> = {
-    pending: { class: 'bg-yellow-500/20 text-yellow-600', icon: <Clock className="w-3 h-3" />, label: 'Pending' },
-    approved: { class: 'bg-blue-500/20 text-blue-600', icon: <Truck className="w-3 h-3" />, label: 'Approved' },
-    rejected: { class: 'bg-red-500/20 text-red-600', icon: <X className="w-3 h-3" />, label: 'Rejected' },
-    fulfilled: { class: 'bg-green-500/20 text-green-600', icon: <CheckCircle className="w-3 h-3" />, label: 'Fulfilled' }
+    pending: { class: 'bg-warning/20 text-warning', icon: <Clock className="w-3 h-3" />, label: 'Pending' },
+    approved: { class: 'bg-info/20 text-info', icon: <Truck className="w-3 h-3" />, label: 'Approved' },
+    rejected: { class: 'bg-destructive/20 text-destructive', icon: <X className="w-3 h-3" />, label: 'Rejected' },
+    fulfilled: { class: 'bg-success/20 text-success', icon: <CheckCircle className="w-3 h-3" />, label: 'Fulfilled' }
   };
 
   return (
@@ -196,7 +196,7 @@ export default function StockRequests() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-green-600 border-green-500/50 hover:bg-green-500/10"
+                          className="text-success border-success/50 hover:bg-success/10"
                           onClick={() => updateRequest(request.id, 'approved')}
                         >
                           <Check className="w-4 h-4 mr-1" /> Approve
@@ -204,7 +204,7 @@ export default function StockRequests() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-red-600 border-red-500/50 hover:bg-red-500/10"
+                          className="text-destructive border-destructive/50 hover:bg-destructive/10"
                           onClick={() => updateRequest(request.id, 'rejected')}
                         >
                           <X className="w-4 h-4 mr-1" /> Reject
@@ -215,7 +215,7 @@ export default function StockRequests() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-blue-600 border-blue-500/50 hover:bg-blue-500/10"
+                        className="text-info border-info/50 hover:bg-info/10"
                         onClick={() => updateRequest(request.id, 'fulfilled')}
                       >
                         <CheckCircle className="w-4 h-4 mr-1" /> Mark Fulfilled

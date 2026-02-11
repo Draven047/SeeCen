@@ -339,7 +339,7 @@ export default function Finance() {
                         <TableCell className="text-sm text-destructive">-{fmt(s.tds)}</TableCell>
                         <TableCell className="text-sm font-medium">{fmt(s.net_amount)}</TableCell>
                         <TableCell>
-                          <Badge variant={s.status === 'settled' ? 'secondary' : 'outline'} className={cn('text-[10px]', s.status === 'settled' ? 'bg-emerald-500/10 text-emerald-600' : '')}>
+                          <Badge variant={s.status === 'settled' ? 'success' : 'outline'} className="text-[10px]">
                             {s.status}
                           </Badge>
                         </TableCell>
@@ -408,7 +408,7 @@ export default function Finance() {
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
             {!canEdit && (
-              <div className="p-3 rounded-lg bg-amber-500/10 text-amber-700 text-sm flex items-center gap-2">
+              <div className="p-3 rounded-lg bg-warning/10 text-warning text-sm flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" /> Only Finance/Admin roles can edit these settings.
               </div>
             )}

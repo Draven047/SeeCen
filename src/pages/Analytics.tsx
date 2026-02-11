@@ -342,8 +342,8 @@ export default function Analytics() {
               {[
                 { label: 'Total SKUs', value: totalSkus, icon: Package, color: 'text-primary' },
                 { label: 'Avg Stock', value: avgStock.toFixed(0), icon: BarChart3, color: 'text-muted-foreground' },
-                { label: 'Low Stock', value: lowStockItems.length, icon: AlertTriangle, color: lowStockItems.length > 0 ? 'text-amber-600' : 'text-emerald-600' },
-                { label: 'Out of Stock', value: oosItems.length, icon: XCircle, color: oosItems.length > 0 ? 'text-destructive' : 'text-emerald-600' },
+                { label: 'Low Stock', value: lowStockItems.length, icon: AlertTriangle, color: lowStockItems.length > 0 ? 'text-warning' : 'text-success' },
+                { label: 'Out of Stock', value: oosItems.length, icon: XCircle, color: oosItems.length > 0 ? 'text-destructive' : 'text-success' },
               ].map((kpi, i) => (
                 <div key={i} className="stat-card">
                   <div className="flex items-center gap-2 mb-1"><kpi.icon className={cn('w-4 h-4', kpi.color)} /><p className="text-xs text-muted-foreground">{kpi.label}</p></div>

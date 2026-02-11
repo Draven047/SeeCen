@@ -110,9 +110,9 @@ export default function SalesCoach() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'bg-red-500/10 text-red-600 border-red-200';
-      case 'medium': return 'bg-amber-500/10 text-amber-600 border-amber-200';
-      case 'low': return 'bg-green-500/10 text-green-600 border-green-200';
+      case 'high': return 'bg-destructive/10 text-destructive border-destructive/20';
+      case 'medium': return 'bg-warning/10 text-warning border-warning/20';
+      case 'low': return 'bg-success/10 text-success border-success/20';
       default: return 'bg-muted text-muted-foreground';
     }
   };
@@ -214,8 +214,8 @@ export default function SalesCoach() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-amber-500/10">
-                      <AlertCircle className="w-5 h-5 text-amber-500" />
+                    <div className="p-2 rounded-lg bg-warning/10">
+                      <AlertCircle className="w-5 h-5 text-warning" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{context.customersWithNoRecentOrders}</p>
@@ -227,8 +227,8 @@ export default function SalesCoach() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-pink-500/10">
-                      <Gift className="w-5 h-5 text-pink-500" />
+                    <div className="p-2 rounded-lg bg-accent">
+                      <Gift className="w-5 h-5 text-accent-foreground" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{context.upcomingBirthdays}</p>
@@ -240,8 +240,8 @@ export default function SalesCoach() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-green-500/10">
-                      <Target className="w-5 h-5 text-green-500" />
+                    <div className="p-2 rounded-lg bg-success/10">
+                      <Target className="w-5 h-5 text-success" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{context.targetProgress}%</p>
@@ -272,7 +272,7 @@ export default function SalesCoach() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5 text-red-500" />
+                    <AlertCircle className="w-5 h-5 text-destructive" />
                     Urgent Actions
                   </CardTitle>
                   <CardDescription>High-priority items that need your attention</CardDescription>
@@ -357,7 +357,7 @@ export default function SalesCoach() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Lightbulb className="w-5 h-5 text-amber-500" />
+                    <Lightbulb className="w-5 h-5 text-warning" />
                     Sales Tips
                   </CardTitle>
                   <CardDescription>Strategies to improve your performance</CardDescription>
@@ -369,7 +369,7 @@ export default function SalesCoach() {
                         <div key={i} className="p-3 rounded-lg border bg-card">
                           <h4 className="font-medium text-sm mb-1">{tip.title}</h4>
                           <p className="text-sm text-muted-foreground mb-2">{tip.description}</p>
-                          <div className="flex items-center gap-1 text-xs text-green-600">
+                          <div className="flex items-center gap-1 text-xs text-success">
                             <TrendingUp className="w-3 h-3" />
                             {tip.expectedImpact}
                           </div>
@@ -384,7 +384,7 @@ export default function SalesCoach() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Target className="w-5 h-5 text-green-500" />
+                    <Target className="w-5 h-5 text-success" />
                     Weekly Goals
                   </CardTitle>
                   <CardDescription>Focus areas for this week</CardDescription>
@@ -395,8 +395,8 @@ export default function SalesCoach() {
                       {recommendations.weeklyGoals.map((goal, i) => (
                         <div key={i} className="p-3 rounded-lg border bg-card">
                           <div className="flex items-start gap-3">
-                            <div className="p-1.5 rounded-full bg-green-500/10 mt-0.5">
-                              <CheckCircle2 className="w-4 h-4 text-green-500" />
+                            <div className="p-1.5 rounded-full bg-success/10 mt-0.5">
+                              <CheckCircle2 className="w-4 h-4 text-success" />
                             </div>
                             <div>
                               <h4 className="font-medium text-sm">{goal.goal}</h4>

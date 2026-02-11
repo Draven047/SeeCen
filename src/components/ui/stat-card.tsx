@@ -1,14 +1,17 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { motion } from "framer-motion";
 
-interface StatCardProps extends React.HTMLAttributes<HTMLDivElement> {
+interface StatCardProps {
   title: string;
   value: string | number;
   change?: number;
   changeLabel?: string;
   icon?: React.ReactNode;
   variant?: "default" | "primary";
+  index?: number;
+  className?: string;
 }
 
 export function StatCard({
@@ -18,20 +21,23 @@ export function StatCard({
   changeLabel,
   icon,
   variant = "default",
+  index = 0,
   className,
-  ...props
 }: StatCardProps) {
   const isPositive = change != null && change > 0;
   const isNegative = change != null && change < 0;
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.06, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] }}
+      whileHover={{ y: -2 }}
       className={cn(
-        "rounded-lg border bg-card p-5 transition-shadow hover:shadow-md",
+        "rounded-lg border bg-card p-5 transition-colors cursor-default",
         variant === "primary" && "border-primary/20 bg-primary/5",
         className,
       )}
-      {...props}
     >
       <div className="flex items-start justify-between">
         <p className="text-caption text-muted-foreground">{title}</p>
@@ -59,6 +65,6 @@ export function StatCard({
           {changeLabel && <span className="text-muted-foreground">{changeLabel}</span>}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
