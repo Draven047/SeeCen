@@ -24,6 +24,7 @@ import Channels from "./pages/Channels";
 import SettingsPage from "./pages/Settings";
 import OperationsPanel from "./pages/OperationsPanel";
 import AdminPanel from "./pages/AdminPanel";
+import Approvals from "./pages/admin/Approvals";
 import SalesCoach from "./pages/SalesCoach";
 import AICoachPage from "./pages/AICoachPage";
 import PendingApproval from "./pages/PendingApproval";
@@ -92,6 +93,7 @@ function AppRoutes() {
 
         {/* Administration */}
         <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminPanel /></ProtectedRoute>} />
+        <Route path="/admin/approvals" element={<ProtectedRoute allowedRoles={['admin']}><Approvals /></ProtectedRoute>} />
         <Route path="/channels" element={<ProtectedRoute allowedRoles={['admin']}><Channels /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute allowedRoles={['admin']}><SettingsPage /></ProtectedRoute>} />
         <Route path="/operations" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><OperationsPanel /></ProtectedRoute>} />

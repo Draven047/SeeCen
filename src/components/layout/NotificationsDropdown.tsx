@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Bell, Check, Trash2, Package, AlertTriangle, Gift, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Bell, Check, Trash2, Package, AlertTriangle, Gift, X, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -10,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface Notification {
   id: string;
@@ -22,7 +24,8 @@ interface Notification {
 }
 
 export function NotificationsDropdown() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -51,7 +54,28 @@ export function NotificationsDropdown() {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications'
+        },
+        (payload) => {
+          const newNotif = payload.new as Notification;
+          // Show toast for new approval requests (admin only)
+          if (newNotif.user_id === user?.id || newNotif.user_id === null) {
+            toast(newNotif.title, {
+              description: newNotif.message,
+              action: newNotif.type === 'info' && newNotif.title?.includes('Signup')
+                ? { label: 'View', onClick: () => navigate('/admin/approvals') }
+                : undefined,
+            });
+          }
+          fetchNotifications();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'notifications'
         },
@@ -95,7 +119,10 @@ export function NotificationsDropdown() {
     );
   };
 
-  const getIcon = (type: string) => {
+  const getIcon = (type: string, title?: string) => {
+    if (title?.includes('Signup') || title?.includes('Approval')) {
+      return <UserCheck className="w-4 h-4 text-warning" />;
+    }
     switch (type) {
       case 'stock_request':
         return <Package className="w-4 h-4 text-primary" />;
@@ -105,6 +132,15 @@ export function NotificationsDropdown() {
         return <Gift className="w-4 h-4 text-success" />;
       default:
         return <Bell className="w-4 h-4 text-muted-foreground" />;
+    }
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    markAsRead(notification.id);
+    // Deep link: approval-related notifications navigate to approvals page
+    if (notification.title?.includes('Signup') || notification.title?.includes('Approval')) {
+      setOpen(false);
+      navigate('/admin/approvals');
     }
   };
 
@@ -170,11 +206,11 @@ export function NotificationsDropdown() {
                     "p-4 hover:bg-muted/50 transition-colors cursor-pointer",
                     !notification.read && "bg-primary/5"
                   )}
-                  onClick={() => markAsRead(notification.id)}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex gap-3">
                     <div className="mt-0.5">
-                      {getIcon(notification.type)}
+                      {getIcon(notification.type, notification.title)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">

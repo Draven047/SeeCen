@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { IndianRupee, ShoppingCart, Users, TrendingUp, Plus } from 'lucide-react';
+import { IndianRupee, ShoppingCart, Users, TrendingUp, Plus, UserCheck } from 'lucide-react';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
 import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,7 @@ export default function Dashboard() {
     avgOrderValue: 0
   });
   const [loading, setLoading] = useState(true);
+  const [pendingApprovals, setPendingApprovals] = useState(0);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -62,7 +63,16 @@ export default function Dashboard() {
     };
 
     fetchStats();
-  }, []);
+
+    // Fetch pending approvals for admin
+    if (role === 'admin') {
+      supabase
+        .from('user_roles')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_approved', false)
+        .then(({ count }) => setPendingApprovals(count || 0));
+    }
+  }, [role]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -92,6 +102,25 @@ export default function Dashboard() {
             </Button>
           )}
         </div>
+
+        {/* Pending Approvals Card (Admin Only) */}
+        {role === 'admin' && pendingApprovals > 0 && (
+          <div
+            className="rounded-xl border border-warning/30 bg-warning/5 p-4 flex items-center gap-4 cursor-pointer hover:border-warning/50 transition-colors"
+            onClick={() => navigate('/admin/approvals')}
+          >
+            <div className="w-11 h-11 rounded-lg bg-warning/15 flex items-center justify-center shrink-0">
+              <UserCheck className="w-5 h-5 text-warning" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold">
+                {pendingApprovals} Pending Approval{pendingApprovals > 1 ? 's' : ''}
+              </p>
+              <p className="text-sm text-muted-foreground">New users are waiting for account access</p>
+            </div>
+            <Button variant="outline" size="sm" className="shrink-0">Review</Button>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

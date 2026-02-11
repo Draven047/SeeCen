@@ -3,14 +3,15 @@ import {
   LayoutDashboard, ShoppingCart, Truck, Package, Boxes,
   RotateCcw, Users, UserCog, BarChart3, DollarSign, Store,
   Link2, Settings, LogOut, ShoppingBag, ChevronLeft, PackageCheck,
-  Palette, ChevronDown, Bot,
+  Palette, ChevronDown, Bot, UserCheck,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { StoreSwitcher } from './StoreSwitcher';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NavItem {
   icon: React.ElementType;
@@ -65,6 +66,7 @@ const navGroups: NavGroup[] = [
     label: 'Admin',
     items: [
       { icon: Store, label: 'Stores', path: '/admin' },
+      { icon: UserCheck, label: 'Approvals', path: '/admin/approvals' },
       { icon: Link2, label: 'Channels', path: '/channels' },
       { icon: Settings, label: 'Settings', path: '/settings' },
       { icon: Palette, label: 'UI Kit', path: '/ui-kit' },
@@ -74,7 +76,7 @@ const navGroups: NavGroup[] = [
 
 const roleAccess: Record<string, string[]> = {
   admin:      ['*'],
-  manager:    ['/dashboard', '/orders', '/fulfillment', '/shipping', '/catalogue', '/inventory', '/returns', '/customers', '/employees', '/analytics', '/finance', '/ai-coach'],
+  manager:    ['/dashboard', '/orders', '/fulfillment', '/shipping', '/catalogue', '/inventory', '/returns', '/customers', '/employees', '/analytics', '/finance', '/ai-coach', '/admin/approvals'],
   sales:      ['/dashboard', '/orders', '/fulfillment', '/catalogue', '/customers', '/returns', '/ai-coach', '/sales-coach'],
   operations: ['/dashboard', '/orders', '/fulfillment', '/shipping', '/catalogue', '/inventory', '/returns'],
   finance:    ['/dashboard', '/orders', '/analytics', '/finance'],
@@ -91,9 +93,32 @@ function canAccess(role: string | null, path: string): boolean {
 
 export function Sidebar() {
   const location = useLocation();
-  const { role, signOut } = useAuth();
+  const { role, signOut, user } = useAuth();
   const { collapsed, toggle } = useSidebar();
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
+
+  // Fetch pending approval count for admins
+  useEffect(() => {
+    if (role !== 'admin') return;
+    const fetchPendingCount = async () => {
+      const { count } = await supabase
+        .from('user_roles')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_approved', false);
+      setPendingApprovalCount(count || 0);
+    };
+    fetchPendingCount();
+
+    const channel = supabase
+      .channel('approval-count')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_roles' }, () => {
+        fetchPendingCount();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [role]);
 
   const isActive = (path: string) => {
     if (path === '/orders') return location.pathname === '/orders';
@@ -106,6 +131,7 @@ export function Sidebar() {
 
   const renderNavItem = (item: NavItem) => {
     const active = isActive(item.path);
+    const showBadge = item.path === '/admin/approvals' && pendingApprovalCount > 0;
     const link = (
       <NavLink
         key={item.path}
@@ -118,16 +144,33 @@ export function Sidebar() {
         )}
       >
         <item.icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-primary-foreground' : 'text-sidebar-muted')} strokeWidth={1.75} />
-        {!collapsed && <span>{item.label}</span>}
+        {!collapsed && (
+          <span className="flex-1 flex items-center justify-between">
+            <span>{item.label}</span>
+            {showBadge && (
+              <span className="ml-auto inline-flex items-center justify-center w-5 h-5 rounded-full bg-warning text-warning-foreground text-[10px] font-bold">
+                {pendingApprovalCount > 9 ? '9+' : pendingApprovalCount}
+              </span>
+            )}
+          </span>
+        )}
+        {collapsed && showBadge && (
+          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-warning text-warning-foreground text-[9px] font-bold flex items-center justify-center">
+            {pendingApprovalCount > 9 ? '9+' : pendingApprovalCount}
+          </span>
+        )}
       </NavLink>
     );
 
     if (collapsed) {
       return (
         <Tooltip key={item.path} delayDuration={0}>
-          <TooltipTrigger asChild>{link}</TooltipTrigger>
+          <TooltipTrigger asChild>
+            <div className="relative">{link}</div>
+          </TooltipTrigger>
           <TooltipContent side="right" className="font-medium">
             {item.label}
+            {showBadge && ` (${pendingApprovalCount})`}
           </TooltipContent>
         </Tooltip>
       );
