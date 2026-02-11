@@ -1,1 +1,13 @@
 project_id = "zhctskgikrklxvfytjpv"
+
+[functions.ai-coach-generate]
+verify_jwt = false
+
+[functions.ai-coach-chat]
+verify_jwt = false
+
+[functions.ai-coach-cron]
+verify_jwt = false
+
+[functions.sales-coach]
+verify_jwt = false
