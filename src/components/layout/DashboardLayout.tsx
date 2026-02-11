@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { PageTransition } from './PageTransition';
 import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
 
@@ -16,7 +17,7 @@ function DashboardContent({ children }: { children: ReactNode }) {
       )}>
         <Header />
         <main className="flex-1 p-6 overflow-auto">
-          {children}
+          <PageTransition>{children}</PageTransition>
         </main>
       </div>
     </div>

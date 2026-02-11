@@ -239,18 +239,18 @@ export default function AICoachPage() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority?.toLowerCase()) {
-      case 'high': return 'bg-red-500/10 text-red-600 border-red-200';
-      case 'medium': return 'bg-amber-500/10 text-amber-600 border-amber-200';
-      case 'low': return 'bg-green-500/10 text-green-600 border-green-200';
+      case 'high': return 'bg-destructive/10 text-destructive border-destructive/20';
+      case 'medium': return 'bg-warning/10 text-warning border-warning/20';
+      case 'low': return 'bg-success/10 text-success border-success/20';
       default: return 'bg-muted text-muted-foreground';
     }
   };
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency?.toLowerCase()) {
-      case 'high': return 'text-red-500';
-      case 'medium': return 'text-amber-500';
-      case 'low': return 'text-green-500';
+      case 'high': return 'text-destructive';
+      case 'medium': return 'text-warning';
+      case 'low': return 'text-success';
       default: return 'text-muted-foreground';
     }
   };
@@ -263,7 +263,7 @@ export default function AICoachPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <h1 className="text-display flex items-center gap-2">
               <Brain className="w-7 h-7 text-primary" />
               AI Sales Coach
             </h1>
@@ -366,8 +366,8 @@ export default function AICoachPage() {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-amber-500/10">
-                        <AlertCircle className="w-5 h-5 text-amber-500" />
+                      <div className="p-2 rounded-lg bg-warning/10">
+                        <AlertCircle className="w-5 h-5 text-warning" />
                       </div>
                       <div>
                         <p className="text-2xl font-bold">{context.customersNeedingFollowUp}</p>
@@ -379,8 +379,8 @@ export default function AICoachPage() {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-pink-500/10">
-                        <Gift className="w-5 h-5 text-pink-500" />
+                      <div className="p-2 rounded-lg bg-accent">
+                        <Gift className="w-5 h-5 text-accent-foreground" />
                       </div>
                       <div>
                         <p className="text-2xl font-bold">{context.upcomingBirthdaysCount}</p>
@@ -392,8 +392,8 @@ export default function AICoachPage() {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-green-500/10">
-                        <Target className="w-5 h-5 text-green-500" />
+                      <div className="p-2 rounded-lg bg-success/10">
+                        <Target className="w-5 h-5 text-success" />
                       </div>
                       <div>
                         <p className="text-2xl font-bold">{context.targetProgress}%</p>
@@ -425,7 +425,7 @@ export default function AICoachPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-green-500" />
+                      <TrendingUp className="w-5 h-5 text-success" />
                       Top Cigars to Sell Today
                     </CardTitle>
                     <CardDescription>Prioritized by demand, stock, and margin</CardDescription>
@@ -515,7 +515,7 @@ export default function AICoachPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <ShoppingBag className="w-5 h-5 text-purple-500" />
+                      <ShoppingBag className="w-5 h-5 text-primary" />
                       Cross-sell Opportunities
                     </CardTitle>
                     <CardDescription>Upgrade existing customers</CardDescription>
@@ -554,7 +554,7 @@ export default function AICoachPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Gift className="w-5 h-5 text-amber-500" />
+                      <Gift className="w-5 h-5 text-warning" />
                       Offer Recommendations
                     </CardTitle>
                     <CardDescription>Deals to pitch today</CardDescription>
@@ -593,7 +593,7 @@ export default function AICoachPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Package className="w-5 h-5 text-red-500" />
+                      <Package className="w-5 h-5 text-destructive" />
                       Stock Priorities
                     </CardTitle>
                     <CardDescription>Items needing attention</CardDescription>
@@ -609,7 +609,7 @@ export default function AICoachPage() {
                                 {item.currentStock} left
                               </Badge>
                             </div>
-                            <p className="text-xs font-medium text-amber-600 mb-1">{item.action}</p>
+                            <p className="text-xs font-medium text-warning mb-1">{item.action}</p>
                             <p className="text-xs text-muted-foreground">{item.reason}</p>
                           </div>
                         ))}
@@ -625,7 +625,7 @@ export default function AICoachPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-green-500" />
+                      <TrendingUp className="w-5 h-5 text-success" />
                       All Recommended Cigars
                     </CardTitle>
                     <CardDescription>Full list of today's recommendations</CardDescription>
@@ -655,10 +655,10 @@ export default function AICoachPage() {
             <TabsContent value="targets" className="space-y-6">
               {/* Incentive Coaching Card */}
               {recommendations.incentiveCoaching && (
-                <Card className="bg-gradient-to-br from-green-500/5 to-amber-500/5 border-green-200">
+                <Card className="bg-gradient-to-br from-success/5 to-warning/5 border-success/20">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Target className="w-5 h-5 text-green-500" />
+                      <Target className="w-5 h-5 text-success" />
                       Your Path to Target
                     </CardTitle>
                   </CardHeader>
@@ -669,11 +669,11 @@ export default function AICoachPage() {
                         <p className="text-sm text-muted-foreground">Current Progress</p>
                       </div>
                       <div className="text-center p-4 rounded-lg bg-background/50">
-                        <p className="text-3xl font-bold text-amber-500">₹{recommendations.incentiveCoaching.remainingAmount}</p>
+                        <p className="text-3xl font-bold text-warning">₹{recommendations.incentiveCoaching.remainingAmount}</p>
                         <p className="text-sm text-muted-foreground">Remaining to Target</p>
                       </div>
                       <div className="text-center p-4 rounded-lg bg-background/50">
-                        <p className="text-3xl font-bold text-green-500">{recommendations.incentiveCoaching.daysLeft}</p>
+                        <p className="text-3xl font-bold text-success">{recommendations.incentiveCoaching.daysLeft}</p>
                         <p className="text-sm text-muted-foreground">Days Left</p>
                       </div>
                     </div>
@@ -700,7 +700,7 @@ export default function AICoachPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      <CheckCircle2 className="w-5 h-5 text-success" />
                       Weekly Goals
                     </CardTitle>
                     <CardDescription>Focus areas for this week</CardDescription>
@@ -710,8 +710,8 @@ export default function AICoachPage() {
                       {recommendations.weeklyGoals.map((goal, i) => (
                         <div key={i} className="p-3 rounded-lg border bg-card">
                           <div className="flex items-start gap-3">
-                            <div className="p-1.5 rounded-full bg-green-500/10 mt-0.5">
-                              <CheckCircle2 className="w-4 h-4 text-green-500" />
+                             <div className="p-1.5 rounded-full bg-success/10 mt-0.5">
+                               <CheckCircle2 className="w-4 h-4 text-success" />
                             </div>
                             <div>
                               <h4 className="font-medium text-sm">{goal.goal}</h4>

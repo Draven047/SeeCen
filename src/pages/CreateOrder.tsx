@@ -1028,7 +1028,7 @@ export default function CreateOrder() {
               {qrCodeUrl && (
                 <div className="p-4 bg-white rounded-lg inline-block">
                   <img src={qrCodeUrl} alt="Payment QR Code" className="w-48 h-48" />
-                  <p className="text-xs text-center mt-2 text-gray-600">Scan to pay ₹{total.toLocaleString()}</p>
+                  <p className="text-xs text-center mt-2 text-muted-foreground">Scan to pay ₹{total.toLocaleString()}</p>
                 </div>
               )}
               

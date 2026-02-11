@@ -129,9 +129,9 @@ export default function StoreManagement() {
   };
 
   const roleColors: Record<string, string> = {
-    admin: 'bg-destructive/10 text-destructive', manager: 'bg-purple-500/10 text-purple-600',
-    operations: 'bg-blue-500/10 text-blue-600', sales: 'bg-emerald-500/10 text-emerald-600',
-    finance: 'bg-amber-500/10 text-amber-600', viewer: 'bg-gray-500/10 text-gray-600',
+    admin: 'bg-destructive/10 text-destructive', manager: 'bg-primary/10 text-primary',
+    operations: 'bg-info/10 text-info', sales: 'bg-success/10 text-success',
+    finance: 'bg-warning/10 text-warning', viewer: 'bg-muted text-muted-foreground',
   };
 
   return (

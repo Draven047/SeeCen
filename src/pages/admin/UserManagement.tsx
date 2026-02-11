@@ -121,9 +121,9 @@ export default function UserManagement() {
   };
 
   const roleColors: Record<string, string> = {
-    admin: 'bg-red-500/20 text-red-400',
-    operations: 'bg-blue-500/20 text-blue-400',
-    sales: 'bg-green-500/20 text-green-400'
+    admin: 'bg-destructive/20 text-destructive',
+    operations: 'bg-info/20 text-info',
+    sales: 'bg-success/20 text-success'
   };
 
   return (

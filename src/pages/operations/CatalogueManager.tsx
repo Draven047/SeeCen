@@ -341,8 +341,8 @@ export default function CatalogueManager() {
           {/* Store Selection */}
           <div className="glass-card p-6">
             <div className="flex items-start gap-4 mb-6">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-                <Store className="w-6 h-6 text-emerald-500" />
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Store className="w-6 h-6 text-primary" />
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-lg">Select Store</h3>
@@ -366,8 +366,8 @@ export default function CatalogueManager() {
             </Select>
 
             {selectedStore && (
-              <div className="mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                <p className="text-sm font-medium text-emerald-600">
+              <div className="mt-4 p-3 rounded-lg bg-primary/10 border border-primary/20">
+                <p className="text-sm font-medium text-primary">
                   Managing inventory for: <span className="font-bold">{selectedStoreName}</span>
                 </p>
               </div>
@@ -514,21 +514,21 @@ export default function CatalogueManager() {
           <h3 className="font-semibold mb-4">Upload Results</h3>
           <div className="flex gap-6 mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                <Check className="w-5 h-5 text-green-600" />
+              <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center">
+                <Check className="w-5 h-5 text-success" />
               </div>
               <div>
-                <p className="text-lg font-bold text-green-600">{uploadResult.success}</p>
+                <p className="text-lg font-bold text-success">{uploadResult.success}</p>
                 <p className="text-xs text-muted-foreground">Successful</p>
               </div>
             </div>
             {uploadResult.failed > 0 && (
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
-                  <AlertCircle className="w-5 h-5 text-red-600" />
+                <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center">
+                  <AlertCircle className="w-5 h-5 text-destructive" />
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-red-600">{uploadResult.failed}</p>
+                  <p className="text-lg font-bold text-destructive">{uploadResult.failed}</p>
                   <p className="text-xs text-muted-foreground">Failed</p>
                 </div>
               </div>
