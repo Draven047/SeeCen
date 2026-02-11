@@ -184,7 +184,7 @@ export default function Orders() {
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-display">Orders</h1>
             <p className="text-muted-foreground text-sm mt-1">
@@ -194,13 +194,14 @@ export default function Orders() {
           </div>
           <div className="flex items-center gap-2">
             <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
-            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="hidden sm:flex">
               <Upload className="w-4 h-4 mr-1" /> Import
             </Button>
             <Button variant="outline" size="sm" onClick={fetchOrders}>
-              <RefreshCw className="w-4 h-4 mr-1" /> Refresh
+              <RefreshCw className="w-4 h-4" />
+              <span className="hidden sm:inline ml-1">Refresh</span>
             </Button>
-            <Button size="sm" onClick={() => navigate('/orders/new')}>
+            <Button size="sm" onClick={() => navigate('/orders/new')} className="hidden sm:flex">
               <Plus className="w-4 h-4 mr-1" /> New Order
             </Button>
           </div>
@@ -300,7 +301,7 @@ export default function Orders() {
           </div>
         </div>
 
-        {/* Orders Table */}
+        {/* Orders — Desktop Table / Mobile Cards */}
         <div className="glass-card overflow-hidden">
           {loading ? (
             <div className="p-12 text-center">
@@ -313,79 +314,125 @@ export default function Orders() {
               <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted/30">
-                  <tr>
-                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">Channel</th>
-                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">Order</th>
-                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">SLA</th>
-                    <th className="text-center p-3 text-xs font-medium text-muted-foreground">Items</th>
-                    <th className="text-right p-3 text-xs font-medium text-muted-foreground">Total</th>
-                    <th className="text-center p-3 text-xs font-medium text-muted-foreground">Payment</th>
-                    <th className="text-center p-3 text-xs font-medium text-muted-foreground">Ship</th>
-                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">Status</th>
-                    <th className="text-center p-3 text-xs font-medium text-muted-foreground"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(order => {
-                    const chCfg = CHANNEL_CONFIG[order.channel] || CHANNEL_CONFIG.in_store;
-                    const ffCfg = FULFILLMENT_CONFIG[order.fulfillment_status] || FULFILLMENT_CONFIG.new;
-                    const ChIcon = CHANNEL_ICONS[order.channel] || Package;
-                    const sla = getSlaStatus(order.sla_deadline);
+            <>
+              {/* Mobile Card List */}
+              <div className="md:hidden divide-y divide-border">
+                {filtered.map(order => {
+                  const chCfg = CHANNEL_CONFIG[order.channel] || CHANNEL_CONFIG.in_store;
+                  const ffCfg = FULFILLMENT_CONFIG[order.fulfillment_status] || FULFILLMENT_CONFIG.new;
+                  const ChIcon = CHANNEL_ICONS[order.channel] || Package;
+                  const sla = getSlaStatus(order.sla_deadline);
 
-                    return (
-                      <tr key={order.id} className="table-row-hover border-t border-border cursor-pointer" onClick={() => navigate(`/orders/${order.id}`)}>
-                        <td className="p-3">
-                          <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium', chCfg.color)}>
-                            <ChIcon className="w-3 h-3" /> {chCfg.label}
-                          </span>
-                        </td>
-                        <td className="p-3">
-                          <div>
-                            <span className="font-medium text-sm">{order.external_channel_order_number || order.order_number}</span>
-                            <p className="text-xs text-muted-foreground">{order.customers?.name || 'Walk-in'} • {formatDate(order.created_at)}</p>
+                  return (
+                    <div key={order.id} className="p-4 active:bg-muted/30 transition-colors cursor-pointer" onClick={() => navigate(`/orders/${order.id}`)}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-sm truncate">{order.external_channel_order_number || order.order_number}</span>
+                            <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium shrink-0', chCfg.color)}>
+                              <ChIcon className="w-2.5 h-2.5" /> {chCfg.label}
+                            </span>
                           </div>
-                        </td>
-                        <td className="p-3">
-                          <span className={cn('text-xs font-medium flex items-center gap-1', sla.color)}>
-                            {sla.urgent && <Clock className="w-3 h-3" />}
-                            {sla.label}
-                          </span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <span className="text-sm">{order.items_count || '-'}</span>
-                        </td>
-                        <td className="p-3 text-right">
-                          <span className="font-semibold text-sm">{formatCurrency(Number(order.total))}</span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <Badge variant={order.payment_type === 'cod' ? 'outline' : 'secondary'} className="text-[10px] px-1.5">
+                          <p className="text-xs text-muted-foreground">{order.customers?.name || 'Walk-in'} • {formatDate(order.created_at)}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-semibold text-sm">{formatCurrency(Number(order.total))}</p>
+                          <Badge variant={order.payment_type === 'cod' ? 'outline' : 'secondary'} className="text-[10px] px-1.5 mt-1">
                             {order.payment_type === 'cod' ? 'COD' : 'Prepaid'}
                           </Badge>
-                        </td>
-                        <td className="p-3 text-center">
-                          <Badge variant="outline" className="text-[10px] px-1.5">
-                            {order.fulfillment_type === 'marketplace_logistics' ? 'Mkt' : 'Self'}
-                          </Badge>
-                        </td>
-                        <td className="p-3">
-                          <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium', ffCfg.color)}>
-                            {ffCfg.label}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium', ffCfg.color)}>
+                          {ffCfg.label}
+                        </span>
+                        {sla.label !== '-' && (
+                          <span className={cn('text-[10px] font-medium flex items-center gap-0.5', sla.color)}>
+                            {sla.urgent && <Clock className="w-2.5 h-2.5" />}
+                            {sla.label}
                           </span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); navigate(`/orders/${order.id}`); }}>
-                            <Eye className="w-3.5 h-3.5" />
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted/30">
+                    <tr>
+                      <th className="text-left p-3 text-xs font-medium text-muted-foreground">Channel</th>
+                      <th className="text-left p-3 text-xs font-medium text-muted-foreground">Order</th>
+                      <th className="text-left p-3 text-xs font-medium text-muted-foreground">SLA</th>
+                      <th className="text-center p-3 text-xs font-medium text-muted-foreground">Items</th>
+                      <th className="text-right p-3 text-xs font-medium text-muted-foreground">Total</th>
+                      <th className="text-center p-3 text-xs font-medium text-muted-foreground">Payment</th>
+                      <th className="text-center p-3 text-xs font-medium text-muted-foreground">Ship</th>
+                      <th className="text-left p-3 text-xs font-medium text-muted-foreground">Status</th>
+                      <th className="text-center p-3 text-xs font-medium text-muted-foreground"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map(order => {
+                      const chCfg = CHANNEL_CONFIG[order.channel] || CHANNEL_CONFIG.in_store;
+                      const ffCfg = FULFILLMENT_CONFIG[order.fulfillment_status] || FULFILLMENT_CONFIG.new;
+                      const ChIcon = CHANNEL_ICONS[order.channel] || Package;
+                      const sla = getSlaStatus(order.sla_deadline);
+
+                      return (
+                        <tr key={order.id} className="table-row-hover border-t border-border cursor-pointer" onClick={() => navigate(`/orders/${order.id}`)}>
+                          <td className="p-3">
+                            <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium', chCfg.color)}>
+                              <ChIcon className="w-3 h-3" /> {chCfg.label}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            <div>
+                              <span className="font-medium text-sm">{order.external_channel_order_number || order.order_number}</span>
+                              <p className="text-xs text-muted-foreground">{order.customers?.name || 'Walk-in'} • {formatDate(order.created_at)}</p>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <span className={cn('text-xs font-medium flex items-center gap-1', sla.color)}>
+                              {sla.urgent && <Clock className="w-3 h-3" />}
+                              {sla.label}
+                            </span>
+                          </td>
+                          <td className="p-3 text-center">
+                            <span className="text-sm">{order.items_count || '-'}</span>
+                          </td>
+                          <td className="p-3 text-right">
+                            <span className="font-semibold text-sm">{formatCurrency(Number(order.total))}</span>
+                          </td>
+                          <td className="p-3 text-center">
+                            <Badge variant={order.payment_type === 'cod' ? 'outline' : 'secondary'} className="text-[10px] px-1.5">
+                              {order.payment_type === 'cod' ? 'COD' : 'Prepaid'}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-center">
+                            <Badge variant="outline" className="text-[10px] px-1.5">
+                              {order.fulfillment_type === 'marketplace_logistics' ? 'Mkt' : 'Self'}
+                            </Badge>
+                          </td>
+                          <td className="p-3">
+                            <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium', ffCfg.color)}>
+                              {ffCfg.label}
+                            </span>
+                          </td>
+                          <td className="p-3 text-center">
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); navigate(`/orders/${order.id}`); }}>
+                              <Eye className="w-3.5 h-3.5" />
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
 

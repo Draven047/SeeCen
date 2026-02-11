@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { IndianRupee, ShoppingCart, Users, TrendingUp } from 'lucide-react';
+import { IndianRupee, ShoppingCart, Users, TrendingUp, Plus } from 'lucide-react';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
 import { StatCard } from '@/components/ui/stat-card';
+import { Button } from '@/components/ui/button';
 
 interface Stats {
   totalSales: number;
@@ -30,6 +32,7 @@ const dummyDistributionData = [
 
 export default function Dashboard() {
   const { role } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<Stats>({
     totalSales: 0,
     totalOrders: 0,
@@ -72,14 +75,22 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
-        {/* Page Header */}
-        <div>
-          <h1 className="text-display">
-            {role === 'admin' ? 'Seller Dashboard' : role === 'manager' ? 'Store Dashboard' : 'Dashboard'}
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Overview of your business performance
-          </p>
+        {/* Page Header + Quick Action */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-display">
+              {role === 'admin' ? 'Seller Dashboard' : role === 'manager' ? 'Store Dashboard' : 'Dashboard'}
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Overview of your business performance
+            </p>
+          </div>
+          {(!role || ['admin', 'manager', 'sales'].includes(role)) && (
+            <Button onClick={() => navigate('/orders/new')} size="lg" className="gap-2 w-full sm:w-auto">
+              <Plus className="h-5 w-5" />
+              Start New Order
+            </Button>
+          )}
         </div>
 
         {/* Stats Cards */}
