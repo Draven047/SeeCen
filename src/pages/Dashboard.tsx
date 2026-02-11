@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { DollarSign, ShoppingCart, Users, TrendingUp, Sparkles } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
+import { IndianRupee, ShoppingCart, Users, TrendingUp } from 'lucide-react';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
+import { StatCard } from '@/components/ui/stat-card';
 
 interface Stats {
   totalSales: number;
@@ -22,9 +23,9 @@ const dummySalesData = [
 ];
 
 const dummyDistributionData = [
-  { name: 'Tops & Shirts', value: 45, color: 'hsl(28, 85%, 52%)' },
-  { name: 'Dresses', value: 30, color: 'hsl(220, 70%, 55%)' },
-  { name: 'Accessories', value: 25, color: 'hsl(280, 60%, 55%)' },
+  { name: 'Tops & Shirts', value: 45, color: 'hsl(var(--chart-1))' },
+  { name: 'Dresses', value: 30, color: 'hsl(var(--chart-5))' },
+  { name: 'Accessories', value: 25, color: 'hsl(var(--chart-6))' },
 ];
 
 export default function Dashboard() {
@@ -68,86 +69,53 @@ export default function Dashboard() {
     }).format(value);
   };
 
-  const statCards = [
-    { 
-      icon: DollarSign, 
-      label: 'Total Sales', 
-      value: formatCurrency(stats.totalSales), 
-      subtitle: 'This quarter',
-      iconBg: 'bg-primary/10',
-      iconColor: 'text-primary'
-    },
-    { 
-      icon: ShoppingCart, 
-      label: 'Total Orders', 
-      value: stats.totalOrders.toString(), 
-      subtitle: 'This quarter',
-      iconBg: 'bg-muted',
-      iconColor: 'text-muted-foreground'
-    },
-    { 
-      icon: Users, 
-      label: 'Active Customers', 
-      value: stats.activeCustomers.toString(), 
-      subtitle: 'Active this quarter',
-      iconBg: 'bg-muted',
-      iconColor: 'text-muted-foreground'
-    },
-    { 
-      icon: TrendingUp, 
-      label: 'Avg Order Value', 
-      value: formatCurrency(stats.avgOrderValue), 
-      subtitle: 'Per order',
-      iconBg: 'bg-muted',
-      iconColor: 'text-muted-foreground'
-    },
-  ];
-
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
         {/* Page Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-bold">
-              {role === 'admin' ? 'Seller Dashboard' : role === 'manager' ? 'Store Dashboard' : 'Dashboard'}
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Overview of your business performance and team management
-            </p>
-          </div>
-          <button className="flex items-center gap-2 text-primary text-sm font-medium hover:underline">
-            <Sparkles className="w-4 h-4" />
-            Core Features
-          </button>
+        <div>
+          <h1 className="text-display">
+            {role === 'admin' ? 'Seller Dashboard' : role === 'manager' ? 'Store Dashboard' : 'Dashboard'}
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Overview of your business performance
+          </p>
         </div>
-
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {statCards.map((stat, i) => (
-            <div key={i} className="stat-card">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  <p className="text-2xl font-bold mt-1">{loading ? '...' : stat.value}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{stat.subtitle}</p>
-                </div>
-                <div className={`w-10 h-10 rounded-lg ${stat.iconBg} flex items-center justify-center`}>
-                  <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
-                </div>
-              </div>
-            </div>
-          ))}
+          <StatCard
+            title="Total Sales"
+            value={loading ? '...' : formatCurrency(stats.totalSales)}
+            changeLabel="This quarter"
+            icon={<IndianRupee className="h-4 w-4" />}
+          />
+          <StatCard
+            title="Total Orders"
+            value={loading ? '...' : stats.totalOrders.toString()}
+            changeLabel="This quarter"
+            icon={<ShoppingCart className="h-4 w-4" />}
+          />
+          <StatCard
+            title="Active Customers"
+            value={loading ? '...' : stats.activeCustomers.toString()}
+            icon={<Users className="h-4 w-4" />}
+          />
+          <StatCard
+            title="Avg Order Value"
+            value={loading ? '...' : formatCurrency(stats.avgOrderValue)}
+            variant="primary"
+            icon={<TrendingUp className="h-4 w-4" />}
+          />
         </div>
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Sales Trend */}
-          <div className="glass-card p-6">
+          <div className="rounded-lg border bg-card p-6">
             <div className="mb-4">
-              <h3 className="font-semibold text-lg">Sales Trend</h3>
-              <p className="text-sm text-muted-foreground">Monthly sales performance across all stores</p>
+              <h3 className="text-heading">Sales Trend</h3>
+              <p className="text-sm text-muted-foreground">Monthly sales performance</p>
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -155,19 +123,20 @@ export default function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `₹${v/100000}L`} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
+                      fontSize: '13px'
                     }}
                     formatter={(value: number) => [formatCurrency(value), 'Sales']}
                   />
-                  <Area 
-                    type="monotone" 
-                    dataKey="sales" 
-                    stroke="hsl(var(--primary))" 
-                    fill="hsl(var(--primary) / 0.2)" 
+                  <Area
+                    type="monotone"
+                    dataKey="sales"
+                    stroke="hsl(var(--primary))"
+                    fill="hsl(var(--primary) / 0.15)"
                     strokeWidth={2}
                   />
                 </AreaChart>
@@ -176,9 +145,9 @@ export default function Dashboard() {
           </div>
 
           {/* Product Distribution */}
-          <div className="glass-card p-6">
+          <div className="rounded-lg border bg-card p-6">
             <div className="mb-4">
-              <h3 className="font-semibold text-lg">Product Distribution</h3>
+              <h3 className="text-heading">Product Distribution</h3>
               <p className="text-sm text-muted-foreground">Sales by product category</p>
             </div>
             <div className="h-64 flex items-center justify-center">
@@ -197,11 +166,12 @@ export default function Dashboard() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
+                      fontSize: '13px'
                     }}
                     formatter={(value: number) => [`${value}%`, 'Share']}
                   />

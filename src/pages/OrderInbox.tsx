@@ -187,7 +187,7 @@ export default function OrderInbox() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold">Order Inbox</h1>
+            <h1 className="text-display">Order Inbox</h1>
             <p className="text-muted-foreground text-sm mt-1">Unified view of orders across all channels</p>
           </div>
           <div className="flex items-center gap-3">

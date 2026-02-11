@@ -170,7 +170,7 @@ export default function Finance() {
       <div className="space-y-6 animate-fade-in">
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
-            <h1 className="font-display text-2xl font-bold">Finance</h1>
+            <h1 className="text-display">Finance</h1>
             <p className="text-muted-foreground text-sm mt-1">{currentStore?.name || 'Select a store'} — Revenue, GST, settlements & reconciliation</p>
           </div>
           {!canEdit && <Badge variant="outline" className="text-xs">View Only</Badge>}
@@ -181,8 +181,8 @@ export default function Finance() {
           {[
             { label: 'Total Invoiced', value: fmt(totalInvoiced), icon: Receipt, color: 'text-primary' },
             { label: 'Credit Notes', value: fmt(totalCreditNotes), icon: CreditCard, color: 'text-destructive' },
-            { label: 'Net Settled', value: fmt(totalSettled), icon: Banknote, color: 'text-emerald-600' },
-            { label: 'COD Pending', value: fmt(codPending), icon: AlertTriangle, color: 'text-amber-600' },
+            { label: 'Net Settled', value: fmt(totalSettled), icon: Banknote, color: 'text-success' },
+            { label: 'COD Pending', value: fmt(codPending), icon: AlertTriangle, color: 'text-warning' },
           ].map(kpi => (
             <div key={kpi.label} className="glass-card p-4">
               <div className="flex items-center gap-2 mb-1">
@@ -244,7 +244,7 @@ export default function Finance() {
                       <TableCell className="text-sm font-medium">{fmt(inv.total)}</TableCell>
                       <TableCell>
                         {inv.is_voided ? <Badge variant="destructive" className="text-[10px]">Voided</Badge>
-                          : <Badge variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-600">Active</Badge>}
+                          : <Badge variant="success" className="text-[10px]">Active</Badge>}
                       </TableCell>
                     </TableRow>
                   ))}

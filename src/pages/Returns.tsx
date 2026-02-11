@@ -270,7 +270,7 @@ export default function Returns() {
       <div className="space-y-6 animate-fade-in">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold">Returns & Exchanges</h1>
+            <h1 className="text-display">Returns & Exchanges</h1>
             <p className="text-muted-foreground text-sm mt-1">Manage return requests, process refunds, and restock inventory</p>
           </div>
           <Button onClick={() => setShowCreateDialog(true)}>

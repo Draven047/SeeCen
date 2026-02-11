@@ -68,7 +68,7 @@ export default function PendingApproval() {
           <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
             <Clock className="w-8 h-8 text-amber-600" />
           </div>
-          <CardTitle className="text-2xl font-display">Pending Approval</CardTitle>
+          <CardTitle className="text-2xl">Pending Approval</CardTitle>
           <CardDescription className="text-base">
             Your account is awaiting administrator approval
           </CardDescription>

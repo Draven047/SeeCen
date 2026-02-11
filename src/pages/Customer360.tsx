@@ -183,7 +183,7 @@ export default function Customer360() {
           </Button>
           <div className="flex-1">
             <div className="flex items-center gap-3">
-              <h1 className="font-display text-2xl font-bold">{customer.name}</h1>
+              <h1 className="text-display">{customer.name}</h1>
               <Badge variant="outline" className={cn('text-xs', tierColors[tier])}>
                 <Star className="w-3 h-3 mr-1" />
                 {tier}

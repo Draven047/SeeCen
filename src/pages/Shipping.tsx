@@ -157,7 +157,7 @@ export default function Shipping() {
       <div className="space-y-6 animate-fade-in">
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
-            <h1 className="font-display text-2xl font-bold">Shipping & Pickups</h1>
+            <h1 className="text-display">Shipping & Pickups</h1>
             <p className="text-muted-foreground text-sm mt-1">Manage courier pickups, track shipments, and handle deliveries</p>
           </div>
           <Button onClick={() => setShowOrderPicker(true)}>

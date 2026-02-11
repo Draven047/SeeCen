@@ -400,7 +400,7 @@ export default function AdminPanel() {
               <Building2 className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h1 className="font-display text-2xl font-bold">Business Command Center</h1>
+              <h1 className="text-display">Business Command Center</h1>
               <p className="text-muted-foreground text-sm">Complete oversight of your cigar empire</p>
             </div>
           </div>

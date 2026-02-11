@@ -219,7 +219,7 @@ export default function Fulfillment() {
       <div className="space-y-5 animate-fade-in">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold">Fulfillment</h1>
+            <h1 className="text-display">Fulfillment</h1>
             <p className="text-muted-foreground text-sm mt-1">Pick, pack, and dispatch orders by SLA urgency</p>
           </div>
           <div className="flex items-center gap-2">

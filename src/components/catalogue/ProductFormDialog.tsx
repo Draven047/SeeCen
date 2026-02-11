@@ -128,7 +128,7 @@ export function ProductFormDialog({ open, onOpenChange, editingProduct, existing
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-card max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-display">{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
+          <DialogTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">

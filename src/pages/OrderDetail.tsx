@@ -309,7 +309,7 @@ export default function OrderDetailPage() {
             <Button variant="ghost" size="sm" onClick={() => navigate('/orders')}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="font-display text-xl font-bold">{order.invoice_number || order.order_number}</h1>
+                <h1 className="text-xl font-bold">{order.invoice_number || order.order_number}</h1>
                 <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium', chCfg.color)}>{chCfg.label}</span>
                 {isLocked && <Badge variant="secondary" className="text-[10px]"><Lock className="w-3 h-3 mr-0.5" /> Finalized</Badge>}
                 {isVoided && <Badge variant="destructive" className="text-[10px]"><Ban className="w-3 h-3 mr-0.5" /> Voided</Badge>}

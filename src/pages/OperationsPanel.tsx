@@ -104,7 +104,7 @@ export default function OperationsPanel() {
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
         <div>
-          <h1 className="font-display text-2xl font-bold">Operations Command Center</h1>
+          <h1 className="text-display">Operations Command Center</h1>
           <p className="text-muted-foreground text-sm mt-1">Manage inventory, stock requests, and catalogue across all stores</p>
         </div>
 

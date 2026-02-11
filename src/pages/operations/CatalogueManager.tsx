@@ -256,7 +256,7 @@ export default function CatalogueManager() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="font-display text-xl font-bold">Catalogue Manager</h2>
+          <h2 className="text-heading">Catalogue Manager</h2>
           <p className="text-muted-foreground text-sm mt-1">
             Add new products to catalogue or manage store-specific inventory
           </p>

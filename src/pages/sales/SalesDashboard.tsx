@@ -95,7 +95,7 @@ export default function SalesDashboard() {
     <DashboardLayout>
       <div className="space-y-8 animate-fade-in">
         <div>
-          <h1 className="font-display text-3xl font-bold">Sales Dashboard</h1>
+          <h1 className="text-display">Sales Dashboard</h1>
           <p className="text-muted-foreground mt-1">Track your performance and customers</p>
         </div>
 
@@ -122,7 +122,7 @@ export default function SalesDashboard() {
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <Target className="w-6 h-6 text-primary" />
-              <h2 className="font-display text-xl font-semibold">Quarter Target Progress</h2>
+              <h2 className="text-heading">Quarter Target Progress</h2>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
@@ -139,7 +139,7 @@ export default function SalesDashboard() {
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <Cake className="w-6 h-6 text-primary" />
-              <h2 className="font-display text-xl font-semibold">Upcoming Birthdays</h2>
+              <h2 className="text-heading">Upcoming Birthdays</h2>
             </div>
             {upcomingBirthdays.length === 0 ? (
               <p className="text-muted-foreground text-sm">No upcoming birthdays in the next 7 days</p>

@@ -184,7 +184,7 @@ export default function Analytics() {
       <div className="space-y-6 animate-fade-in">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="font-display text-2xl font-bold">Analytics</h1>
+            <h1 className="text-display">Analytics</h1>
             <p className="text-muted-foreground text-sm mt-1">Sales, operations, inventory & team performance</p>
           </div>
           <div className="flex gap-3">
@@ -228,7 +228,7 @@ export default function Analytics() {
                   <p className="text-xs text-muted-foreground">{kpi.label}</p>
                   <p className="text-xl font-bold mt-1">{kpi.value}</p>
                   {kpi.change !== 0 && (
-                    <div className={cn('flex items-center gap-1 text-xs', kpi.change >= 0 ? 'text-emerald-600' : 'text-destructive')}>
+                    <div className={cn('flex items-center gap-1 text-xs', kpi.change >= 0 ? 'text-success' : 'text-destructive')}>
                       {kpi.change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                       {fmtPct(kpi.change)}
                     </div>
@@ -304,10 +304,10 @@ export default function Analytics() {
           <TabsContent value="ops" className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: 'SLA Hit Rate', value: `${slaRate.toFixed(1)}%`, icon: Target, color: slaRate >= 90 ? 'text-emerald-600' : 'text-amber-600' },
+                { label: 'SLA Hit Rate', value: `${slaRate.toFixed(1)}%`, icon: Target, color: slaRate >= 90 ? 'text-success' : 'text-warning' },
                 { label: 'Avg Pack Time', value: `${avgPackMin.toFixed(0)} min`, icon: Clock, color: 'text-primary' },
                 { label: 'Cancellation Rate', value: `${cancelRate.toFixed(1)}%`, icon: XCircle, color: cancelRate > 10 ? 'text-destructive' : 'text-muted-foreground' },
-                { label: 'RTOs', value: rtoCount, icon: Truck, color: rtoCount > 0 ? 'text-destructive' : 'text-emerald-600' },
+                { label: 'RTOs', value: rtoCount, icon: Truck, color: rtoCount > 0 ? 'text-destructive' : 'text-success' },
               ].map((kpi, i) => (
                 <div key={i} className="stat-card">
                   <div className="flex items-center gap-2 mb-1">
