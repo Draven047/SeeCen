@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Settings, Save, Plus, Building2 } from 'lucide-react';
+import { Settings, Save, Plus, Building2, FileText } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { INDIAN_STATES } from '@/lib/indianStates';
 import { useFinanceAudit } from '@/hooks/useFinanceAudit';
@@ -39,16 +40,33 @@ interface InvoiceSeries {
   store?: { name: string };
 }
 
+interface StoreFinanceConfig {
+  store_id: string;
+  invoice_type: string;
+  return_policy: string | null;
+  footer_notes: string | null;
+  store?: { name: string };
+}
+
 export default function FinanceSettings() {
   const [stores, setStores] = useState<Store[]>([]);
   const [taxSettings, setTaxSettings] = useState<StoreTaxSettings[]>([]);
   const [invoiceSeries, setInvoiceSeries] = useState<InvoiceSeries[]>([]);
   const [creditNoteSeries, setCreditNoteSeries] = useState<InvoiceSeries[]>([]);
+  const [financeConfigs, setFinanceConfigs] = useState<StoreFinanceConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTaxDialog, setShowTaxDialog] = useState(false);
   const [showSeriesDialog, setShowSeriesDialog] = useState(false);
+  const [showInvoiceConfigDialog, setShowInvoiceConfigDialog] = useState(false);
   const [selectedStore, setSelectedStore] = useState('');
   const { logAudit } = useFinanceAudit();
+
+  const [invoiceConfigForm, setInvoiceConfigForm] = useState({
+    storeId: '',
+    invoiceType: 'tax_invoice',
+    returnPolicy: '',
+    footerNotes: '',
+  });
 
   const [taxForm, setTaxForm] = useState({
     storeId: '',
@@ -72,17 +90,19 @@ export default function FinanceSettings() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [storesRes, taxRes, invSeriesRes, cnSeriesRes] = await Promise.all([
+    const [storesRes, taxRes, invSeriesRes, cnSeriesRes, finConfigRes] = await Promise.all([
       supabase.from('stores').select('id, name').order('name'),
       supabase.from('store_tax_settings').select('*, store:stores(name)'),
       supabase.from('invoice_series').select('*, store:stores(name)').order('financial_year', { ascending: false }),
-      supabase.from('credit_note_series').select('*, store:stores(name)').order('financial_year', { ascending: false })
+      supabase.from('credit_note_series').select('*, store:stores(name)').order('financial_year', { ascending: false }),
+      supabase.from('store_finance_settings').select('store_id, invoice_type, return_policy, footer_notes, store:stores(name)')
     ]);
 
     setStores(storesRes.data || []);
     setTaxSettings(taxRes.data || []);
     setInvoiceSeries(invSeriesRes.data || []);
     setCreditNoteSeries(cnSeriesRes.data || []);
+    setFinanceConfigs((finConfigRes.data || []) as unknown as StoreFinanceConfig[]);
     setLoading(false);
   };
 
@@ -272,6 +292,38 @@ export default function FinanceSettings() {
       });
     }
     setShowTaxDialog(true);
+  };
+
+  const handleSaveInvoiceConfig = async () => {
+    if (!invoiceConfigForm.storeId) { toast.error('Please select a store'); return; }
+    
+    const updateData = {
+      invoice_type: invoiceConfigForm.invoiceType,
+      return_policy: invoiceConfigForm.returnPolicy || null,
+      footer_notes: invoiceConfigForm.footerNotes || null,
+    };
+
+    const { data: existingRow } = await supabase.from('store_finance_settings').select('id').eq('store_id', invoiceConfigForm.storeId).maybeSingle();
+    if (existingRow) {
+      await supabase.from('store_finance_settings').update(updateData).eq('store_id', invoiceConfigForm.storeId);
+    } else {
+      await supabase.from('store_finance_settings').insert({ store_id: invoiceConfigForm.storeId, ...updateData });
+    }
+
+    toast.success('Invoice configuration saved');
+    setShowInvoiceConfigDialog(false);
+    fetchData();
+  };
+
+  const openInvoiceConfigDialog = (storeId?: string) => {
+    const existing = storeId ? financeConfigs.find(f => f.store_id === storeId) : null;
+    setInvoiceConfigForm({
+      storeId: storeId || '',
+      invoiceType: existing?.invoice_type || 'tax_invoice',
+      returnPolicy: existing?.return_policy || '',
+      footerNotes: existing?.footer_notes || '',
+    });
+    setShowInvoiceConfigDialog(true);
   };
 
   if (loading) {
@@ -495,6 +547,106 @@ export default function FinanceSettings() {
             </Table>
           </div>
         </div>
+      </div>
+
+      {/* Invoice Configuration Section */}
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-semibold flex items-center gap-2">
+              <FileText className="w-5 h-5" /> Invoice Configuration
+            </h3>
+            <p className="text-sm text-muted-foreground">Set invoice type, return policy, and footer notes per store</p>
+          </div>
+          <Button onClick={() => openInvoiceConfigDialog()} className="btn-primary">
+            <Plus className="w-4 h-4 mr-2" /> Configure
+          </Button>
+        </div>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Store</TableHead>
+              <TableHead>Invoice Type</TableHead>
+              <TableHead>Return Policy</TableHead>
+              <TableHead>Footer Notes</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {financeConfigs.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  No invoice configurations set. Defaults will apply.
+                </TableCell>
+              </TableRow>
+            ) : (
+              financeConfigs.map(fc => (
+                <TableRow key={fc.store_id}>
+                  <TableCell className="font-medium">{fc.store?.name || '-'}</TableCell>
+                  <TableCell>{fc.invoice_type === 'receipt' ? 'Receipt' : 'Tax Invoice'}</TableCell>
+                  <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{fc.return_policy || 'Default'}</TableCell>
+                  <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{fc.footer_notes || '-'}</TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="sm" onClick={() => openInvoiceConfigDialog(fc.store_id)}>Edit</Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+
+        {/* Invoice Config Dialog */}
+        <Dialog open={showInvoiceConfigDialog} onOpenChange={setShowInvoiceConfigDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Invoice Configuration</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Store</Label>
+                <Select value={invoiceConfigForm.storeId} onValueChange={(v) => setInvoiceConfigForm(f => ({ ...f, storeId: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select store" /></SelectTrigger>
+                  <SelectContent>
+                    {stores.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Invoice Type</Label>
+                <Select value={invoiceConfigForm.invoiceType} onValueChange={(v) => setInvoiceConfigForm(f => ({ ...f, invoiceType: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tax_invoice">Tax Invoice</SelectItem>
+                    <SelectItem value="receipt">Receipt (no GST columns)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Choose "Receipt" if store has no GSTIN. GST columns will be hidden.</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Return / Exchange Policy</Label>
+                <Textarea
+                  value={invoiceConfigForm.returnPolicy}
+                  onChange={(e) => setInvoiceConfigForm(f => ({ ...f, returnPolicy: e.target.value }))}
+                  placeholder="e.g. Returns accepted within 7 days of delivery."
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Footer Notes</Label>
+                <Textarea
+                  value={invoiceConfigForm.footerNotes}
+                  onChange={(e) => setInvoiceConfigForm(f => ({ ...f, footerNotes: e.target.value }))}
+                  placeholder="e.g. Thank you for shopping with us!"
+                  rows={2}
+                />
+              </div>
+              <Button onClick={handleSaveInvoiceConfig} className="w-full btn-primary">
+                <Save className="w-4 h-4 mr-2" /> Save Configuration
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

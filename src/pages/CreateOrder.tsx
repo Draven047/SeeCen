@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import QRCode from 'qrcode';
 import jsPDF from 'jspdf';
 import { getSafeErrorMessage, sanitizeForLike, isValidPhoneInput } from '@/lib/errorUtils';
-import { generateTaxInvoice, type InvoiceData } from '@/lib/invoiceGenerator';
+import { generateTaxInvoice, type LegacyInvoiceData, type InvoiceStore } from '@/lib/invoiceGenerator';
 import { useFinanceAudit } from '@/hooks/useFinanceAudit';
 
 interface Cigar {
@@ -405,8 +405,40 @@ export default function CreateOrder() {
     return qrUrl;
   };
 
-  const generateInvoicePDF = (order: any, items: CartItem[]) => {
-    const invoiceData: InvoiceData = {
+  const generateInvoicePDF = async (order: any, items: CartItem[]) => {
+    // Fetch store finance settings for dynamic branding
+    let storeData: InvoiceStore = {
+      name: 'Store',
+      stateName: storeTaxSettings?.state_name,
+      stateCode: storeTaxSettings?.state_code,
+    };
+
+    if (selectedStore) {
+      const [storeRes, financeRes] = await Promise.all([
+        supabase.from('stores').select('name, address, phone').eq('id', selectedStore).single(),
+        supabase.from('store_finance_settings').select('*').eq('store_id', selectedStore).maybeSingle(),
+      ]);
+      if (storeRes.data) {
+        storeData.name = storeRes.data.name;
+        storeData.address = storeRes.data.address;
+        storeData.phone = storeRes.data.phone;
+      }
+      if (financeRes.data) {
+        storeData.gstin = financeRes.data.gstin;
+        storeData.bankName = financeRes.data.bank_name;
+        storeData.accountNumber = financeRes.data.account_number;
+        storeData.accountHolder = financeRes.data.account_holder;
+        storeData.ifscCode = financeRes.data.ifsc_code;
+        storeData.upiId = financeRes.data.upi_id;
+        storeData.invoiceFooter = financeRes.data.invoice_footer;
+        storeData.termsAndConditions = financeRes.data.terms_and_conditions;
+        storeData.returnPolicy = (financeRes.data as any).return_policy;
+        storeData.footerNotes = (financeRes.data as any).footer_notes;
+        storeData.invoiceType = (financeRes.data as any).invoice_type;
+      }
+    }
+
+    const invoiceData: LegacyInvoiceData = {
       orderNumber: order.order_number,
       invoiceNumber: order.invoice_number,
       invoiceDate: new Date(),
@@ -421,8 +453,6 @@ export default function CreateOrder() {
       shippingAddress: shippingAddress || customer?.address,
       items: items.map(item => ({
         name: item.cigar.name,
-        hsn: '24021010',
-        uom: 'Pcs',
         quantity: item.quantity,
         rate: item.cigar.price,
         discount: 0
@@ -437,7 +467,11 @@ export default function CreateOrder() {
       cess: cessAmount,
       cessRate,
       packingCharges: 0,
-      total
+      total,
+      channel: 'in_store',
+      paymentMode: 'UPI',
+      paymentStatus: 'Confirmed',
+      store: storeData,
     };
     
     return generateTaxInvoice(invoiceData);
@@ -597,9 +631,9 @@ export default function CreateOrder() {
     toast.info('Payment retried. Scan QR to pay.');
   };
 
-  const downloadInvoice = () => {
+  const downloadInvoice = async () => {
     if (!createdOrder) return;
-    const doc = generateInvoicePDF(createdOrder, cart);
+    const doc = await generateInvoicePDF(createdOrder, cart);
     doc.save(`Invoice-${createdOrder.order_number}.pdf`);
   };
 
