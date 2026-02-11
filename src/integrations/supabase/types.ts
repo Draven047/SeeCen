@@ -1660,10 +1660,13 @@ export type Database = {
           account_number: string | null
           bank_name: string | null
           created_at: string
+          footer_notes: string | null
           gstin: string | null
           id: string
           ifsc_code: string | null
           invoice_footer: string | null
+          invoice_type: string
+          return_policy: string | null
           store_id: string
           terms_and_conditions: string | null
           updated_at: string
@@ -1674,10 +1677,13 @@ export type Database = {
           account_number?: string | null
           bank_name?: string | null
           created_at?: string
+          footer_notes?: string | null
           gstin?: string | null
           id?: string
           ifsc_code?: string | null
           invoice_footer?: string | null
+          invoice_type?: string
+          return_policy?: string | null
           store_id: string
           terms_and_conditions?: string | null
           updated_at?: string
@@ -1688,10 +1694,13 @@ export type Database = {
           account_number?: string | null
           bank_name?: string | null
           created_at?: string
+          footer_notes?: string | null
           gstin?: string | null
           id?: string
           ifsc_code?: string | null
           invoice_footer?: string | null
+          invoice_type?: string
+          return_policy?: string | null
           store_id?: string
           terms_and_conditions?: string | null
           updated_at?: string

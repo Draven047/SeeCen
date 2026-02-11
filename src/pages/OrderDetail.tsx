@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { INDIAN_STATES, calculateTax } from '@/lib/indianStates';
 import { useFinanceAudit } from '@/hooks/useFinanceAudit';
-import { generateTaxInvoice, type InvoiceData } from '@/lib/invoiceGenerator';
+import { generateTaxInvoice, type LegacyInvoiceData, type InvoiceStore } from '@/lib/invoiceGenerator';
 
 interface OrderDetail {
   id: string;
@@ -223,14 +223,49 @@ export default function OrderDetailPage() {
     finally { setSubmitting(false); }
   };
 
-  const downloadInvoice = () => {
+  const downloadInvoice = async () => {
     if (!order || !order.is_finalized) return;
-    const invoiceData: InvoiceData = {
-      orderNumber: order.invoice_number || order.order_number, invoiceDate: order.invoice_date ? new Date(order.invoice_date) : new Date(),
+
+    // Fetch store finance settings for dynamic branding
+    let storeInfo: InvoiceStore = { name: order.store?.name || 'Store' };
+    if (order.store_id) {
+      const [storeRes, financeRes] = await Promise.all([
+        supabase.from('stores').select('name, address, phone').eq('id', order.store_id).single(),
+        supabase.from('store_finance_settings').select('*').eq('store_id', order.store_id).maybeSingle(),
+      ]);
+      if (storeRes.data) {
+        storeInfo.name = storeRes.data.name;
+        storeInfo.address = storeRes.data.address;
+        storeInfo.phone = storeRes.data.phone;
+      }
+      if (financeRes.data) {
+        storeInfo.gstin = financeRes.data.gstin;
+        storeInfo.bankName = financeRes.data.bank_name;
+        storeInfo.accountNumber = financeRes.data.account_number;
+        storeInfo.accountHolder = financeRes.data.account_holder;
+        storeInfo.ifscCode = financeRes.data.ifsc_code;
+        storeInfo.upiId = financeRes.data.upi_id;
+        storeInfo.invoiceFooter = financeRes.data.invoice_footer;
+        storeInfo.termsAndConditions = financeRes.data.terms_and_conditions;
+        storeInfo.returnPolicy = (financeRes.data as any).return_policy;
+        storeInfo.footerNotes = (financeRes.data as any).footer_notes;
+        storeInfo.invoiceType = (financeRes.data as any).invoice_type;
+        storeInfo.stateName = storeTaxSettings?.state_name;
+        storeInfo.stateCode = storeTaxSettings?.state_code;
+      }
+    }
+
+    const invoiceData: LegacyInvoiceData = {
+      orderNumber: order.invoice_number || order.order_number,
+      invoiceDate: order.invoice_date ? new Date(order.invoice_date) : new Date(),
       customer: { name: order.customer?.name || 'Walk-in Customer', phone: order.customer?.phone, address: order.customer?.address, gstin: null, state: order.place_of_supply_state || undefined, stateCode: order.place_of_supply_code || undefined },
       shippingAddress: order.shipping_address,
-      items: (order.items || []).map(item => ({ name: item.cigar.name, hsn: '24021010', uom: 'Pcs', quantity: item.quantity, rate: item.unit_price, discount: 0 })),
-      subtotal: order.subtotal, cgst: order.cgst_amount, sgst: order.sgst_amount, igst: order.igst_amount, cess: order.cess_amount, packingCharges: 0, total: order.total, storeName: order.store?.name
+      items: (order.items || []).map(item => ({ name: item.cigar.name, quantity: item.quantity, rate: item.unit_price, discount: 0 })),
+      subtotal: order.subtotal, cgst: order.cgst_amount, sgst: order.sgst_amount, igst: order.igst_amount, cess: order.cess_amount, packingCharges: 0, total: order.total,
+      channel: order.channel,
+      paymentMode: order.payment_type === 'cod' ? 'COD' : 'Prepaid',
+      paymentStatus: 'Confirmed',
+      store: storeInfo,
     };
     generateTaxInvoice(invoiceData).save(`Invoice-${order.invoice_number}.pdf`);
   };
