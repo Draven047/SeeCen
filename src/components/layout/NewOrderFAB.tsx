@@ -17,10 +17,11 @@ export function NewOrderFAB() {
     <button
       onClick={() => navigate('/orders/new')}
       className={cn(
-        'fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-lg',
+        'fixed right-4 z-50 flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-lg',
         'h-14 px-5 text-sm font-semibold',
         'active:scale-95 transition-transform',
-        'hover:bg-primary/90'
+        'hover:bg-primary/90',
+        'bottom-[calc(4rem+env(safe-area-inset-bottom,0px)+1rem)]'
       )}
       aria-label="New Order"
     >
