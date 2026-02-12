@@ -19,7 +19,7 @@ export interface ChannelConnectorV2 {
 // ---- Clozzet Website Mock ----
 const clozzetMock: ChannelConnectorV2 = {
   id: 'clozzet_website',
-  name: 'Clozzet Website',
+  name: 'Clozzet',
   icon: 'Globe',
   color: 'bg-blue-500/10 text-blue-600',
   description: 'Your official Clozzet e-commerce storefront',
