@@ -79,7 +79,7 @@ export default function Catalogue() {
               {filtered.length} product{filtered.length !== 1 ? 's' : ''}
             </div>
             {canManage && (
-              <Button className="btn-primary" onClick={() => { setEditingProduct(null); setFormOpen(true); }}>
+              <Button className="btn-primary" onClick={() => navigate('/catalogue/add')}>
                 <Plus className="w-4 h-4 mr-2" /> Add Product
               </Button>
             )}
