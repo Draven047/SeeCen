@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, Store, Globe, Instagram, MessageCircle, ShoppingCart, FileSpreadsheet, Package } from 'lucide-react';
+import { Clock, Store, Globe, Instagram, MessageCircle, ShoppingCart, FileSpreadsheet, Package, ChevronRight } from 'lucide-react';
 import { CHANNEL_CONFIG, getSlaStatus, type SalesChannel } from '@/lib/channelConnectors';
 
 const CHANNEL_ICONS: Record<string, React.ElementType> = {
@@ -59,50 +59,64 @@ export function KanbanOrderCard({ order, columnKey, onAction, onClick }: KanbanO
       onDragStart={handleDragStart}
       onClick={() => onClick(order.id)}
       className={cn(
-        'bg-card border rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow select-none',
+        'bg-card border rounded-xl p-4 cursor-pointer hover:shadow-md active:scale-[0.98] transition-all select-none min-h-[44px]',
         sla.urgent && 'border-l-4 border-l-destructive'
       )}
     >
-      {/* Top: Order ID + Channel */}
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="font-semibold text-xs truncate">
-          {order.external_channel_order_number || order.order_number}
-        </span>
-        <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium shrink-0', chCfg.color)}>
-          <ChIcon className="w-2.5 h-2.5" /> {chCfg.label}
-        </span>
-      </div>
-
-      {/* Middle: Customer, Total, Items */}
-      <p className="text-xs text-muted-foreground truncate">{order.customers?.name || 'Walk-in'}</p>
-      <p className="text-sm font-semibold mt-1">
-        {formatCurrency(Number(order.total))} <span className="text-muted-foreground font-normal text-xs">• {order.items_count} items</span>
-      </p>
-
-      {/* Bottom: Payment + SLA */}
-      <div className="flex items-center justify-between mt-2">
-        <Badge
-          variant="outline"
-          className={cn('text-[10px] px-1.5', isCod ? 'border-orange-400 text-orange-600' : 'border-emerald-400 text-emerald-600')}
-        >
-          {isCod ? 'COD' : 'Prepaid'}
-        </Badge>
+      {/* Top row: Order ID + Channel + SLA */}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-bold text-sm truncate">
+            {order.external_channel_order_number || order.order_number}
+          </span>
+          <span className={cn(
+            'inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium shrink-0',
+            chCfg.color
+          )}>
+            <ChIcon className="w-3 h-3" /> {chCfg.label}
+          </span>
+        </div>
         {sla.label !== 'No SLA' && (
-          <span className={cn('text-[10px] font-medium flex items-center gap-0.5', sla.color)}>
-            {sla.urgent && <Clock className="w-2.5 h-2.5" />}
+          <span className={cn('text-xs font-semibold flex items-center gap-1 shrink-0', sla.color)}>
+            {sla.urgent && <Clock className="w-3.5 h-3.5" />}
             {sla.label}
           </span>
         )}
       </div>
 
-      {/* Action buttons */}
+      {/* Customer row */}
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm text-muted-foreground truncate">
+          {order.customers?.name || 'Walk-in'}
+        </p>
+        <ChevronRight className="w-4 h-4 text-muted-foreground/50 shrink-0" />
+      </div>
+
+      {/* Amount + Meta row */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-base font-bold">{formatCurrency(Number(order.total))}</span>
+          <span className="text-xs text-muted-foreground">{order.items_count} items</span>
+        </div>
+        <Badge
+          variant="outline"
+          className={cn(
+            'text-xs px-2 py-0.5',
+            isCod ? 'border-orange-400 text-orange-600' : 'border-emerald-400 text-emerald-600'
+          )}
+        >
+          {isCod ? 'COD' : 'Prepaid'}
+        </Badge>
+      </div>
+
+      {/* Action buttons — large touch targets */}
       {actions.length > 0 && (
-        <div className="flex gap-1.5 mt-2 pt-2 border-t border-border">
+        <div className="flex gap-2 mt-3 pt-3 border-t border-border">
           {actions.map(a => (
             <Button
               key={a.nextStatus}
-              size="sm"
-              className="h-7 text-[11px] flex-1"
+              size="default"
+              className="h-11 text-sm flex-1 font-semibold"
               onClick={(e) => { e.stopPropagation(); onAction(order.id, a.nextStatus); }}
             >
               {a.label}
@@ -111,8 +125,8 @@ export function KanbanOrderCard({ order, columnKey, onAction, onClick }: KanbanO
           {columnKey === 'new_orders' && (
             <Button
               variant="destructive"
-              size="sm"
-              className="h-7 text-[11px]"
+              size="default"
+              className="h-11 text-sm font-semibold"
               onClick={(e) => { e.stopPropagation(); onAction(order.id, 'declined'); }}
             >
               Reject
