@@ -260,7 +260,7 @@ export default function OrderDetailPage() {
       invoiceDate: order.invoice_date ? new Date(order.invoice_date) : new Date(),
       customer: { name: order.customer?.name || 'Walk-in Customer', phone: order.customer?.phone, address: order.customer?.address, gstin: null, state: order.place_of_supply_state || undefined, stateCode: order.place_of_supply_code || undefined },
       shippingAddress: order.shipping_address,
-      items: (order.items || []).map(item => ({ name: item.cigar.name, quantity: item.quantity, rate: item.unit_price, discount: 0 })),
+      items: (order.items || []).map(item => ({ name: item.product?.name || item.cigar?.name || 'Unknown', quantity: item.quantity, rate: item.unit_price, discount: 0 })),
       subtotal: order.subtotal, cgst: order.cgst_amount, sgst: order.sgst_amount, igst: order.igst_amount, cess: order.cess_amount, packingCharges: 0, total: order.total,
       channel: order.channel,
       paymentMode: order.payment_type === 'cod' ? 'COD' : 'Prepaid',
