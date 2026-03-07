@@ -38,6 +38,7 @@ export default function InventoryManagement() {
   const [editQty, setEditQty] = useState(0);
   const [editMin, setEditMin] = useState(10);
   const [search, setSearch] = useState('');
+  const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'out'>('all');
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState<string | null>(null);
 
@@ -180,9 +181,13 @@ export default function InventoryManagement() {
   const existingProductIds = new Set(inventory.map(i => i.product_id || i.cigar_id));
   const availableProducts = products.filter(p => !existingProductIds.has(p.id));
 
-  const filtered = inventory.filter(item =>
-    getItemName(item).toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = inventory.filter(item => {
+    const matchSearch = getItemName(item).toLowerCase().includes(search.toLowerCase());
+    if (!matchSearch) return false;
+    if (stockFilter === 'low') return item.quantity > 0 && item.quantity < (item.min_stock_level || 10);
+    if (stockFilter === 'out') return item.quantity === 0;
+    return true;
+  });
 
   const grouped = filtered.reduce<Record<string, InventoryItem[]>>((acc, item) => {
     const cat = getItemCategory(item);
@@ -248,31 +253,6 @@ export default function InventoryManagement() {
               <p className="text-2xl font-bold text-destructive">{totalOut}</p>
               <p className="text-[11px] text-muted-foreground">Out</p>
             </div>
-          </div>
-
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search products..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pl-9 h-11 rounded-xl"
-              />
-            </div>
-            <Select onValueChange={addProductToInventory}>
-              <SelectTrigger className="w-11 h-11 p-0 justify-center rounded-xl shrink-0">
-                <Plus className="w-5 h-5" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableProducts.map(p => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                ))}
-                {availableProducts.length === 0 && (
-                  <div className="px-2 py-3 text-sm text-muted-foreground text-center">All products added</div>
-                )}
-              </SelectContent>
-            </Select>
           </div>
 
           {loading ? (

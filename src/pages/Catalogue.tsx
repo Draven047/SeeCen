@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,10 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Search, Plus, Package, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProductCard, type Product, type ProductVariant } from '@/components/catalogue/ProductCard';
-import { ProductDetailDialog } from '@/components/catalogue/ProductDetailDialog';
-import { ProductFormDialog } from '@/components/catalogue/ProductFormDialog';
 
 export default function Catalogue() {
+  const navigate = useNavigate();
   const { role } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [variantsMap, setVariantsMap] = useState<Record<string, ProductVariant[]>>({});
@@ -20,14 +20,6 @@ export default function Catalogue() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [brandFilter, setBrandFilter] = useState('all');
   const [loading, setLoading] = useState(true);
-
-  // Form dialog
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-
-  // Detail dialog
-  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -64,11 +56,6 @@ export default function Catalogue() {
 
   const canManage = role === 'admin' || role === 'operations' || role === 'manager';
 
-  const openEdit = (product: Product) => {
-    setEditingProduct(product);
-    setFormOpen(true);
-  };
-
   const deleteProduct = async (id: string) => {
     if (!confirm('Delete this product and all its variants?')) return;
     const { error } = await supabase.from('products').delete().eq('id', id);
@@ -92,7 +79,7 @@ export default function Catalogue() {
               {filtered.length} product{filtered.length !== 1 ? 's' : ''}
             </div>
             {canManage && (
-              <Button className="btn-primary" onClick={() => { setEditingProduct(null); setFormOpen(true); }}>
+              <Button className="btn-primary" onClick={() => navigate('/catalogue/add')}>
                 <Plus className="w-4 h-4 mr-2" /> Add Product
               </Button>
             )}
@@ -159,8 +146,8 @@ export default function Catalogue() {
                 variantCount={variantsMap[product.id]?.length || 0}
                 totalStock={0} // Will be computed from store_inventory in later steps
                 canManage={canManage}
-                onView={() => { setDetailProduct(product); setDetailOpen(true); }}
-                onEdit={() => openEdit(product)}
+                onView={() => navigate(`/catalogue/${product.id}`)}
+                onEdit={() => navigate(`/catalogue/${product.id}`)}
                 onDelete={() => deleteProduct(product.id)}
                 formatCurrency={formatCurrency}
               />
@@ -168,24 +155,6 @@ export default function Catalogue() {
           </div>
         )}
       </div>
-
-      {/* Form Dialog */}
-      <ProductFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        editingProduct={editingProduct}
-        existingVariants={editingProduct ? (variantsMap[editingProduct.id] || []) : []}
-        onSaved={fetchData}
-      />
-
-      {/* Detail Dialog */}
-      <ProductDetailDialog
-        product={detailProduct}
-        variants={detailProduct ? (variantsMap[detailProduct.id] || []) : []}
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        formatCurrency={formatCurrency}
-      />
     </DashboardLayout>
   );
 }

@@ -8,6 +8,8 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Hub from "./pages/Hub";
 import Catalogue from "./pages/Catalogue";
+import AddProduct from "./pages/AddProduct";
+import ProductDetail from "./pages/ProductDetail";
 import Customers from "./pages/Customers";
 import Customer360 from "./pages/Customer360";
 import Orders from "./pages/Orders";
@@ -85,6 +87,8 @@ function AppRoutes() {
         <Route path="/fulfillment" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Fulfillment /></ProtectedRoute>} />
         <Route path="/shipping" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><Shipping /></ProtectedRoute>} />
         <Route path="/catalogue" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Catalogue /></ProtectedRoute>} />
+        <Route path="/catalogue/add" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><AddProduct /></ProtectedRoute>} />
+        <Route path="/catalogue/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><ProductDetail /></ProtectedRoute>} />
         <Route path="/returns" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Returns /></ProtectedRoute>} />
 
         {/* People */}
