@@ -103,6 +103,15 @@ export function SellerOSHeader() {
 
       {/* Right: actions */}
       <div className="flex items-center gap-1.5">
+        {/* Pending orders badge */}
+        {pendingOrders > 0 && (
+          <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-destructive/10 animate-pulse">
+            <ShoppingBag className="h-4.5 w-4.5 text-destructive" />
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
+              {pendingOrders}
+            </span>
+          </div>
+        )}
         <NotificationsDropdown />
         
         {/* More menu — mobile only */}
