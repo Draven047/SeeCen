@@ -61,7 +61,7 @@ interface OrderDetail {
   customer_id: string | null;
   customer?: { name: string; phone: string | null; address: string | null; fume_points_balance: number } | null;
   store?: { name: string } | null;
-  items?: { id: string; quantity: number; unit_price: number; total_price: number; cigar: { name: string } }[];
+  items?: { id: string; quantity: number; unit_price: number; total_price: number; cigar: { name: string } | null; product: { name: string } | null }[];
 }
 
 interface CreditNote {
