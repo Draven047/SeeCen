@@ -146,8 +146,8 @@ export default function Catalogue() {
                 variantCount={variantsMap[product.id]?.length || 0}
                 totalStock={0} // Will be computed from store_inventory in later steps
                 canManage={canManage}
-                onView={() => { setDetailProduct(product); setDetailOpen(true); }}
-                onEdit={() => openEdit(product)}
+                onView={() => navigate(`/catalogue/${product.id}`)}
+                onEdit={() => navigate(`/catalogue/${product.id}`)}
                 onDelete={() => deleteProduct(product.id)}
                 formatCurrency={formatCurrency}
               />
