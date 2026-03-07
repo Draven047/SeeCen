@@ -63,6 +63,7 @@ export default function Orders() {
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [fulfillmentTypeFilter, setFulfillmentTypeFilter] = useState<string>('all');
   const [fulfillmentStatusFilter, setFulfillmentStatusFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
 
   // CSV import state
   const [showCSVDialog, setShowCSVDialog] = useState(false);
