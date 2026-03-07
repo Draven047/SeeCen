@@ -181,9 +181,13 @@ export default function InventoryManagement() {
   const existingProductIds = new Set(inventory.map(i => i.product_id || i.cigar_id));
   const availableProducts = products.filter(p => !existingProductIds.has(p.id));
 
-  const filtered = inventory.filter(item =>
-    getItemName(item).toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = inventory.filter(item => {
+    const matchSearch = getItemName(item).toLowerCase().includes(search.toLowerCase());
+    if (!matchSearch) return false;
+    if (stockFilter === 'low') return item.quantity > 0 && item.quantity < (item.min_stock_level || 10);
+    if (stockFilter === 'out') return item.quantity === 0;
+    return true;
+  });
 
   const grouped = filtered.reduce<Record<string, InventoryItem[]>>((acc, item) => {
     const cat = getItemCategory(item);
