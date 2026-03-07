@@ -206,6 +206,12 @@ export function IncomingOrderAlert() {
     }
   }, [order, presentOrder]);
 
+  // Broadcast pending order count for header badge
+  useEffect(() => {
+    const count = (order ? 1 : 0) + orderQueue.length;
+    window.dispatchEvent(new CustomEvent('clozzet-pending-orders', { detail: count }));
+  }, [order, orderQueue]);
+
   // Main interval
   useEffect(() => {
     if (enabled) {

@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { NotificationsDropdown } from './NotificationsDropdown';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { Menu, HelpCircle } from 'lucide-react';
+import { Menu, HelpCircle, ShoppingBag } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { SellerOSMoreMenu } from './SellerOSMoreMenu';
 import { StoreStatusDrawer } from './StoreStatusDrawer';
