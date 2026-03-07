@@ -195,6 +195,23 @@ export default function Orders() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* View toggle */}
+            <div className="hidden sm:flex items-center border rounded-lg overflow-hidden">
+              <button
+                onClick={() => setViewMode('list')}
+                className={cn('px-2.5 py-1.5 text-xs font-medium flex items-center gap-1 transition-colors',
+                  viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted')}
+              >
+                <List className="w-3.5 h-3.5" /> List
+              </button>
+              <button
+                onClick={() => setViewMode('kanban')}
+                className={cn('px-2.5 py-1.5 text-xs font-medium flex items-center gap-1 transition-colors',
+                  viewMode === 'kanban' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted')}
+              >
+                <Columns className="w-3.5 h-3.5" /> Kanban
+              </button>
+            </div>
             <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
             <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="hidden sm:flex">
               <Upload className="w-4 h-4 mr-1" /> Import
