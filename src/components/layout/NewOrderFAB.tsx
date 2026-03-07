@@ -117,15 +117,19 @@ export function NewOrderFAB() {
             setScanning={setScanning}
             lastScanned={lastScanned}
             setLastScanned={setLastScanned}
-            onProductFound={(cigarId) => {
+            onProductFound={(productId) => {
               setShowScanner(false);
               if (scannerRef.current) {
                 try { scannerRef.current.stop(); } catch {}
                 scannerRef.current = null;
               }
               setScanning(false);
-              navigate(`/orders/new?cigar=${cigarId}`);
-            }}
+              if (isOnNewOrder) {
+                window.dispatchEvent(new CustomEvent('barcode-product-found', { detail: { cigarId: productId } }));
+              } else {
+                navigate(`/orders/new?cigar=${productId}`);
+              }
+            }
             onClose={() => setShowScanner(false)}
           />
         </DialogContent>
