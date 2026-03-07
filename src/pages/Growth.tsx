@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SellerOSLayout } from '@/components/layout/SellerOSLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,9 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import {
   TrendingUp, Target, Tag, Megaphone, Gift, Repeat,
-  ChevronRight, Plus, Zap, Clock, CheckCircle, Percent,
+  ChevronRight, Plus, Zap, Percent, Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useStore } from '@/contexts/StoreContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface GrowthGoal {
   icon: any;
@@ -35,33 +38,66 @@ interface Offer {
   name: string;
   type: string;
   value: string;
-  status: 'active' | 'scheduled' | 'ended';
-  expires?: string;
+  status: string;
+  expires_at: string | null;
 }
 
-// Mock active offers
-const mockOffers: Offer[] = [
-  { id: '1', name: 'Welcome 10% Off', type: 'discount', value: '10%', status: 'active', expires: '31 Mar 2026' },
-  { id: '2', name: 'Bundle: Buy 3 Get 1', type: 'bundle', value: 'B3G1', status: 'active' },
-];
-
 export default function Growth() {
-  const [offers, setOffers] = useState<Offer[]>(mockOffers);
+  const { currentStore } = useStore();
+  const { user } = useAuth();
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [newOffer, setNewOffer] = useState({ name: '', type: 'discount', value: '' });
 
-  const handleCreate = () => {
+  const fetchOffers = useCallback(async () => {
+    const query = supabase
+      .from('offers' as any)
+      .select('id, name, type, value, status, expires_at')
+      .order('created_at', { ascending: false });
+
+    if (currentStore) {
+      query.eq('store_id', currentStore.id);
+    }
+
+    const { data, error } = await query;
+    if (!error && data) {
+      setOffers(data as unknown as Offer[]);
+    }
+    setLoading(false);
+  }, [currentStore]);
+
+  useEffect(() => { fetchOffers(); }, [fetchOffers]);
+
+  const handleCreate = async () => {
     if (!newOffer.name || !newOffer.value) { toast.error('Fill all fields'); return; }
-    setOffers(prev => [...prev, {
-      id: Date.now().toString(),
+    if (!user) { toast.error('Please log in'); return; }
+    setCreating(true);
+
+    const { error } = await supabase.from('offers' as any).insert({
       name: newOffer.name,
       type: newOffer.type,
       value: newOffer.value,
       status: 'active',
-    }]);
-    setShowCreate(false);
-    setNewOffer({ name: '', type: 'discount', value: '' });
-    toast.success('Offer created');
+      store_id: currentStore?.id || null,
+      created_by: user.id,
+    } as any);
+
+    if (error) {
+      toast.error('Failed to create offer');
+    } else {
+      toast.success('Offer created');
+      setShowCreate(false);
+      setNewOffer({ name: '', type: 'discount', value: '' });
+      fetchOffers();
+    }
+    setCreating(false);
+  };
+
+  const formatExpiry = (d: string | null) => {
+    if (!d) return null;
+    return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   return (
@@ -79,7 +115,11 @@ export default function Growth() {
         </div>
 
         {/* Active Offers */}
-        {offers.length > 0 && (
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : offers.length > 0 && (
           <div>
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Active offers</h2>
             <div className="space-y-2.5">
@@ -97,7 +137,7 @@ export default function Growth() {
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {offer.value} {offer.expires && `· Ends ${offer.expires}`}
+                      {offer.value} {offer.expires_at && `· Ends ${formatExpiry(offer.expires_at)}`}
                     </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -173,7 +213,9 @@ export default function Growth() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreate(false)} className="min-h-[44px]">Cancel</Button>
-            <Button onClick={handleCreate} className="min-h-[44px]">Create</Button>
+            <Button onClick={handleCreate} disabled={creating} className="min-h-[44px]">
+              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

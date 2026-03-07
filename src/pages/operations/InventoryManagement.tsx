@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Package, Edit2, Plus, AlertTriangle, TrendingDown, Check, ChevronDown, Search, Minus } from 'lucide-react';
+import { Package, Edit2, Plus, ChevronDown, Search, Minus, ToggleLeft, ToggleRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -39,9 +39,36 @@ export default function InventoryManagement() {
   const [editMin, setEditMin] = useState(10);
   const [search, setSearch] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState<string | null>(null);
 
   useEffect(() => { fetchStores(); fetchProducts(); }, []);
   useEffect(() => { if (selectedStore) fetchInventory(); }, [selectedStore]);
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!selectedStore) return;
+
+    const channel = supabase
+      .channel(`inventory-${selectedStore}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'store_inventory',
+          filter: `store_id=eq.${selectedStore}`,
+        },
+        () => {
+          // Refetch on any change from other users
+          fetchInventory();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedStore]);
 
   const fetchStores = async () => {
     const { data } = await supabase.from('stores').select('*').order('name');
@@ -55,7 +82,7 @@ export default function InventoryManagement() {
     setProducts(data || []);
   };
 
-  const fetchInventory = async () => {
+  const fetchInventory = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
       .from('store_inventory')
@@ -63,7 +90,7 @@ export default function InventoryManagement() {
       .eq('store_id', selectedStore);
     setInventory((data as unknown as InventoryItem[]) || []);
     setLoading(false);
-  };
+  }, [selectedStore]);
 
   const addProductToInventory = async (productId: string) => {
     const { error } = await supabase.from('store_inventory').insert({
@@ -105,6 +132,29 @@ export default function InventoryManagement() {
     }
   };
 
+  const bulkToggleCategory = async (category: string, items: InventoryItem[]) => {
+    setBulkLoading(category);
+    const allAvailable = items.every(i => i.quantity > 0);
+    const newQty = allAvailable ? 0 : undefined; // 0 = mark all unavailable
+
+    try {
+      await Promise.all(
+        items.map(item => {
+          const targetQty = allAvailable ? 0 : (item.quantity > 0 ? item.quantity : (item.min_stock_level || 10));
+          return supabase
+            .from('store_inventory')
+            .update({ quantity: targetQty })
+            .eq('id', item.id);
+        })
+      );
+      toast.success(allAvailable ? `All ${category} marked unavailable` : `All ${category} marked available`);
+      fetchInventory();
+    } catch {
+      toast.error('Bulk update failed');
+    }
+    setBulkLoading(null);
+  };
+
   const openEditDialog = (item: InventoryItem) => {
     setEditItem(item);
     setEditQty(item.quantity);
@@ -119,7 +169,6 @@ export default function InventoryManagement() {
   const existingProductIds = new Set(inventory.map(i => i.product_id || i.cigar_id));
   const availableProducts = products.filter(p => !existingProductIds.has(p.id));
 
-  // Filter & group by category
   const filtered = inventory.filter(item =>
     getItemName(item).toLowerCase().includes(search.toLowerCase())
   );
@@ -154,13 +203,11 @@ export default function InventoryManagement() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div>
         <h2 className="text-heading">Inventory</h2>
-        <p className="text-muted-foreground text-sm mt-0.5">Quick availability control</p>
+        <p className="text-muted-foreground text-sm mt-0.5">Quick availability control · Live sync</p>
       </div>
 
-      {/* Store pills */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
         {stores.map(store => (
           <Button
@@ -177,7 +224,6 @@ export default function InventoryManagement() {
 
       {selectedStore && (
         <>
-          {/* Summary strip */}
           <div className="flex gap-2">
             <div className="flex-1 glass-card rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-emerald-500">{totalAvailable}</p>
@@ -193,7 +239,6 @@ export default function InventoryManagement() {
             </div>
           </div>
 
-          {/* Search + Add */}
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -219,7 +264,6 @@ export default function InventoryManagement() {
             </Select>
           </div>
 
-          {/* Category groups */}
           {loading ? (
             <div className="text-center py-12 text-muted-foreground">Loading inventory...</div>
           ) : categories.length === 0 ? (
@@ -235,24 +279,44 @@ export default function InventoryManagement() {
                 const items = grouped[cat];
                 const isOpen = !collapsedCategories.has(cat);
                 const catAvailable = items.filter(i => i.quantity > 0).length;
+                const allAvailable = items.every(i => i.quantity > 0);
 
                 return (
                   <Collapsible key={cat} open={isOpen} onOpenChange={() => toggleCategory(cat)}>
-                    <CollapsibleTrigger asChild>
-                      <button className="w-full flex items-center justify-between glass-card rounded-xl px-4 py-3 hover:bg-muted/50 transition-colors min-h-[48px]">
-                        <div className="flex items-center gap-2">
-                          <ChevronDown className={cn(
-                            'w-4 h-4 text-muted-foreground transition-transform',
-                            !isOpen && '-rotate-90'
-                          )} />
-                          <span className="font-semibold text-sm">{cat}</span>
-                          <span className="text-xs text-muted-foreground">({items.length})</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {catAvailable}/{items.length} available
-                        </span>
-                      </button>
-                    </CollapsibleTrigger>
+                    <div className="flex items-center glass-card rounded-xl">
+                      <CollapsibleTrigger asChild>
+                        <button className="flex-1 flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors min-h-[48px]">
+                          <div className="flex items-center gap-2">
+                            <ChevronDown className={cn(
+                              'w-4 h-4 text-muted-foreground transition-transform',
+                              !isOpen && '-rotate-90'
+                            )} />
+                            <span className="font-semibold text-sm">{cat}</span>
+                            <span className="text-xs text-muted-foreground">({items.length})</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {catAvailable}/{items.length} available
+                          </span>
+                        </button>
+                      </CollapsibleTrigger>
+                      {/* Bulk toggle */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-10 px-3 mr-1 gap-1.5 text-xs shrink-0"
+                        disabled={bulkLoading === cat}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          bulkToggleCategory(cat, items);
+                        }}
+                      >
+                        {allAvailable ? (
+                          <><ToggleRight className="w-4 h-4" /> All Off</>
+                        ) : (
+                          <><ToggleLeft className="w-4 h-4" /> All On</>
+                        )}
+                      </Button>
+                    </div>
                     <CollapsibleContent>
                       <div className="space-y-1 mt-1">
                         {items.map(item => {
@@ -264,14 +328,11 @@ export default function InventoryManagement() {
                               key={item.id}
                               className="flex items-center gap-3 glass-card rounded-xl px-4 py-3 min-h-[56px]"
                             >
-                              {/* Toggle */}
                               <Switch
                                 checked={isAvailable}
                                 onCheckedChange={() => quickToggle(item)}
                                 className="shrink-0"
                               />
-
-                              {/* Info */}
                               <div className="flex-1 min-w-0">
                                 <p className={cn(
                                   'text-sm font-medium truncate',
@@ -283,16 +344,12 @@ export default function InventoryManagement() {
                                   ₹{getItemPrice(item).toLocaleString('en-IN')}
                                 </p>
                               </div>
-
-                              {/* Stock badge */}
                               <span className={cn(
                                 'text-xs font-semibold px-2 py-1 rounded-full shrink-0',
                                 badge.class
                               )}>
                                 {badge.label}
                               </span>
-
-                              {/* Quick edit */}
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -314,7 +371,6 @@ export default function InventoryManagement() {
         </>
       )}
 
-      {/* Edit Dialog */}
       <Dialog open={editDialog} onOpenChange={setEditDialog}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
@@ -322,8 +378,6 @@ export default function InventoryManagement() {
           </DialogHeader>
           <div className="space-y-5 py-4">
             <p className="font-medium">{editItem ? getItemName(editItem) : ''}</p>
-
-            {/* Quantity with +/- */}
             <div>
               <label className="text-sm font-medium text-muted-foreground">Quantity</label>
               <div className="flex items-center gap-3 mt-2">
@@ -352,8 +406,6 @@ export default function InventoryManagement() {
                 </Button>
               </div>
             </div>
-
-            {/* Quick set chips */}
             <div className="flex gap-2 flex-wrap">
               {[0, 5, 10, 25, 50].map(v => (
                 <button
@@ -370,7 +422,6 @@ export default function InventoryManagement() {
                 </button>
               ))}
             </div>
-
             <div>
               <label className="text-sm font-medium text-muted-foreground">Low Stock Alert Level</label>
               <Input

@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { AlertTriangle, X, ChevronRight, WifiOff, RefreshCw, IndianRupee } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { AlertTriangle, X, ChevronRight, RefreshCw, IndianRupee } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useStore } from '@/contexts/StoreContext';
@@ -17,12 +17,12 @@ export function WarningBannerSystem() {
   const { currentStore } = useStore();
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<Warning[]>([]);
+  const [swipeState, setSwipeState] = useState<Record<string, { startX: number; currentX: number }>>({});
 
   const checkHealth = useCallback(async () => {
     if (!currentStore) return;
     const newWarnings: Warning[] = [];
 
-    // Check for sync errors (channel_sync_logs with recent failures)
     const { data: syncErrors } = await supabase
       .from('channel_sync_logs')
       .select('id, error_message')
@@ -41,7 +41,6 @@ export function WarningBannerSystem() {
       });
     }
 
-    // Check for COD pending > threshold
     const { data: codPending } = await supabase
       .from('cod_reconciliation')
       .select('expected_amount, collected_amount')
@@ -63,7 +62,6 @@ export function WarningBannerSystem() {
       });
     }
 
-    // Check for low stock items
     const { data: lowStock } = await supabase
       .from('store_inventory')
       .select('id')
@@ -85,7 +83,52 @@ export function WarningBannerSystem() {
     setWarnings(newWarnings);
   }, [currentStore]);
 
-  useEffect(() => { checkHealth(); }, [checkHealth]);
+  // Initial check + 60s auto-refresh
+  useEffect(() => {
+    checkHealth();
+    const interval = setInterval(checkHealth, 60_000);
+    return () => clearInterval(interval);
+  }, [checkHealth]);
+
+  // Swipe handlers
+  const handleTouchStart = (id: string, e: React.TouchEvent) => {
+    setSwipeState(prev => ({ ...prev, [id]: { startX: e.touches[0].clientX, currentX: 0 } }));
+  };
+
+  const handleTouchMove = (id: string, e: React.TouchEvent) => {
+    setSwipeState(prev => {
+      const s = prev[id];
+      if (!s) return prev;
+      const dx = e.touches[0].clientX - s.startX;
+      return { ...prev, [id]: { ...s, currentX: dx } };
+    });
+  };
+
+  const handleTouchEnd = (id: string) => {
+    const s = swipeState[id];
+    if (s && Math.abs(s.currentX) > 100) {
+      // Animate out then dismiss
+      setSwipeState(prev => ({
+        ...prev,
+        [id]: { ...prev[id], currentX: s.currentX > 0 ? 500 : -500 },
+      }));
+      setTimeout(() => {
+        setDismissed(prev => [...prev, id]);
+        setSwipeState(prev => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+      }, 200);
+    } else {
+      // Snap back
+      setSwipeState(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
+  };
 
   const visible = warnings.filter(w => !dismissed.includes(w.id));
   if (visible.length === 0) return null;
@@ -94,9 +137,21 @@ export function WarningBannerSystem() {
     <div className="space-y-0">
       {visible.map((warning) => {
         const Icon = warning.icon || AlertTriangle;
+        const sw = swipeState[warning.id];
+        const translateX = sw?.currentX || 0;
+        const isAnimatingOut = Math.abs(translateX) > 200;
+
         return (
           <div
             key={warning.id}
+            onTouchStart={(e) => handleTouchStart(warning.id, e)}
+            onTouchMove={(e) => handleTouchMove(warning.id, e)}
+            onTouchEnd={() => handleTouchEnd(warning.id)}
+            style={{
+              transform: `translateX(${translateX}px)`,
+              opacity: Math.max(0, 1 - Math.abs(translateX) / 300),
+              transition: sw && !isAnimatingOut ? 'none' : 'transform 0.2s ease-out, opacity 0.2s ease-out',
+            }}
             className={cn(
               'flex items-center gap-3 px-4 py-2.5 text-sm min-h-[44px]',
               warning.type === 'critical' && 'bg-destructive/10 text-destructive border-b border-destructive/20',
