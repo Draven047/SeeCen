@@ -38,6 +38,7 @@ export default function InventoryManagement() {
   const [editQty, setEditQty] = useState(0);
   const [editMin, setEditMin] = useState(10);
   const [search, setSearch] = useState('');
+  const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'out'>('all');
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState<string | null>(null);
 
