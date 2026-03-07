@@ -38,6 +38,7 @@ function SellerOSContent({ children }: { children: ReactNode }) {
 
       {/* Mock order popup for testing */}
       <IncomingOrderAlert />
+      <NewOrderFAB />
     </div>
   );
 }
