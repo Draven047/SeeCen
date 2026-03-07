@@ -475,7 +475,7 @@ export default function OrderDetailPage() {
                 <TableBody>
                   {(order.items || []).map(item => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium text-sm">{item.cigar.name}</TableCell>
+                      <TableCell className="font-medium text-sm">{item.product?.name || item.cigar?.name || 'Unknown'}</TableCell>
                       <TableCell className="text-right">{item.quantity}</TableCell>
                       <TableCell className="text-right">₹{item.unit_price.toLocaleString()}</TableCell>
                       <TableCell className="text-right">₹{item.total_price.toLocaleString()}</TableCell>
