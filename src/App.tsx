@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { StoreProvider } from "@/contexts/StoreContext";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Hub from "./pages/Hub";
 import Catalogue from "./pages/Catalogue";
 import Customers from "./pages/Customers";
 import Customer360 from "./pages/Customer360";
@@ -28,6 +29,8 @@ import Approvals from "./pages/admin/Approvals";
 import SalesCoach from "./pages/SalesCoach";
 import AICoachPage from "./pages/AICoachPage";
 import PendingApproval from "./pages/PendingApproval";
+import Feedback from "./pages/Feedback";
+import Growth from "./pages/Growth";
 import UIKit from "./pages/UIKit";
 import NotFound from "./pages/NotFound";
 import { AICoachChatBubble } from "./components/ai-coach/AICoachChatBubble";
@@ -68,28 +71,29 @@ function AppRoutes() {
         <Route path="/pending-approval" element={<PendingApproval />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-        {/* Core */}
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        {/* Core — SellerOS primary tabs */}
+        <Route path="/dashboard" element={<ProtectedRoute><Hub /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Orders /></ProtectedRoute>} />
         <Route path="/orders/new" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><CreateOrder /></ProtectedRoute>} />
         <Route path="/orders/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><OrderDetail /></ProtectedRoute>} />
-        {/* order-inbox merged into /orders */}
+        <Route path="/inventory" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><Inventory /></ProtectedRoute>} />
+        <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
+        <Route path="/finance" element={<ProtectedRoute allowedRoles={['admin', 'finance']}><Finance /></ProtectedRoute>} />
+        <Route path="/growth" element={<ProtectedRoute><Growth /></ProtectedRoute>} />
+
+        {/* Operations */}
         <Route path="/fulfillment" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Fulfillment /></ProtectedRoute>} />
         <Route path="/shipping" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><Shipping /></ProtectedRoute>} />
-
-        {/* Catalog */}
         <Route path="/catalogue" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Catalogue /></ProtectedRoute>} />
-        <Route path="/inventory" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><Inventory /></ProtectedRoute>} />
-
-        {/* Service */}
         <Route path="/returns" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Returns /></ProtectedRoute>} />
+
+        {/* People */}
         <Route path="/customers" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><Customers /></ProtectedRoute>} />
         <Route path="/customers/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><Customer360 /></ProtectedRoute>} />
         <Route path="/employees" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><Employees /></ProtectedRoute>} />
 
         {/* Insights */}
         <Route path="/analytics" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'finance']}><Analytics /></ProtectedRoute>} />
-        <Route path="/finance" element={<ProtectedRoute allowedRoles={['admin', 'finance']}><Finance /></ProtectedRoute>} />
 
         {/* Administration */}
         <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminPanel /></ProtectedRoute>} />
