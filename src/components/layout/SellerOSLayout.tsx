@@ -4,6 +4,7 @@ import { SellerOSHeader } from './SellerOSHeader';
 import { SellerOSBottomNav } from './SellerOSBottomNav';
 import { WarningBannerSystem } from './WarningBannerSystem';
 import { PageTransition } from './PageTransition';
+import { MockOrderPopup } from '@/components/orders/MockOrderPopup';
 import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,9 @@ function SellerOSContent({ children }: { children: ReactNode }) {
 
       {/* Mobile bottom nav */}
       {isMobile && <SellerOSBottomNav />}
+
+      {/* Mock order popup for testing */}
+      <MockOrderPopup />
     </div>
   );
 }
