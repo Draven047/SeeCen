@@ -459,6 +459,8 @@ export default function Orders() {
             </>
           )}
         </div>
+        </>
+        )}
 
         {/* CSV Import Dialog */}
         <Dialog open={showCSVDialog} onOpenChange={setShowCSVDialog}>
