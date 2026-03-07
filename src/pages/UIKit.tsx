@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { SellerOSLayout } from '@/components/layout/SellerOSLayout';
 import { Button } from '@/components/ui/button';
 import { Input, SearchInput } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';

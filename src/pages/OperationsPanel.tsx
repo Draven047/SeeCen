@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { SellerOSLayout } from '@/components/layout/SellerOSLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { Clock, AlertTriangle, Store, Package, TrendingDown, ArrowRight, DollarSign, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { SellerOSLayout } from '@/components/layout/SellerOSLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { TrendingUp, Package, Users, ShoppingCart, Target, Cake } from 'lucide-react';

@@ -1,4 +1,4 @@
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { SellerOSLayout } from '@/components/layout/SellerOSLayout';
 import { Boxes } from 'lucide-react';
 import InventoryManagement from '@/pages/operations/InventoryManagement';
 
