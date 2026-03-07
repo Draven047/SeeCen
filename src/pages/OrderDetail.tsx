@@ -103,7 +103,7 @@ export default function OrderDetailPage() {
     setLoading(true);
     const { data: orderData, error } = await supabase
       .from('orders')
-      .select(`*, customer:customers(name, phone, address, fume_points_balance), store:stores(name), items:order_items(id, quantity, unit_price, total_price, cigar:cigars(name))`)
+      .select(`*, customer:customers(name, phone, address, fume_points_balance), store:stores(name), items:order_items(id, quantity, unit_price, total_price, cigar:cigars(name), product:products(name))`)
       .eq('id', id)
       .single();
 
