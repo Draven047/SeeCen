@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,10 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Search, Plus, Package, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProductCard, type Product, type ProductVariant } from '@/components/catalogue/ProductCard';
-import { ProductDetailDialog } from '@/components/catalogue/ProductDetailDialog';
-import { ProductFormDialog } from '@/components/catalogue/ProductFormDialog';
 
 export default function Catalogue() {
+  const navigate = useNavigate();
   const { role } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [variantsMap, setVariantsMap] = useState<Record<string, ProductVariant[]>>({});
