@@ -5,6 +5,7 @@ import { SellerOSBottomNav } from './SellerOSBottomNav';
 import { WarningBannerSystem } from './WarningBannerSystem';
 import { PageTransition } from './PageTransition';
 import { IncomingOrderAlert } from '@/components/orders/IncomingOrderAlert';
+import { NewOrderFAB } from './NewOrderFAB';
 import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -37,6 +38,7 @@ function SellerOSContent({ children }: { children: ReactNode }) {
 
       {/* Mock order popup for testing */}
       <IncomingOrderAlert />
+      <NewOrderFAB />
     </div>
   );
 }
