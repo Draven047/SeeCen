@@ -8,6 +8,8 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Hub from "./pages/Hub";
 import Catalogue from "./pages/Catalogue";
+import AddProduct from "./pages/AddProduct";
+import ProductDetail from "./pages/ProductDetail";
 import Customers from "./pages/Customers";
 import Customer360 from "./pages/Customer360";
 import Orders from "./pages/Orders";
