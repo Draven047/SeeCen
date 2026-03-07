@@ -38,6 +38,16 @@ export function SellerOSHeader() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [storeStatusOpen, setStoreStatusOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+  const [pendingOrders, setPendingOrders] = useState(0);
+
+  // Listen for pending order count from IncomingOrderAlert
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setPendingOrders((e as CustomEvent).detail as number);
+    };
+    window.addEventListener('clozzet-pending-orders', handler);
+    return () => window.removeEventListener('clozzet-pending-orders', handler);
+  }, []);
 
   const pageTitle = pageTitles[location.pathname] || '';
 
