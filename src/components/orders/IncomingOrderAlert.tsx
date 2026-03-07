@@ -328,9 +328,9 @@ export function IncomingOrderAlert() {
           {/* Alert Container */}
           <motion.div
             key="alert"
-            initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
-            animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
-            exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+            initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.9 }}
+            animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1 }}
+            exit={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.9 }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
             className={cn(
               'fixed z-[101] bg-card shadow-2xl flex flex-col overflow-hidden',
