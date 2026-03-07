@@ -320,6 +320,11 @@ export default function Orders() {
           </div>
         </div>
 
+        {/* Kanban View */}
+        {viewMode === 'kanban' ? (
+          <OrderKanbanBoard orders={filtered} onRefresh={fetchOrders} />
+        ) : (
+        <>
         {/* Orders — Desktop Table / Mobile Cards */}
         <div className="glass-card overflow-hidden">
           {loading ? (
