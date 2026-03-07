@@ -206,6 +206,12 @@ export function IncomingOrderAlert() {
     }
   }, [order, presentOrder]);
 
+  // Broadcast pending order count for header badge
+  useEffect(() => {
+    const count = (order ? 1 : 0) + orderQueue.length;
+    window.dispatchEvent(new CustomEvent('clozzet-pending-orders', { detail: count }));
+  }, [order, orderQueue]);
+
   // Main interval
   useEffect(() => {
     if (enabled) {
@@ -239,6 +245,7 @@ export function IncomingOrderAlert() {
   // Expired auto-dismiss
   useEffect(() => {
     if (isExpired && order) {
+      hapticTimeout();
       toast.error(`Order ${order.orderId} timed out`);
       const t = setTimeout(showNextOrDismiss, 2000);
       return () => clearTimeout(t);
@@ -258,14 +265,24 @@ export function IncomingOrderAlert() {
     }
   }, [order, isMuted, isExpired]);
 
+  // ── Haptic patterns ──
+  const hapticAccept = () => {
+    if (navigator.vibrate) navigator.vibrate([50, 30, 50]); // double-tap success
+  };
+  const hapticReject = () => {
+    if (navigator.vibrate) navigator.vibrate([100, 50, 200]); // long buzz warning
+  };
+  const hapticTimeout = () => {
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]); // triple buzz alert
+  };
+
   // ── Handlers ──
   const handleAccept = async () => {
     if (isAccepting || !order) return;
     setIsAccepting(true);
-    // Simulate network
     await new Promise(r => setTimeout(r, 600));
     try {
-      if (navigator.vibrate) navigator.vibrate(100);
+      hapticAccept();
       toast.success(
         `Order ${order.orderId} accepted · Packing: ${packingTime} min`,
         { description: `${order.items.length} item(s) · ₹${order.amount.toLocaleString('en-IN')}` }
@@ -279,6 +296,7 @@ export function IncomingOrderAlert() {
 
   const handleReject = (reason: string) => {
     if (!order) return;
+    hapticReject();
     toast.info(`Order ${order.orderId} rejected — ${reason}`);
     showNextOrDismiss();
   };

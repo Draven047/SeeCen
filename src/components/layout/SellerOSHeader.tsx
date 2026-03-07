@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { NotificationsDropdown } from './NotificationsDropdown';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { Menu, HelpCircle } from 'lucide-react';
+import { Menu, HelpCircle, ShoppingBag } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { SellerOSMoreMenu } from './SellerOSMoreMenu';
 import { StoreStatusDrawer } from './StoreStatusDrawer';
@@ -38,6 +38,16 @@ export function SellerOSHeader() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [storeStatusOpen, setStoreStatusOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+  const [pendingOrders, setPendingOrders] = useState(0);
+
+  // Listen for pending order count from IncomingOrderAlert
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setPendingOrders((e as CustomEvent).detail as number);
+    };
+    window.addEventListener('clozzet-pending-orders', handler);
+    return () => window.removeEventListener('clozzet-pending-orders', handler);
+  }, []);
 
   const pageTitle = pageTitles[location.pathname] || '';
 
@@ -93,6 +103,15 @@ export function SellerOSHeader() {
 
       {/* Right: actions */}
       <div className="flex items-center gap-1.5">
+        {/* Pending orders badge */}
+        {pendingOrders > 0 && (
+          <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-destructive/10 animate-pulse">
+            <ShoppingBag className="h-4.5 w-4.5 text-destructive" />
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
+              {pendingOrders}
+            </span>
+          </div>
+        )}
         <NotificationsDropdown />
         
         {/* More menu — mobile only */}
