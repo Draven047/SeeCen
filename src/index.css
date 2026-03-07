@@ -7,7 +7,7 @@
 @layer base {
   :root {
     /* SellerOS Light — Electric Indigo + Warm Neutrals */
-    --background: 0 0% 98.5%;
+    --background: 220 14% 96%;
     --foreground: 220 20% 14%;
 
     --card: 0 0% 100%;
@@ -22,7 +22,7 @@
     --secondary: 220 14% 94%;
     --secondary-foreground: 220 14% 28%;
 
-    --muted: 220 14% 96%;
+    --muted: 220 14% 93%;
     --muted-foreground: 220 10% 46%;
 
     --accent: 250 60% 96%;
@@ -40,8 +40,8 @@
     --info: 210 90% 56%;
     --info-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
+    --border: 220 13% 90%;
+    --input: 220 13% 90%;
     --ring: 250 65% 54%;
 
     --chart-1: 250 65% 54%;
@@ -51,7 +51,7 @@
     --chart-5: 210 90% 56%;
     --chart-6: 280 60% 55%;
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
 
     /* Status semantic tokens */
     --status-new: 210 90% 56%;
@@ -61,10 +61,11 @@
     --status-cancelled: 0 72% 51%;
     --status-rto: 25 95% 53%;
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.04);
-    --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.06);
-    --shadow-lg: 0 8px 30px -4px hsl(0 0% 0% / 0.08);
+    /* Shadows — softer */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.03);
+    --shadow-md: 0 2px 8px -2px hsl(0 0% 0% / 0.05);
+    --shadow-lg: 0 4px 20px -4px hsl(0 0% 0% / 0.07);
+    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.04), 0 1px 2px -1px hsl(0 0% 0% / 0.03);
 
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
@@ -126,6 +127,7 @@
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.2);
     --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.3);
     --shadow-lg: 0 8px 30px -4px hsl(0 0% 0% / 0.4);
+    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.3), 0 1px 2px -1px hsl(0 0% 0% / 0.2);
 
     --sidebar-background: 220 18% 9%;
     --sidebar-foreground: 220 14% 75%;
@@ -152,13 +154,13 @@
 
 @layer components {
   /* Compat aliases — used across pages, maps to new tokens */
-  .glass-card { @apply bg-card border border-border rounded-lg shadow-sm; }
-  .stat-card { @apply bg-card rounded-lg border border-border p-5 transition-shadow hover:shadow-md; }
-  .stat-card-highlight { @apply bg-card rounded-lg border-2 border-primary p-5; }
-  .filter-card { @apply bg-card border border-border rounded-lg p-5; }
-  .quick-action-btn { @apply flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent rounded-lg transition-colors border border-border; }
+  .glass-card { @apply bg-card border border-border rounded-xl shadow-[var(--shadow-card)]; }
+  .stat-card { @apply bg-card rounded-xl border border-border p-5 transition-shadow hover:shadow-md; }
+  .stat-card-highlight { @apply bg-card rounded-xl border-2 border-primary p-5; }
+  .filter-card { @apply bg-card border border-border rounded-xl p-5; }
+  .quick-action-btn { @apply flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent rounded-lg transition-colors border border-border min-h-[44px]; }
 
-  .sidebar-item { @apply flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-accent transition-colors text-sm font-medium; }
+  .sidebar-item { @apply flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-accent transition-colors text-sm font-medium min-h-[44px]; }
   .sidebar-item-active { @apply bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground; }
   .sidebar-section-label { @apply px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider; }
 
@@ -185,7 +187,18 @@
   .btn-ghost { @apply hover:bg-accent text-foreground/80 hover:text-foreground transition-colors; }
   .btn-outline-primary { @apply border border-border hover:border-primary hover:text-primary transition-colors; }
 
-  .tab-item { @apply px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground border-b-2 border-transparent transition-colors; }
+  /* Pill tabs */
+  .pill-tab { @apply px-4 py-2.5 rounded-full text-sm font-medium transition-colors min-h-[44px] whitespace-nowrap; }
+  .pill-tab-active { @apply bg-foreground text-background; }
+  .pill-tab-inactive { @apply bg-muted text-muted-foreground hover:text-foreground; }
+
+  /* Segmented control */
+  .segmented-control { @apply inline-flex bg-muted/50 rounded-xl p-1 gap-0.5; }
+  .segmented-item { @apply px-4 py-2 rounded-lg text-sm font-medium transition-all min-h-[40px]; }
+  .segmented-item-active { @apply bg-card text-foreground shadow-sm; }
+  .segmented-item-inactive { @apply text-muted-foreground hover:text-foreground; }
+
+  .tab-item { @apply px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground border-b-2 border-transparent transition-colors min-h-[44px]; }
   .tab-item-active { @apply text-foreground border-primary; }
 
   .alert-warning { @apply bg-warning/10 border border-warning/30 text-warning rounded-lg p-4 flex items-center gap-3; }
@@ -194,6 +207,12 @@
 
   .days-badge { @apply px-2 py-0.5 rounded-full text-xs font-medium bg-primary text-primary-foreground; }
   .table-row-hover { @apply transition-colors hover:bg-muted/30; }
+
+  /* Empty state */
+  .empty-state { @apply flex flex-col items-center justify-center py-16 text-center; }
+  .empty-state-icon { @apply w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4; }
+  .empty-state-title { @apply text-sm font-medium text-foreground; }
+  .empty-state-desc { @apply text-xs text-muted-foreground mt-1; }
 
   /* Shimmer animation for loading states */
   .animate-shimmer {
@@ -235,5 +254,11 @@
 
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Touch target enforcement */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
