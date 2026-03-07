@@ -148,6 +148,17 @@ export default function InventoryManagement() {
         })
       );
       toast.success(allAvailable ? `All ${category} marked unavailable` : `All ${category} marked available`);
+      // Analytics: log bulk toggle
+      try {
+        await supabase.from('finance_audit_logs').insert({
+          entity_type: 'store_tax_settings',
+          entity_id: selectedStore,
+          action_type: 'inventory_bulk_toggle',
+          store_id: selectedStore,
+          after_data: { category, action: allAvailable ? 'all_off' : 'all_on', count: items.length },
+          performed_by: (await supabase.auth.getUser()).data.user?.id || '',
+        } as any);
+      } catch {}
       fetchInventory();
     } catch {
       toast.error('Bulk update failed');

@@ -88,6 +88,17 @@ export default function Growth() {
       toast.error('Failed to create offer');
     } else {
       toast.success('Offer created');
+      // Analytics: log offer creation
+      try {
+        await supabase.from('finance_audit_logs').insert({
+          entity_type: 'offer',
+          entity_id: 'new',
+          action_type: 'offer_created',
+          store_id: currentStore?.id || null,
+          after_data: { name: newOffer.name, type: newOffer.type, value: newOffer.value },
+          performed_by: user.id,
+        } as any);
+      } catch {}
       setShowCreate(false);
       setNewOffer({ name: '', type: 'discount', value: '' });
       fetchOffers();
