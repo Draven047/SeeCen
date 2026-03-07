@@ -328,9 +328,9 @@ export function IncomingOrderAlert() {
           {/* Alert Container */}
           <motion.div
             key="alert"
-            initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.9 }}
-            animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1 }}
-            exit={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.9 }}
+            initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.9, x: '-50%', y: '-50%' }}
+            animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+            exit={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.9, x: '-50%', y: '-50%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
             className={cn(
               'fixed z-[101] bg-card shadow-2xl flex flex-col overflow-hidden',
@@ -338,7 +338,6 @@ export function IncomingOrderAlert() {
                 ? 'inset-x-0 bottom-0 max-h-[92vh] rounded-t-3xl'
                 : 'top-1/2 left-1/2 w-full max-w-[440px] rounded-2xl max-h-[90vh]'
             )}
-            style={!isMobile ? { transform: 'translate(-50%, -50%)' } : undefined}
           >
             {/* ── Urgency progress bar ── */}
             <div className="h-1 w-full bg-muted shrink-0">
