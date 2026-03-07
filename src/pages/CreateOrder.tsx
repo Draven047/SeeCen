@@ -121,6 +121,13 @@ export default function CreateOrder() {
     if (cigarId) {
       addCigarById(cigarId);
     }
+
+    // Listen for barcode scan events from the FAB scanner
+    const handleBarcodeFound = (e: CustomEvent<{ cigarId: string }>) => {
+      addCigarById(e.detail.cigarId);
+    };
+    window.addEventListener('barcode-product-found', handleBarcodeFound as EventListener);
+    return () => window.removeEventListener('barcode-product-found', handleBarcodeFound as EventListener);
   }, []);
 
   // Payment timeout countdown
