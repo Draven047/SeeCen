@@ -239,6 +239,7 @@ export function IncomingOrderAlert() {
   // Expired auto-dismiss
   useEffect(() => {
     if (isExpired && order) {
+      hapticTimeout();
       toast.error(`Order ${order.orderId} timed out`);
       const t = setTimeout(showNextOrDismiss, 2000);
       return () => clearTimeout(t);
