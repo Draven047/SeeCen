@@ -1,16 +1,21 @@
-import { Plus, ScanBarcode } from 'lucide-react';
+import { Plus, ScanBarcode, X, Loader2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export function NewOrderFAB() {
   const navigate = useNavigate();
   const location = useLocation();
   const [showScanner, setShowScanner] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [lastScanned, setLastScanned] = useState<string | null>(null);
+  const scannerRef = useRef<any>(null);
+  const readerRef = useRef<HTMLDivElement>(null);
 
   // Hide on the create-order page itself
   if (location.pathname === '/orders/new') return null;
@@ -24,7 +29,7 @@ export function NewOrderFAB() {
           'bottom-[calc(4rem+env(safe-area-inset-bottom,0px)+1rem)]'
         )}
       >
-        {/* Scanner mini FAB — shown when expanded */}
+        {/* Scanner mini FAB */}
         {expanded && (
           <button
             onClick={() => {
@@ -69,47 +74,232 @@ export function NewOrderFAB() {
       </div>
 
       {/* Scanner Dialog */}
-      <Dialog open={showScanner} onOpenChange={setShowScanner}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+      <Dialog
+        open={showScanner}
+        onOpenChange={(open) => {
+          if (!open) {
+            // Stop scanner before closing
+            if (scannerRef.current) {
+              try { scannerRef.current.stop(); } catch {}
+              scannerRef.current = null;
+            }
+            setScanning(false);
+            setLastScanned(null);
+          }
+          setShowScanner(open);
+        }}
+      >
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-2">
             <DialogTitle className="flex items-center gap-2">
               <ScanBarcode className="h-5 w-5" />
               Scan Product Barcode
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="aspect-square max-h-64 mx-auto bg-muted rounded-xl flex items-center justify-center border-2 border-dashed border-border">
-              <div className="text-center space-y-2">
-                <ScanBarcode className="h-12 w-12 text-muted-foreground/40 mx-auto" />
-                <p className="text-sm text-muted-foreground">Camera scanner</p>
-                <p className="text-xs text-muted-foreground/60">Point camera at product barcode</p>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground text-center">
-              Barcode scanning requires camera permission. Scanned products will be added to your cart automatically.
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1 min-h-[44px]"
-                onClick={() => setShowScanner(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="flex-1 min-h-[44px]"
-                onClick={() => {
-                  toast.info('Scanner will connect to your device camera. Coming soon!');
-                  setShowScanner(false);
-                  navigate('/orders/new');
-                }}
-              >
-                Open Scanner & Create Order
-              </Button>
-            </div>
-          </div>
+          <ScannerView
+            show={showScanner}
+            scannerRef={scannerRef}
+            readerRef={readerRef}
+            scanning={scanning}
+            setScanning={setScanning}
+            lastScanned={lastScanned}
+            setLastScanned={setLastScanned}
+            onProductFound={(cigarId) => {
+              setShowScanner(false);
+              if (scannerRef.current) {
+                try { scannerRef.current.stop(); } catch {}
+                scannerRef.current = null;
+              }
+              setScanning(false);
+              navigate(`/orders/new?cigar=${cigarId}`);
+            }}
+            onClose={() => setShowScanner(false)}
+          />
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function ScannerView({
+  show,
+  scannerRef,
+  readerRef,
+  scanning,
+  setScanning,
+  lastScanned,
+  setLastScanned,
+  onProductFound,
+  onClose,
+}: {
+  show: boolean;
+  scannerRef: React.MutableRefObject<any>;
+  readerRef: React.MutableRefObject<HTMLDivElement | null>;
+  scanning: boolean;
+  setScanning: (v: boolean) => void;
+  lastScanned: string | null;
+  setLastScanned: (v: string | null) => void;
+  onProductFound: (cigarId: string) => void;
+  onClose: () => void;
+}) {
+  const [lookingUp, setLookingUp] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const lookupBarcode = useCallback(async (barcode: string) => {
+    if (lookingUp) return;
+    setLookingUp(true);
+    setLastScanned(barcode);
+
+    // 1. Check product_variants barcode
+    const { data: variant } = await supabase
+      .from('product_variants')
+      .select('id, product_id, product:products(id, name)')
+      .eq('barcode', barcode)
+      .maybeSingle();
+
+    if (variant?.product_id) {
+      toast.success(`Found: ${(variant.product as any)?.name || 'Product'}`);
+      onProductFound(variant.product_id);
+      setLookingUp(false);
+      return;
+    }
+
+    // 2. Check product_variants SKU
+    const { data: skuVariant } = await supabase
+      .from('product_variants')
+      .select('id, product_id, product:products(id, name)')
+      .eq('sku', barcode)
+      .maybeSingle();
+
+    if (skuVariant?.product_id) {
+      toast.success(`Found: ${(skuVariant.product as any)?.name || 'Product'}`);
+      onProductFound(skuVariant.product_id);
+      setLookingUp(false);
+      return;
+    }
+
+    // 3. Check cigars table by name match (fallback)
+    toast.error(`No product found for barcode: ${barcode}`);
+    setLookingUp(false);
+  }, [lookingUp, onProductFound, setLastScanned]);
+
+  const startScanner = useCallback(async () => {
+    setError(null);
+    setScanning(true);
+
+    try {
+      const { Html5Qrcode } = await import('html5-qrcode');
+      const readerId = 'barcode-reader';
+
+      // Small delay to ensure DOM is ready
+      await new Promise(r => setTimeout(r, 100));
+
+      const el = document.getElementById(readerId);
+      if (!el) {
+        setError('Scanner element not found');
+        setScanning(false);
+        return;
+      }
+
+      const scanner = new Html5Qrcode(readerId);
+      scannerRef.current = scanner;
+
+      await scanner.start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 150 },
+          aspectRatio: 1.0,
+        },
+        (decodedText) => {
+          // Vibrate on scan if supported
+          if (navigator.vibrate) navigator.vibrate(100);
+          // Stop scanner after successful scan
+          try { scanner.stop(); } catch {}
+          lookupBarcode(decodedText);
+        },
+        () => {
+          // Ignore scan failures (no code in frame)
+        }
+      );
+    } catch (err: any) {
+      console.error('Scanner error:', err);
+      if (err?.toString().includes('NotAllowedError')) {
+        setError('Camera permission denied. Please allow camera access and try again.');
+      } else {
+        setError('Could not start camera. Make sure no other app is using it.');
+      }
+      setScanning(false);
+    }
+  }, [lookupBarcode, scannerRef, setScanning]);
+
+  useEffect(() => {
+    if (show) {
+      // Auto-start scanner when dialog opens
+      const timer = setTimeout(startScanner, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [show]);
+
+  return (
+    <div className="px-4 pb-4 space-y-3">
+      {/* Camera viewfinder */}
+      <div className="relative rounded-xl overflow-hidden bg-black aspect-square max-h-72 mx-auto">
+        <div id="barcode-reader" ref={readerRef} className="w-full h-full" />
+
+        {!scanning && !error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
+        {error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted p-6">
+            <div className="text-center space-y-2">
+              <ScanBarcode className="h-10 w-10 text-destructive/50 mx-auto" />
+              <p className="text-sm text-destructive font-medium">{error}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Status */}
+      {lookingUp && (
+        <div className="flex items-center gap-2 justify-center py-2">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <span className="text-sm text-muted-foreground">Looking up: {lastScanned}</span>
+        </div>
+      )}
+
+      {lastScanned && !lookingUp && (
+        <div className="text-center">
+          <p className="text-xs text-muted-foreground">
+            Last scanned: <span className="font-mono font-medium text-foreground">{lastScanned}</span>
+          </p>
+        </div>
+      )}
+
+      <p className="text-xs text-muted-foreground text-center">
+        Point your camera at a product barcode. It will be matched and added to the order.
+      </p>
+
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          className="flex-1 min-h-[44px]"
+          onClick={onClose}
+        >
+          Cancel
+        </Button>
+        {(error || (!scanning && !lookingUp)) && (
+          <Button
+            className="flex-1 min-h-[44px]"
+            onClick={startScanner}
+          >
+            {error ? 'Retry' : 'Start Scanner'}
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
