@@ -18,7 +18,7 @@ export function NewOrderFAB() {
   const scannerRef = useRef<any>(null);
   const readerRef = useRef<HTMLDivElement>(null);
 
-  if (location.pathname === '/orders/new') return null;
+  const isOnNewOrder = location.pathname === '/orders/new';
 
   return (
     <>
