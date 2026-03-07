@@ -56,11 +56,6 @@ export default function Catalogue() {
 
   const canManage = role === 'admin' || role === 'operations' || role === 'manager';
 
-  const openEdit = (product: Product) => {
-    setEditingProduct(product);
-    setFormOpen(true);
-  };
-
   const deleteProduct = async (id: string) => {
     if (!confirm('Delete this product and all its variants?')) return;
     const { error } = await supabase.from('products').delete().eq('id', id);
