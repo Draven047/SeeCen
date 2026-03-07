@@ -34,6 +34,9 @@ function SellerOSContent({ children }: { children: ReactNode }) {
 
       {/* Mobile bottom nav */}
       {isMobile && <SellerOSBottomNav />}
+
+      {/* Mock order popup for testing */}
+      <MockOrderPopup />
     </div>
   );
 }
