@@ -21,14 +21,6 @@ export default function Catalogue() {
   const [brandFilter, setBrandFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
-  // Form dialog
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-
-  // Detail dialog
-  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
-
   useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
