@@ -1,9 +1,10 @@
-import { Plus, ScanBarcode, X, Loader2 } from 'lucide-react';
+import { Plus, ScanBarcode, X, Loader2, Keyboard } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -17,7 +18,6 @@ export function NewOrderFAB() {
   const scannerRef = useRef<any>(null);
   const readerRef = useRef<HTMLDivElement>(null);
 
-  // Hide on the create-order page itself
   if (location.pathname === '/orders/new') return null;
 
   return (
@@ -29,7 +29,6 @@ export function NewOrderFAB() {
           'bottom-[calc(4rem+env(safe-area-inset-bottom,0px)+1rem)]'
         )}
       >
-        {/* Scanner mini FAB */}
         {expanded && (
           <button
             onClick={() => {
@@ -49,7 +48,6 @@ export function NewOrderFAB() {
           </button>
         )}
 
-        {/* Main FAB */}
         <button
           onClick={() => {
             if (expanded) {
@@ -78,7 +76,6 @@ export function NewOrderFAB() {
         open={showScanner}
         onOpenChange={(open) => {
           if (!open) {
-            // Stop scanner before closing
             if (scannerRef.current) {
               try { scannerRef.current.stop(); } catch {}
               scannerRef.current = null;
@@ -144,10 +141,15 @@ function ScannerView({
 }) {
   const [lookingUp, setLookingUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [manualBarcode, setManualBarcode] = useState('');
+  const [manualLookingUp, setManualLookingUp] = useState(false);
 
   const lookupBarcode = useCallback(async (barcode: string) => {
-    if (lookingUp) return;
-    setLookingUp(true);
+    if (lookingUp || manualLookingUp) return;
+    const isManual = !scanning;
+    if (isManual) setManualLookingUp(true);
+    else setLookingUp(true);
     setLastScanned(barcode);
 
     // 1. Check product_variants barcode
@@ -161,6 +163,7 @@ function ScannerView({
       toast.success(`Found: ${(variant.product as any)?.name || 'Product'}`);
       onProductFound(variant.product_id);
       setLookingUp(false);
+      setManualLookingUp(false);
       return;
     }
 
@@ -175,13 +178,21 @@ function ScannerView({
       toast.success(`Found: ${(skuVariant.product as any)?.name || 'Product'}`);
       onProductFound(skuVariant.product_id);
       setLookingUp(false);
+      setManualLookingUp(false);
       return;
     }
 
-    // 3. Check cigars table by name match (fallback)
     toast.error(`No product found for barcode: ${barcode}`);
     setLookingUp(false);
-  }, [lookingUp, onProductFound, setLastScanned]);
+    setManualLookingUp(false);
+  }, [lookingUp, manualLookingUp, scanning, onProductFound, setLastScanned]);
+
+  const handleManualSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = manualBarcode.trim();
+    if (!trimmed) return;
+    lookupBarcode(trimmed);
+  };
 
   const startScanner = useCallback(async () => {
     setError(null);
@@ -191,7 +202,6 @@ function ScannerView({
       const { Html5Qrcode } = await import('html5-qrcode');
       const readerId = 'barcode-reader';
 
-      // Small delay to ensure DOM is ready
       await new Promise(r => setTimeout(r, 100));
 
       const el = document.getElementById(readerId);
@@ -212,15 +222,11 @@ function ScannerView({
           aspectRatio: 1.0,
         },
         (decodedText) => {
-          // Vibrate on scan if supported
           if (navigator.vibrate) navigator.vibrate(100);
-          // Stop scanner after successful scan
           try { scanner.stop(); } catch {}
           lookupBarcode(decodedText);
         },
-        () => {
-          // Ignore scan failures (no code in frame)
-        }
+        () => {}
       );
     } catch (err: any) {
       console.error('Scanner error:', err);
@@ -230,12 +236,13 @@ function ScannerView({
         setError('Could not start camera. Make sure no other app is using it.');
       }
       setScanning(false);
+      // Auto-show manual entry on camera failure
+      setShowManualEntry(true);
     }
   }, [lookupBarcode, scannerRef, setScanning]);
 
   useEffect(() => {
     if (show) {
-      // Auto-start scanner when dialog opens
       const timer = setTimeout(startScanner, 300);
       return () => clearTimeout(timer);
     }
@@ -244,24 +251,26 @@ function ScannerView({
   return (
     <div className="px-4 pb-4 space-y-3">
       {/* Camera viewfinder */}
-      <div className="relative rounded-xl overflow-hidden bg-black aspect-square max-h-72 mx-auto">
-        <div id="barcode-reader" ref={readerRef} className="w-full h-full" />
+      {!showManualEntry && (
+        <div className="relative rounded-xl overflow-hidden bg-black aspect-square max-h-72 mx-auto">
+          <div id="barcode-reader" ref={readerRef} className="w-full h-full" />
 
-        {!scanning && !error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-muted">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        )}
-
-        {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-muted p-6">
-            <div className="text-center space-y-2">
-              <ScanBarcode className="h-10 w-10 text-destructive/50 mx-auto" />
-              <p className="text-sm text-destructive font-medium">{error}</p>
+          {!scanning && !error && (
+            <div className="absolute inset-0 flex items-center justify-center bg-muted">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          </div>
-        )}
-      </div>
+          )}
+
+          {error && (
+            <div className="absolute inset-0 flex items-center justify-center bg-muted p-6">
+              <div className="text-center space-y-2">
+                <ScanBarcode className="h-10 w-10 text-destructive/50 mx-auto" />
+                <p className="text-sm text-destructive font-medium">{error}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Status */}
       {lookingUp && (
@@ -271,7 +280,7 @@ function ScannerView({
         </div>
       )}
 
-      {lastScanned && !lookingUp && (
+      {lastScanned && !lookingUp && !manualLookingUp && (
         <div className="text-center">
           <p className="text-xs text-muted-foreground">
             Last scanned: <span className="font-mono font-medium text-foreground">{lastScanned}</span>
@@ -279,9 +288,45 @@ function ScannerView({
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground text-center">
-        Point your camera at a product barcode. It will be matched and added to the order.
-      </p>
+      {/* Manual barcode entry */}
+      <div className="border-t border-border pt-3">
+        {!showManualEntry ? (
+          <button
+            onClick={() => setShowManualEntry(true)}
+            className="w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+          >
+            <Keyboard className="h-4 w-4" />
+            Enter barcode manually
+          </button>
+        ) : (
+          <form onSubmit={handleManualSubmit} className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">Enter barcode or SKU</label>
+            <div className="flex gap-2">
+              <Input
+                value={manualBarcode}
+                onChange={(e) => setManualBarcode(e.target.value)}
+                placeholder="e.g. 8901234560012 or CWS-M-WHT"
+                className="font-mono text-sm h-11"
+                autoFocus
+                disabled={manualLookingUp}
+              />
+              <Button
+                type="submit"
+                disabled={!manualBarcode.trim() || manualLookingUp}
+                className="h-11 px-4 shrink-0"
+              >
+                {manualLookingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Look up'}
+              </Button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {!showManualEntry && (
+        <p className="text-xs text-muted-foreground text-center">
+          Point your camera at a product barcode. It will be matched and added to the order.
+        </p>
+      )}
 
       <div className="flex gap-2">
         <Button
@@ -291,7 +336,20 @@ function ScannerView({
         >
           Cancel
         </Button>
-        {(error || (!scanning && !lookingUp)) && (
+        {showManualEntry && !error && (
+          <Button
+            variant="outline"
+            className="flex-1 min-h-[44px]"
+            onClick={() => {
+              setShowManualEntry(false);
+              startScanner();
+            }}
+          >
+            <ScanBarcode className="h-4 w-4 mr-1" />
+            Use Camera
+          </Button>
+        )}
+        {!showManualEntry && (error || (!scanning && !lookingUp)) && (
           <Button
             className="flex-1 min-h-[44px]"
             onClick={startScanner}
