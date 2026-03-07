@@ -61,7 +61,7 @@ interface OrderDetail {
   customer_id: string | null;
   customer?: { name: string; phone: string | null; address: string | null; fume_points_balance: number } | null;
   store?: { name: string } | null;
-  items?: { id: string; quantity: number; unit_price: number; total_price: number; cigar: { name: string } }[];
+  items?: { id: string; quantity: number; unit_price: number; total_price: number; cigar: { name: string } | null; product: { name: string } | null }[];
 }
 
 interface CreditNote {
@@ -103,7 +103,7 @@ export default function OrderDetailPage() {
     setLoading(true);
     const { data: orderData, error } = await supabase
       .from('orders')
-      .select(`*, customer:customers(name, phone, address, fume_points_balance), store:stores(name), items:order_items(id, quantity, unit_price, total_price, cigar:cigars(name))`)
+      .select(`*, customer:customers(name, phone, address, fume_points_balance), store:stores(name), items:order_items(id, quantity, unit_price, total_price, cigar:cigars(name), product:products(name))`)
       .eq('id', id)
       .single();
 
@@ -260,7 +260,7 @@ export default function OrderDetailPage() {
       invoiceDate: order.invoice_date ? new Date(order.invoice_date) : new Date(),
       customer: { name: order.customer?.name || 'Walk-in Customer', phone: order.customer?.phone, address: order.customer?.address, gstin: null, state: order.place_of_supply_state || undefined, stateCode: order.place_of_supply_code || undefined },
       shippingAddress: order.shipping_address,
-      items: (order.items || []).map(item => ({ name: item.cigar.name, quantity: item.quantity, rate: item.unit_price, discount: 0 })),
+      items: (order.items || []).map(item => ({ name: item.product?.name || item.cigar?.name || 'Unknown', quantity: item.quantity, rate: item.unit_price, discount: 0 })),
       subtotal: order.subtotal, cgst: order.cgst_amount, sgst: order.sgst_amount, igst: order.igst_amount, cess: order.cess_amount, packingCharges: 0, total: order.total,
       channel: order.channel,
       paymentMode: order.payment_type === 'cod' ? 'COD' : 'Prepaid',
@@ -475,7 +475,7 @@ export default function OrderDetailPage() {
                 <TableBody>
                   {(order.items || []).map(item => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium text-sm">{item.cigar.name}</TableCell>
+                      <TableCell className="font-medium text-sm">{item.product?.name || item.cigar?.name || 'Unknown'}</TableCell>
                       <TableCell className="text-right">{item.quantity}</TableCell>
                       <TableCell className="text-right">₹{item.unit_price.toLocaleString()}</TableCell>
                       <TableCell className="text-right">₹{item.total_price.toLocaleString()}</TableCell>
