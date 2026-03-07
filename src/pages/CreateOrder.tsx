@@ -214,8 +214,33 @@ export default function CreateOrder() {
   };
 
   const fetchCigars = async () => {
-    const { data } = await supabase.from('cigars').select('*').order('name');
-    setCigars((data as Cigar[]) || []);
+    // Fetch from both cigars (legacy) and products tables, merge into unified list
+    const [cigarsRes, productsRes] = await Promise.all([
+      supabase.from('cigars').select('*').order('name'),
+      supabase.from('products').select('*').eq('is_active', true).order('name'),
+    ]);
+
+    const legacyCigars = (cigarsRes.data as Cigar[]) || [];
+    const legacyCigarIds = new Set(legacyCigars.map(c => c.id));
+
+    // Map products to Cigar interface shape (only those not already in cigars table)
+    const productsCigars: Cigar[] = ((productsRes.data || []) as any[])
+      .filter(p => !legacyCigarIds.has(p.id))
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        shape: p.category || 'General',
+        wrapper: p.brand || '—',
+        origin: '—',
+        price: p.base_price,
+        stock_status: 'in_stock' as const,
+        image_url: p.image_urls?.[0] || null,
+        size: null,
+        filler: null,
+        description: p.description,
+      }));
+
+    setCigars([...legacyCigars, ...productsCigars]);
     setLoading(false);
   };
 
