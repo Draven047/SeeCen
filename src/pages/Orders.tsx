@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import {
   Inbox, Search, Filter, RefreshCw, Eye, Upload, Store, Globe, Instagram,
   MessageCircle, ShoppingCart, FileSpreadsheet, Package, AlertTriangle,
-  Clock, CreditCard, Truck, Plus, List, Columns
+  Clock, CreditCard, Truck, Plus, List, Columns, X
 } from 'lucide-react';
 import { OrderKanbanBoard } from '@/components/orders/OrderKanbanBoard';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
 import {
   type SalesChannel,
@@ -63,7 +64,7 @@ export default function Orders() {
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [fulfillmentTypeFilter, setFulfillmentTypeFilter] = useState<string>('all');
   const [fulfillmentStatusFilter, setFulfillmentStatusFilter] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
 
   // CSV import state
   const [showCSVDialog, setShowCSVDialog] = useState(false);
@@ -71,9 +72,6 @@ export default function Orders() {
   const [csvErrors, setCsvErrors] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Sync health (mock)
-  const [connectorErrors] = useState<string[]>([]);
 
   useEffect(() => { fetchOrders(); }, [currentStore]);
 
@@ -107,8 +105,13 @@ export default function Orders() {
     return matchSearch && matchChannel && matchStatus && matchPayment && matchFType && matchFStatus;
   });
 
-  const channelCounts = orders.reduce<Record<string, number>>((acc, o) => { acc[o.channel] = (acc[o.channel] || 0) + 1; return acc; }, {});
-  const fulfillmentCounts = orders.reduce<Record<string, number>>((acc, o) => { acc[o.fulfillment_status] = (acc[o.fulfillment_status] || 0) + 1; return acc; }, {});
+  const activeFilterCount = [channelFilter, statusFilter, paymentFilter, fulfillmentTypeFilter, fulfillmentStatusFilter]
+    .filter(f => f !== 'all').length + (search ? 1 : 0);
+
+  const clearAllFilters = () => {
+    setSearch(''); setChannelFilter('all'); setStatusFilter('all');
+    setPaymentFilter('all'); setFulfillmentTypeFilter('all'); setFulfillmentStatusFilter('all');
+  };
 
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v);
@@ -164,161 +167,194 @@ export default function Orders() {
     } finally { setImporting(false); }
   };
 
-  // Count urgent SLA orders
-  const urgentCount = orders.filter(o => {
-    if (!o.sla_deadline) return false;
-    const sla = getSlaStatus(o.sla_deadline);
-    return sla.urgent;
-  }).length;
-
   return (
     <DashboardLayout>
-      <div className="space-y-5 animate-fade-in">
-        {/* Sync Health Banner */}
-        {connectorErrors.length > 0 && (
-          <div className="alert-warning">
-            <AlertTriangle className="w-5 h-5" />
-            <div>
-              <p className="font-medium text-sm">Sync Issues Detected</p>
-              <p className="text-xs mt-0.5">{connectorErrors.length} channel connector(s) have errors</p>
-            </div>
-          </div>
-        )}
-
+      <div className="space-y-4 animate-fade-in">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-display">Orders</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              {filtered.length} orders across all channels
-              {urgentCount > 0 && <span className="text-destructive ml-2">• {urgentCount} SLA at risk</span>}
+            <h1 className="text-lg font-bold">Orders</h1>
+            <p className="text-muted-foreground text-xs">
+              {filtered.length} orders
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            {/* Filter Popover */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                  <Filter className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Filters</span>
+                  {activeFilterCount > 0 && (
+                    <span className="bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 p-3" align="end">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold">Filters</span>
+                    {activeFilterCount > 0 && (
+                      <button onClick={clearAllFilters} className="text-[10px] text-primary hover:underline">
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] text-muted-foreground">Search</Label>
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                      <Input placeholder="Order #, customer..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-7 h-8 text-xs" />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] text-muted-foreground">Channel</Label>
+                    <Select value={channelFilter} onValueChange={setChannelFilter}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Channels</SelectItem>
+                        <SelectItem value="in_store">In-Store</SelectItem>
+                        <SelectItem value="website">Website</SelectItem>
+                        <SelectItem value="instagram">Instagram</SelectItem>
+                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                        <SelectItem value="marketplace">Marketplace</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] text-muted-foreground">Status</Label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="created">Created</SelectItem>
+                        <SelectItem value="paid">Paid</SelectItem>
+                        <SelectItem value="shipped">Shipped</SelectItem>
+                        <SelectItem value="delivered">Delivered</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] text-muted-foreground">Payment</Label>
+                    <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="cod">COD</SelectItem>
+                        <SelectItem value="prepaid">Prepaid</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] text-muted-foreground">Fulfillment Type</Label>
+                    <Select value={fulfillmentTypeFilter} onValueChange={setFulfillmentTypeFilter}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="self_ship">Self Ship</SelectItem>
+                        <SelectItem value="marketplace_logistics">Marketplace</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] text-muted-foreground">Fulfillment Status</Label>
+                    <Select value={fulfillmentStatusFilter} onValueChange={setFulfillmentStatusFilter}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="new">New</SelectItem>
+                        <SelectItem value="accepted">Accepted</SelectItem>
+                        <SelectItem value="picking">Picking</SelectItem>
+                        <SelectItem value="packed">Packed</SelectItem>
+                        <SelectItem value="ready">Ready</SelectItem>
+                        <SelectItem value="in_transit">In Transit</SelectItem>
+                        <SelectItem value="delivered">Delivered</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
             {/* View toggle */}
             <div className="hidden sm:flex items-center border rounded-lg overflow-hidden">
               <button
                 onClick={() => setViewMode('list')}
-                className={cn('px-2.5 py-1.5 text-xs font-medium flex items-center gap-1 transition-colors',
+                className={cn('px-2 py-1.5 text-xs flex items-center gap-1 transition-colors',
                   viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted')}
               >
-                <List className="w-3.5 h-3.5" /> List
+                <List className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setViewMode('kanban')}
-                className={cn('px-2.5 py-1.5 text-xs font-medium flex items-center gap-1 transition-colors',
+                className={cn('px-2 py-1.5 text-xs flex items-center gap-1 transition-colors',
                   viewMode === 'kanban' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted')}
               >
-                <Columns className="w-3.5 h-3.5" /> Kanban
+                <Columns className="w-3.5 h-3.5" />
               </button>
             </div>
+
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={fetchOrders}>
+              <RefreshCw className="w-3.5 h-3.5" />
+            </Button>
+
             <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
-            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="hidden sm:flex">
-              <Upload className="w-4 h-4 mr-1" /> Import
+            <Button variant="outline" size="icon" className="h-8 w-8 hidden sm:flex" onClick={() => fileInputRef.current?.click()}>
+              <Upload className="w-3.5 h-3.5" />
             </Button>
-            <Button variant="outline" size="sm" onClick={fetchOrders}>
-              <RefreshCw className="w-4 h-4" />
-              <span className="hidden sm:inline ml-1">Refresh</span>
-            </Button>
-            <Button size="sm" onClick={() => navigate('/orders/new')} className="hidden sm:flex">
-              <Plus className="w-4 h-4 mr-1" /> New Order
+
+            <Button size="sm" className="h-8 hidden sm:flex gap-1 text-xs" onClick={() => navigate('/orders/new')}>
+              <Plus className="w-3.5 h-3.5" /> New
             </Button>
           </div>
         </div>
 
-        {/* Channel Chips */}
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => setChannelFilter('all')}
-            className={cn('px-3 py-1.5 rounded-full text-xs font-medium transition-colors border',
-              channelFilter === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground hover:bg-muted')}>
-            All ({orders.length})
-          </button>
-          {(Object.keys(CHANNEL_CONFIG) as SalesChannel[]).map(ch => {
-            const cfg = CHANNEL_CONFIG[ch];
-            const count = channelCounts[ch] || 0;
-            if (count === 0) return null;
-            const Icon = CHANNEL_ICONS[ch] || Package;
-            return (
-              <button key={ch} onClick={() => setChannelFilter(channelFilter === ch ? 'all' : ch)}
-                className={cn('px-3 py-1.5 rounded-full text-xs font-medium transition-colors border flex items-center gap-1.5',
-                  channelFilter === ch ? 'bg-primary text-primary-foreground border-primary' : `bg-card border-border ${cfg.color} hover:bg-muted`)}>
-                <Icon className="w-3 h-3" /> {cfg.label} ({count})
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Fulfillment Status Chips */}
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(fulfillmentCounts).map(([fs, count]) => {
-            const cfg = FULFILLMENT_CONFIG[fs] || FULFILLMENT_CONFIG.new;
-            return (
-              <button key={fs} onClick={() => setFulfillmentStatusFilter(fulfillmentStatusFilter === fs ? 'all' : fs)}
-                className={cn('px-3 py-1.5 rounded-full text-xs font-medium transition-colors border',
-                  fulfillmentStatusFilter === fs ? 'bg-primary text-primary-foreground border-primary' : `bg-card border-border ${cfg.color} hover:bg-muted`)}>
-                {cfg.label} ({count})
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Filters Row */}
-        <div className="filter-card">
-          <div className="flex items-center gap-2 mb-3">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-            <span className="font-medium text-sm">Filters</span>
+        {/* Active filter pills */}
+        {activeFilterCount > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {search && (
+              <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
+                Search: {search}
+                <button onClick={() => setSearch('')} className="hover:bg-muted rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>
+              </Badge>
+            )}
+            {channelFilter !== 'all' && (
+              <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
+                {CHANNEL_CONFIG[channelFilter as SalesChannel]?.label || channelFilter}
+                <button onClick={() => setChannelFilter('all')} className="hover:bg-muted rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>
+              </Badge>
+            )}
+            {statusFilter !== 'all' && (
+              <Badge variant="secondary" className="text-[10px] gap-1 pr-1 capitalize">
+                {statusFilter}
+                <button onClick={() => setStatusFilter('all')} className="hover:bg-muted rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>
+              </Badge>
+            )}
+            {paymentFilter !== 'all' && (
+              <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
+                {paymentFilter === 'cod' ? 'COD' : 'Prepaid'}
+                <button onClick={() => setPaymentFilter('all')} className="hover:bg-muted rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>
+              </Badge>
+            )}
+            {fulfillmentTypeFilter !== 'all' && (
+              <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
+                {fulfillmentTypeFilter === 'self_ship' ? 'Self Ship' : 'Marketplace'}
+                <button onClick={() => setFulfillmentTypeFilter('all')} className="hover:bg-muted rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>
+              </Badge>
+            )}
+            {fulfillmentStatusFilter !== 'all' && (
+              <Badge variant="secondary" className="text-[10px] gap-1 pr-1 capitalize">
+                {fulfillmentStatusFilter.replace(/_/g, ' ')}
+                <button onClick={() => setFulfillmentStatusFilter('all')} className="hover:bg-muted rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>
+              </Badge>
+            )}
+            <button onClick={clearAllFilters} className="text-[10px] text-muted-foreground hover:text-foreground">
+              Clear all
+            </button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Search</Label>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                <Input placeholder="Order #, customer..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 bg-input h-9 text-sm" />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="bg-input h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="created">Created</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="shipped">Shipped</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Payment</Label>
-              <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                <SelectTrigger className="bg-input h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="cod">COD</SelectItem>
-                  <SelectItem value="prepaid">Prepaid</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Fulfillment</Label>
-              <Select value={fulfillmentTypeFilter} onValueChange={setFulfillmentTypeFilter}>
-                <SelectTrigger className="bg-input h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="self_ship">Self Ship</SelectItem>
-                  <SelectItem value="marketplace_logistics">Marketplace</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button variant="outline" size="sm" className="w-full h-9"
-                onClick={() => { setSearch(''); setChannelFilter('all'); setStatusFilter('all'); setPaymentFilter('all'); setFulfillmentTypeFilter('all'); setFulfillmentStatusFilter('all'); }}>
-                Clear
-              </Button>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Kanban View */}
         {viewMode === 'kanban' ? (
@@ -326,7 +362,7 @@ export default function Orders() {
         ) : (
         <>
         {/* Orders — Desktop Table / Mobile Cards */}
-        <div className="glass-card overflow-hidden">
+        <div className="rounded-lg border bg-card overflow-hidden">
           {loading ? (
             <div className="p-12 text-center">
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
@@ -406,7 +442,7 @@ export default function Orders() {
                       const sla = getSlaStatus(order.sla_deadline);
 
                       return (
-                        <tr key={order.id} className="table-row-hover border-t border-border cursor-pointer" onClick={() => navigate(`/orders/${order.id}`)}>
+                        <tr key={order.id} className="border-t border-border cursor-pointer hover:bg-muted/30" onClick={() => navigate(`/orders/${order.id}`)}>
                           <td className="p-3">
                             <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium', chCfg.color)}>
                               <ChIcon className="w-3 h-3" /> {chCfg.label}
