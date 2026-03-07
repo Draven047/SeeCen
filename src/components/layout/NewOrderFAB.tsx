@@ -129,7 +129,7 @@ export function NewOrderFAB() {
               } else {
                 navigate(`/orders/new?cigar=${productId}`);
               }
-            }
+            }}
             onClose={() => setShowScanner(false)}
           />
         </DialogContent>
