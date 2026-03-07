@@ -155,24 +155,6 @@ export default function Catalogue() {
           </div>
         )}
       </div>
-
-      {/* Form Dialog */}
-      <ProductFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        editingProduct={editingProduct}
-        existingVariants={editingProduct ? (variantsMap[editingProduct.id] || []) : []}
-        onSaved={fetchData}
-      />
-
-      {/* Detail Dialog */}
-      <ProductDetailDialog
-        product={detailProduct}
-        variants={detailProduct ? (variantsMap[detailProduct.id] || []) : []}
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        formatCurrency={formatCurrency}
-      />
     </DashboardLayout>
   );
 }

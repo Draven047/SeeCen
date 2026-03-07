@@ -87,6 +87,8 @@ function AppRoutes() {
         <Route path="/fulfillment" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Fulfillment /></ProtectedRoute>} />
         <Route path="/shipping" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><Shipping /></ProtectedRoute>} />
         <Route path="/catalogue" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Catalogue /></ProtectedRoute>} />
+        <Route path="/catalogue/add" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><AddProduct /></ProtectedRoute>} />
+        <Route path="/catalogue/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><ProductDetail /></ProtectedRoute>} />
         <Route path="/returns" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Returns /></ProtectedRoute>} />
 
         {/* People */}
