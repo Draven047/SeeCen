@@ -8,8 +8,9 @@ import { cn } from '@/lib/utils';
 import {
   Inbox, Search, Filter, RefreshCw, Eye, Upload, Store, Globe, Instagram,
   MessageCircle, ShoppingCart, FileSpreadsheet, Package, AlertTriangle,
-  Clock, CreditCard, Truck, Plus
+  Clock, CreditCard, Truck, Plus, List, Columns
 } from 'lucide-react';
+import { OrderKanbanBoard } from '@/components/orders/OrderKanbanBoard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -62,6 +63,7 @@ export default function Orders() {
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [fulfillmentTypeFilter, setFulfillmentTypeFilter] = useState<string>('all');
   const [fulfillmentStatusFilter, setFulfillmentStatusFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
 
   // CSV import state
   const [showCSVDialog, setShowCSVDialog] = useState(false);
@@ -193,6 +195,23 @@ export default function Orders() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* View toggle */}
+            <div className="hidden sm:flex items-center border rounded-lg overflow-hidden">
+              <button
+                onClick={() => setViewMode('list')}
+                className={cn('px-2.5 py-1.5 text-xs font-medium flex items-center gap-1 transition-colors',
+                  viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted')}
+              >
+                <List className="w-3.5 h-3.5" /> List
+              </button>
+              <button
+                onClick={() => setViewMode('kanban')}
+                className={cn('px-2.5 py-1.5 text-xs font-medium flex items-center gap-1 transition-colors',
+                  viewMode === 'kanban' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted')}
+              >
+                <Columns className="w-3.5 h-3.5" /> Kanban
+              </button>
+            </div>
             <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
             <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="hidden sm:flex">
               <Upload className="w-4 h-4 mr-1" /> Import
@@ -301,6 +320,11 @@ export default function Orders() {
           </div>
         </div>
 
+        {/* Kanban View */}
+        {viewMode === 'kanban' ? (
+          <OrderKanbanBoard orders={filtered} onRefresh={fetchOrders} />
+        ) : (
+        <>
         {/* Orders — Desktop Table / Mobile Cards */}
         <div className="glass-card overflow-hidden">
           {loading ? (
@@ -435,6 +459,8 @@ export default function Orders() {
             </>
           )}
         </div>
+        </>
+        )}
 
         {/* CSV Import Dialog */}
         <Dialog open={showCSVDialog} onOpenChange={setShowCSVDialog}>
