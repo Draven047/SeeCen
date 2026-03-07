@@ -29,7 +29,7 @@ export function NewOrderFAB() {
           'bottom-[calc(4rem+env(safe-area-inset-bottom,0px)+1rem)]'
         )}
       >
-        {expanded && (
+        {expanded && !isOnNewOrder && (
           <button
             onClick={() => {
               setExpanded(false);
@@ -48,27 +48,43 @@ export function NewOrderFAB() {
           </button>
         )}
 
-        <button
-          onClick={() => {
-            if (expanded) {
-              navigate('/orders/new');
-              setExpanded(false);
-            } else {
-              setExpanded(true);
-            }
-          }}
-          onBlur={() => setTimeout(() => setExpanded(false), 200)}
-          className={cn(
-            'flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-lg',
-            'h-14 px-5 text-sm font-semibold',
-            'active:scale-95 transition-transform',
-            'hover:bg-primary/90'
-          )}
-          aria-label="New Order"
-        >
-          <Plus className={cn('h-5 w-5 transition-transform', expanded && 'rotate-45')} />
-          <span>Order</span>
-        </button>
+        {isOnNewOrder ? (
+          <button
+            onClick={() => setShowScanner(true)}
+            className={cn(
+              'flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-lg',
+              'h-14 px-5 text-sm font-semibold',
+              'active:scale-95 transition-transform',
+              'hover:bg-primary/90'
+            )}
+            aria-label="Scan product"
+          >
+            <ScanBarcode className="h-5 w-5" />
+            <span>Scan</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => {
+              if (expanded) {
+                navigate('/orders/new');
+                setExpanded(false);
+              } else {
+                setExpanded(true);
+              }
+            }}
+            onBlur={() => setTimeout(() => setExpanded(false), 200)}
+            className={cn(
+              'flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-lg',
+              'h-14 px-5 text-sm font-semibold',
+              'active:scale-95 transition-transform',
+              'hover:bg-primary/90'
+            )}
+            aria-label="New Order"
+          >
+            <Plus className={cn('h-5 w-5 transition-transform', expanded && 'rotate-45')} />
+            <span>Order</span>
+          </button>
+        )}
       </div>
 
       {/* Scanner Dialog */}
