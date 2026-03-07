@@ -15,7 +15,6 @@ import {
   TrendingUp, Tag, Gift, Repeat, Plus, Zap, Percent, Loader2,
   Pause, Play, Pencil, Trash2, CalendarIcon, ShoppingBag, Users,
   Sparkles, PartyPopper, Layers, Star, ArrowRight, Package,
-  AlertDialog,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
