@@ -1,4 +1,4 @@
-import { SellerOSLayout } from '@/components/layout/SellerOSLayout';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Settings as SettingsIcon } from 'lucide-react';
 
 export default function SettingsPage() {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { SellerOSLayout } from '@/components/layout/SellerOSLayout';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Package, Store, AlertTriangle, ClipboardList } from 'lucide-react';
