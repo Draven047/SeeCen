@@ -8,8 +8,9 @@ import { cn } from '@/lib/utils';
 import {
   Inbox, Search, Filter, RefreshCw, Eye, Upload, Store, Globe, Instagram,
   MessageCircle, ShoppingCart, FileSpreadsheet, Package, AlertTriangle,
-  Clock, CreditCard, Truck, Plus
+  Clock, CreditCard, Truck, Plus, List, Columns
 } from 'lucide-react';
+import { OrderKanbanBoard } from '@/components/orders/OrderKanbanBoard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
