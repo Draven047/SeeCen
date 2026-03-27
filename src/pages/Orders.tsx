@@ -674,10 +674,12 @@ export default function Orders() {
         )}
 
         {/* ─── Status Tabs ─── */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-2 scrollbar-none -mx-1 px-1">
+        <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-1 scrollbar-none -mx-1 px-1">
           {STATUS_TABS.map(tab => {
             const count = tabCounts[tab.key] || 0;
             const isActive = activeTab === tab.key;
+            const tabOrders = filtered.filter(o => tab.statuses.includes(o.fulfillment_status));
+            const hasUrgent = tabOrders.some(o => getUrgencyScore(o) <= 1);
             return (
               <button
                 key={tab.key}
@@ -686,14 +688,16 @@ export default function Orders() {
                   'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors shrink-0',
                   isActive
                     ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
+                    : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground',
+                  !isActive && hasUrgent && count > 0 && 'ring-1 ring-destructive/40 text-destructive'
                 )}
               >
                 {tab.label}
                 {count > 0 && (
                   <span className={cn(
                     'text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1',
-                    isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-background text-foreground'
+                    isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-background text-foreground',
+                    !isActive && hasUrgent && 'bg-destructive/10 text-destructive'
                   )}>
                     {count}
                   </span>
