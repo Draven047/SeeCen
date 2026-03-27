@@ -703,9 +703,24 @@ export default function Orders() {
           })}
         </div>
 
-        {/* ─── Sort bar ─── */}
+        {/* ─── Queue Summary Bar ─── */}
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-muted-foreground">{queue.length} order{queue.length !== 1 ? 's' : ''}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-medium text-foreground">
+              {queue.length === 0
+                ? 'Queue clear'
+                : `${queue.length} waiting`}
+            </p>
+            {queue.length > 0 && (() => {
+              const urgentCount = queue.filter(o => getUrgencyScore(o) <= 1).length;
+              return urgentCount > 0 ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-full">
+                  <AlertTriangle className="w-2.5 h-2.5" />
+                  {urgentCount} urgent
+                </span>
+              ) : null;
+            })()}
+          </div>
           <Select value={sortMode} onValueChange={v => setSortMode(v as SortMode)}>
             <SelectTrigger className="h-7 text-[11px] w-auto gap-1 border-0 shadow-none px-2">
               <ArrowUpDown className="w-3 h-3" />
