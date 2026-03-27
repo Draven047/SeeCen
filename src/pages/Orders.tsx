@@ -773,62 +773,72 @@ export default function Orders() {
                         key={order.id}
                         onClick={() => selectOrder(order.id)}
                         className={cn(
-                          'flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors group',
-                          isSelected ? 'bg-primary/5 border-l-2 border-l-primary' : 'hover:bg-muted/40 border-l-2 border-l-transparent',
-                          urgency === 0 && 'border-l-destructive bg-destructive/5',
-                          urgency === 1 && !isSelected && 'border-l-warning'
+                          'flex items-center gap-2 px-3 py-2 cursor-pointer transition-all',
+                          'border-l-[3px]',
+                          isSelected
+                            ? 'bg-primary/[0.06] border-l-primary'
+                            : 'hover:bg-muted/50 border-l-transparent',
+                          urgency === 0 && !isSelected && 'border-l-destructive bg-destructive/[0.04]',
+                          urgency === 1 && !isSelected && 'border-l-warning bg-warning/[0.03]',
                         )}
                       >
-                        {/* Left info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="font-semibold text-sm truncate">
-                              {order.external_channel_order_number || order.order_number}
-                            </span>
-                            <span className={cn('inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium shrink-0', chCfg.color)}>
-                              <ChIcon className="w-2.5 h-2.5" /> {chCfg.label}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span className="truncate">{order.customers?.name || 'Walk-in'}</span>
-                            <span>•</span>
-                            <span className="shrink-0">{order.items_count} item{order.items_count !== 1 ? 's' : ''}</span>
-                          </div>
+                        {/* Urgency / SLA indicator - FIRST visual element */}
+                        <div className="shrink-0 w-12 text-center">
+                          {sla.label !== '-' ? (
+                            <div className={cn(
+                              'text-[10px] font-bold leading-tight',
+                              urgency === 0 && 'text-destructive',
+                              urgency === 1 && 'text-destructive',
+                              urgency === 2 && 'text-warning',
+                              urgency === 3 && 'text-success',
+                            )}>
+                              {urgency <= 1 && <Clock className="w-3 h-3 mx-auto mb-0.5" />}
+                              <span>{sla.label}</span>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground leading-tight block">{timeAgo(order.created_at)}</span>
+                          )}
                         </div>
 
-                        {/* Center: amount + payment */}
-                        <div className="text-right shrink-0">
-                          <p className="font-bold text-sm">{formatCurrency(Number(order.total))}</p>
-                          <div className="flex items-center gap-1 justify-end mt-0.5">
-                            <Badge variant={order.payment_type === 'cod' ? 'outline' : 'secondary'} className="text-[9px] px-1 py-0 h-4">
+                        {/* Order info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-semibold text-[13px] text-foreground truncate">
+                              {order.external_channel_order_number || order.order_number}
+                            </span>
+                            <span className={cn('inline-flex items-center gap-0.5 px-1 py-px rounded text-[8px] font-semibold uppercase tracking-wider shrink-0', chCfg.color)}>
+                              {chCfg.label}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-muted-foreground">
+                            <span className="truncate max-w-[120px]">{order.customers?.name || 'Walk-in'}</span>
+                            <span className="text-muted-foreground/40">·</span>
+                            <span className="shrink-0">{order.items_count} item{order.items_count !== 1 ? 's' : ''}</span>
+                            <span className="text-muted-foreground/40">·</span>
+                            <span className="font-medium text-foreground shrink-0">{formatCurrency(Number(order.total))}</span>
+                            <Badge variant={order.payment_type === 'cod' ? 'outline' : 'secondary'} className="text-[8px] px-1 py-0 h-3.5 shrink-0">
                               {order.payment_type === 'cod' ? 'COD' : 'Prepaid'}
                             </Badge>
                           </div>
                         </div>
 
-                        {/* Right: SLA + time */}
-                        <div className="text-right shrink-0 w-16">
-                          {sla.label !== '-' ? (
-                            <span className={cn('text-[10px] font-medium flex items-center gap-0.5 justify-end', sla.color)}>
-                              {sla.urgent && <Clock className="w-2.5 h-2.5" />}
-                              {sla.label}
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-muted-foreground">{timeAgo(order.created_at)}</span>
-                          )}
-
-                          {/* Quick action on desktop hover */}
-                          {!isMobile && nextAction && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-5 text-[9px] px-1.5 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity text-primary"
-                              onClick={e => { e.stopPropagation(); updateStatus(order.id, nextAction.status); }}
-                            >
-                              {nextAction.label} →
-                            </Button>
-                          )}
-                        </div>
+                        {/* Always-visible action button */}
+                        {nextAction && (
+                          <Button
+                            size="sm"
+                            variant={urgency <= 1 ? 'default' : 'outline'}
+                            className={cn(
+                              'h-7 text-[11px] px-2.5 shrink-0 font-medium',
+                              urgency <= 1 && 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
+                            )}
+                            onClick={e => { e.stopPropagation(); updateStatus(order.id, nextAction.status); }}
+                          >
+                            {nextAction.label}
+                          </Button>
+                        )}
+                        {!nextAction && (
+                          <ChevronRight className="w-4 h-4 text-muted-foreground/40 shrink-0" />
+                        )}
                       </div>
                     );
                   })}
