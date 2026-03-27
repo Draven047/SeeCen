@@ -1,114 +1,77 @@
 
 
-# Orders Page — OMS Queue Redesign
+# Hub Page — Premium Redesign Plan
 
-## What Changes
+## Current Problems
+- 4 stat cards + 12 quick links + 4 insight cards + store health = too many equal-weight boxes
+- 3-column layout on desktop crams quick links, orders, and insights side-by-side
+- Quick links (12 items) dominate a full column — too prominent
+- No clear focal point; everything competes equally
+- Store health card feels disconnected
 
-Replace the Kanban board with a split-panel OMS layout: status tabs on top, order queue list on the left, order detail panel on the right.
+## New Structure
 
-## Architecture
-
-**Single file rewrite**: `src/pages/Orders.tsx` (~550 lines)
-
-The existing `OrderDetail.tsx` full page remains for deep-dive/finance actions. The new inline detail panel shows a summary with primary fulfillment actions, and a "Full Details" link navigates to the existing detail page.
-
-Kanban components (`OrderKanbanBoard.tsx`, `KanbanColumn.tsx`, `KanbanOrderCard.tsx`) are no longer imported but kept in codebase for now.
-
-## Layout Structure
+### Desktop Layout
 
 ```text
-┌──────────────────────────────────────────────────┐
-│  Header: Orders (count) | Search | Filters | +New│
-├──────────────────────────────────────────────────┤
-│  Status Tabs (scrollable): New(5) Accepted(3)... │
-├─────────────────────────┬────────────────────────┤
-│  Order Queue List       │  Order Detail Panel    │
-│  (sorted by urgency)    │  (selected order)      │
-│                         │                        │
-│  compact rows with:     │  customer, items,      │
-│  - order #, customer    │  timeline, amounts,    │
-│  - channel + payment    │  fulfillment actions   │
-│  - amount, SLA, items   │                        │
-│  - next action button   │  "Open Full Details →" │
-│                         │                        │
-│  [empty: "No orders"]   │  [empty: "Select an    │
-│                         │   order to view"]      │
-└─────────────────────────┴────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  Good morning · Store name · Today, March 27        │
+├─────────────────────────────────────────────────────┤
+│  ┌─────────────────────┐  ┌──────┐ ┌──────┐ ┌────┐ │
+│  │  ₹24,500             │  │ 12   │ │ 3    │ │ ₹2K│ │
+│  │  Today's Sales       │  │Orders│ │ Live │ │ AOV│ │
+│  │  (hero, primary bg)  │  │      │ │      │ │    │ │
+│  └─────────────────────┘  └──────┘ └──────┘ └────┘ │
+├─────────────────────────────────────────────────────┤
+│  Quick Actions:  [Orders] [Inventory] [Finance]     │
+│                  [Feedback] [More →]                 │
+├──────────────────────────┬──────────────────────────┤
+│  Recent Orders           │  Insights                │
+│  (wider, 7-col)          │  (5-col, lighter cards)  │
+│  - clean list rows       │  - Sales Overview        │
+│  - status pill           │  - Order Funnel          │
+│  - amount + time         │  - Inventory Health      │
+│                          │  ──────────────           │
+│  "View all orders →"     │  Store Health metrics     │
+└──────────────────────────┴──────────────────────────┘
 ```
 
-**Mobile**: Full-width queue list. Clicking an order opens a Sheet (bottom drawer) with the detail panel content.
+### Section-by-Section Design
 
-## Status Tabs
+**1. Hero Stats Row**
+- Primary stat (Sales Today) gets a larger card with subtle primary gradient background, bigger typography (text-3xl)
+- 3 supporting stats (Orders, Live, AOV) are smaller, borderless, minimal — just value + label
+- Single unified row, not 4 identical boxes
+- Greeting + store name + date above
 
-Reuse existing `KANBAN_COLUMNS` status groupings:
+**2. Quick Actions (replaces 12-item grid)**
+- Horizontal row of 4 primary actions: Orders, Inventory, Finance, Feedback
+- Compact pill-style buttons with icon + label, not full cards
+- 5th item: "More" opens remaining links in a popover/dropdown
+- Much lower visual weight than current grid
 
-| Tab | Statuses | 
-|-----|----------|
-| New | new, unfulfilled |
-| Accepted | accepted |
-| Picking | picking |
-| Packed | packed |
-| Ready | ready |
-| Scheduled | pickup_scheduled, handover |
-| In Transit | in_transit |
-| Delivered | delivered, fulfilled |
-| Issues | declined, cancelled, failed_delivery, rto, returned |
+**3. Recent Orders (left, 7/12 columns)**
+- Clean borderless list rows with subtle hover
+- Each row: order number (mono), status pill, customer, amount, time
+- No icon-in-circle per row — just clean text hierarchy
+- "View all" link at bottom
+- More spacious padding
 
-Each tab shows a count badge. Horizontally scrollable on mobile.
+**4. Insights + Store Health (right, 5/12 columns)**
+- Only 3 insight cards (remove Customer Insights — it's lower priority)
+- Cards are borderless with a subtle left accent line, no outer border
+- Store Health stays but with softer presentation — no separate bordered card, just metric rows under insights
 
-## Queue List Row Design
-
-Compact row (~64px height) showing:
-- **Left**: Order # (bold), customer name, channel badge (colored pill), item count
-- **Center**: Amount (bold), payment badge (COD/Prepaid), time ago
-- **Right**: SLA indicator (color-coded), primary action button (small)
-- Urgent orders get a left border accent (destructive color)
-- Selected order gets highlighted background
-
-## Sort Options
-
-Dropdown above the queue: Urgency (default) | Newest | Oldest | Highest Amount
-
-Urgency sort: SLA-breached first → critical → warning → safe, then by created_at desc.
-
-## Detail Panel (Desktop: right side, Mobile: Sheet)
-
-Content (fetched on selection from the already-loaded order list + a detail fetch for items):
-- **Header**: Order #, status badge, channel, payment type, SLA
-- **Customer**: Name, phone, address
-- **Items**: Fetched via separate query to `order_items` with product/cigar joins
-- **Timeline**: Reuse existing `TIMELINE_STEPS` stepper
-- **Summary**: Subtotal, tax, total
-- **Actions**: Same logic as `OrderDetail.getNextActions()` — Accept, Start Picking, etc. Decline/Cancel open confirmation dialogs inline.
-- **Footer link**: "Open Full Details →" navigates to `/orders/{id}`
-
-## Reused Logic
-
-- `OrderRow` interface — kept as-is
-- `fetchOrders` query — kept as-is
-- Filter system (channel, payment, fulfillment type/status) — kept, still in popover
-- CSV import dialog — kept
-- `CHANNEL_CONFIG`, `FULFILLMENT_CONFIG`, `getSlaStatus` — all reused
-- Status transition via `supabase.from('orders').update(...)` — copied from OrderKanbanBoard
-- All existing filter pills, active filter count, clear logic — kept
-
-## Removed
-
-- `OrderKanbanBoard` import and rendering
-- `viewMode` toggle (list vs kanban) — no longer needed, single OMS view
-- Kanban-specific components are no longer used (files kept for safety)
-
-## Technical Details
-
-- Detail panel items fetched separately: `supabase.from('order_items').select('*, cigar:cigars(name), product:products(name)').eq('order_id', selectedId)`
-- Mobile detection via existing `useIsMobile()` hook
-- Sheet component from `@/components/ui/sheet` for mobile detail drawer
-- Decline/Cancel dialogs rendered inline in the detail panel using Dialog components
-- Sort function computes urgency score from `sla_deadline` for ordering
+### Mobile Layout
+- Greeting + date
+- Hero stat (Sales) as single prominent card, 3 stats in a row below
+- Quick actions as horizontal scroll pills
+- Recent orders as card list
+- Insights stacked below
 
 ## Files Modified
 
-1. **`src/pages/Orders.tsx`** — Complete rewrite with OMS layout
+1. **`src/pages/Hub.tsx`** — Full rewrite with new hierarchy, hero stats, compact quick actions, cleaner orders/insights layout
 
-No other files need changes. No database changes needed.
+No new files, no database changes.
 
