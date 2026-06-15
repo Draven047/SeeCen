@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ export default function Auth() {
 
   if (user) return <Navigate to="/dashboard" replace />;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
@@ -32,7 +32,7 @@ export default function Auth() {
         if (error) throw error;
         toast.success('Account created successfully!');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(getSafeErrorMessage(error));
     } finally {
       setLoading(false);
@@ -46,13 +46,13 @@ export default function Auth() {
           <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-4">
             <ShoppingBag className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="font-display text-3xl font-bold text-foreground">Clozzet SellerOS</h1>
-          <p className="text-muted-foreground mt-2">Fashion Seller Dashboard</p>
+          <h1 className="font-display text-3xl font-bold text-foreground">SeeCen</h1>
+          <p className="text-muted-foreground mt-2">Seller command center</p>
         </div>
 
         <div className="glass-card rounded-2xl p-8">
           <h2 className="font-display text-2xl font-semibold text-center mb-6">
-            {isLogin ? 'Welcome Back' : 'Create Account'}
+            {isLogin ? 'Welcome back' : 'Create account'}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">

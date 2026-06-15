@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SellerOSLayout } from '@/components/layout/SellerOSLayout';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { useStore } from '@/contexts/StoreContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
@@ -23,6 +22,16 @@ interface TodayStats {
   totalOrders: number;
   liveOrders: number;
   avgOrderValue: number;
+}
+
+interface RecentOrder {
+  id: string;
+  order_number: string | null;
+  total: number | string | null;
+  status: string | null;
+  fulfillment_status: string | null;
+  created_at: string | null;
+  customer: { name: string | null } | { name: string | null }[] | null;
 }
 
 const primaryActions = [
@@ -58,43 +67,60 @@ function getGreeting() {
 
 export default function Hub() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { currentStore } = useStore();
   const isMobile = useIsMobile();
   const [stats, setStats] = useState<TodayStats>({ totalSales: 0, totalOrders: 0, liveOrders: 0, avgOrderValue: 0 });
   const [loading, setLoading] = useState(true);
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
-      if (!currentStore) { setLoading(false); return; }
+      if (!currentStore) {
+        setRecentOrders([]);
+        setStats({ totalSales: 0, totalOrders: 0, liveOrders: 0, avgOrderValue: 0 });
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setLoadError(null);
       const today = new Date().toISOString().split('T')[0];
 
-      const [ordersRes, recentRes] = await Promise.all([
-        supabase
-          .from('orders')
-          .select('total, fulfillment_status, status')
-          .eq('store_id', currentStore.id)
-          .gte('created_at', today),
-        supabase
-          .from('orders')
-          .select('id, order_number, total, status, fulfillment_status, created_at, customer:customers(name)')
-          .eq('store_id', currentStore.id)
-          .order('created_at', { ascending: false })
-          .limit(5),
-      ]);
+      try {
+        const [ordersRes, recentRes] = await Promise.all([
+          supabase
+            .from('orders')
+            .select('total, fulfillment_status, status')
+            .eq('store_id', currentStore.id)
+            .gte('created_at', today),
+          supabase
+            .from('orders')
+            .select('id, order_number, total, status, fulfillment_status, created_at, customer:customers(name)')
+            .eq('store_id', currentStore.id)
+            .order('created_at', { ascending: false })
+            .limit(5),
+        ]);
 
-      const orders = ordersRes.data || [];
-      const totalOrders = orders.length;
-      const totalSales = orders.reduce((s, o) => s + Number(o.total), 0);
-      const liveOrders = orders.filter(o =>
-        !['delivered', 'fulfilled', 'cancelled', 'declined'].includes(o.fulfillment_status)
-      ).length;
-      const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+        if (ordersRes.error) throw ordersRes.error;
+        if (recentRes.error) throw recentRes.error;
 
-      setStats({ totalSales, totalOrders, liveOrders, avgOrderValue });
-      setRecentOrders(recentRes.data || []);
-      setLoading(false);
+        const orders = ordersRes.data || [];
+        const totalOrders = orders.length;
+        const totalSales = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+        const liveOrders = orders.filter(order =>
+          !['delivered', 'fulfilled', 'cancelled', 'declined'].includes(order.fulfillment_status || '')
+        ).length;
+        const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+
+        setStats({ totalSales, totalOrders, liveOrders, avgOrderValue });
+        setRecentOrders((recentRes.data || []) as RecentOrder[]);
+      } catch (error) {
+        console.error('Failed to load Hub stats', error);
+        setLoadError('Could not load live store data. Check your connection and refresh.');
+      } finally {
+        setLoading(false);
+      }
     };
     fetchStats();
   }, [currentStore]);
@@ -161,7 +187,12 @@ export default function Hub() {
 
           {/* Recent orders */}
           <div className="mb-10">
-            <RecentOrdersSection orders={recentOrders} navigate={navigate} />
+            <RecentOrdersSection
+              currentStoreName={currentStore?.name}
+              loadError={loadError}
+              orders={recentOrders}
+              navigate={navigate}
+            />
           </div>
 
           {/* Insights */}
@@ -244,7 +275,12 @@ export default function Hub() {
 
           {/* Left — Recent Orders (dominant) */}
           <div className="col-span-7">
-            <RecentOrdersSection orders={recentOrders} navigate={navigate} />
+            <RecentOrdersSection
+              currentStoreName={currentStore?.name}
+              loadError={loadError}
+              orders={recentOrders}
+              navigate={navigate}
+            />
           </div>
 
           {/* Right — Insights + Health (supportive) */}
@@ -298,7 +334,22 @@ function MoreActionsPopover({ navigate }: { navigate: (path: string) => void }) 
   );
 }
 
-function RecentOrdersSection({ orders, navigate }: { orders: any[]; navigate: (path: string) => void }) {
+function getCustomerName(customer: RecentOrder['customer']) {
+  if (Array.isArray(customer)) return customer[0]?.name || 'Walk-in';
+  return customer?.name || 'Walk-in';
+}
+
+function RecentOrdersSection({
+  currentStoreName,
+  loadError,
+  orders,
+  navigate,
+}: {
+  currentStoreName?: string;
+  loadError: string | null;
+  orders: RecentOrder[];
+  navigate: (path: string) => void;
+}) {
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
@@ -311,18 +362,38 @@ function RecentOrdersSection({ orders, navigate }: { orders: any[]; navigate: (p
         </button>
       </div>
 
-      {orders.length === 0 ? (
-        <div className="py-16 text-center">
-          <ShoppingCart className="h-8 w-8 text-muted-foreground/20 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No orders yet today</p>
+      {loadError ? (
+        <div className="rounded-xl border border-warning/25 bg-warning/5 px-4 py-5 text-sm text-warning">
+          {loadError}
+        </div>
+      ) : orders.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-card/50 px-5 py-10 text-center">
+          <ShoppingCart className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-sm font-medium text-foreground">
+            {currentStoreName ? 'No recent orders yet' : 'Choose a store to see live orders'}
+          </p>
+          <p className="mx-auto mt-1 max-w-xs text-xs text-muted-foreground">
+            {currentStoreName
+              ? 'Create a demo order or wait for channel orders to land here.'
+              : 'Once a store is active, today’s queue and revenue will stay in view.'}
+          </p>
+          {currentStoreName && (
+            <button
+              onClick={() => navigate('/orders/new')}
+              className="mt-5 inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Create order
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-1">
           {orders.map((order) => {
-            const customerName = (order.customer as any)?.name || 'Walk-in';
+            const customerName = getCustomerName(order.customer);
             const statusLabel = order.fulfillment_status?.replace('_', ' ') || 'new';
             const isDelivered = order.fulfillment_status === 'delivered';
             const isUnfulfilled = order.fulfillment_status === 'unfulfilled' || order.fulfillment_status === 'new';
+            const orderNumber = order.order_number || `#${order.id.slice(0, 8)}`;
 
             return (
               <button
@@ -333,7 +404,7 @@ function RecentOrdersSection({ orders, navigate }: { orders: any[]; navigate: (p
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2.5">
                     <span className="text-sm font-semibold text-foreground font-mono tracking-tight">
-                      {order.order_number}
+                      {orderNumber}
                     </span>
                     <span className={cn(
                       'text-[10px] px-2 py-0.5 rounded-full font-medium capitalize',
@@ -348,10 +419,12 @@ function RecentOrdersSection({ orders, navigate }: { orders: any[]; navigate: (p
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-sm font-semibold text-foreground tabular-nums">
-                    ₹{Number(order.total).toLocaleString('en-IN')}
+                    ₹{Number(order.total || 0).toLocaleString('en-IN')}
                   </p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {new Date(order.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                    {order.created_at
+                      ? new Date(order.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+                      : 'Just now'}
                   </p>
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground/0 group-hover:text-muted-foreground/40 ml-2 shrink-0 transition-colors" />
