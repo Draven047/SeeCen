@@ -32,10 +32,10 @@ export function GlobalSearch({ results = [], onSearch, placeholder = "Search ord
 
   // Built-in quick actions
   const quickActions: SearchResult[] = [
-    { id: '__new_order', title: 'Create New Order', subtitle: 'Shift+N', category: 'Quick Actions', href: '/orders/new' },
-    { id: '__orders', title: 'View Orders', category: 'Quick Actions', href: '/orders' },
-    { id: '__customers', title: 'View Customers', category: 'Quick Actions', href: '/customers' },
-    { id: '__dashboard', title: 'Go to Dashboard', category: 'Quick Actions', href: '/dashboard' },
+    { id: '__new_order', title: 'Create New Order', subtitle: 'Shift+N', category: 'Quick Actions', href: '/demo/orders/new' },
+    { id: '__orders', title: 'View Orders', category: 'Quick Actions', href: '/demo/orders' },
+    { id: '__customers', title: 'View Customers', category: 'Quick Actions', href: '/demo/customers' },
+    { id: '__dashboard', title: 'Go to Dashboard', category: 'Quick Actions', href: '/demo/dashboard' },
   ];
 
   const allResults = [...quickActions, ...results];

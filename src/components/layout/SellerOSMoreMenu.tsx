@@ -17,54 +17,54 @@ const menuGroups: NavGroup[] = [
   {
     label: 'Main',
     items: [
-      { icon: LayoutGrid, label: 'Hub', path: '/dashboard' },
-      { icon: ShoppingCart, label: 'Orders', path: '/orders' },
-      { icon: Boxes, label: 'Inventory', path: '/inventory' },
-      { icon: IndianRupee, label: 'Finance', path: '/finance' },
+      { icon: LayoutGrid, label: 'Hub', path: '/demo/dashboard' },
+      { icon: ShoppingCart, label: 'Orders', path: '/demo/orders' },
+      { icon: Boxes, label: 'Inventory', path: '/demo/inventory' },
+      { icon: IndianRupee, label: 'Finance', path: '/demo/finance' },
     ],
   },
   {
     label: 'Operations',
     items: [
-      { icon: Package, label: 'Catalogue', path: '/catalogue' },
-      { icon: Truck, label: 'Fulfillment', path: '/fulfillment' },
-      { icon: PackageCheck, label: 'Shipping', path: '/shipping' },
-      { icon: RotateCcw, label: 'Returns', path: '/returns' },
+      { icon: Package, label: 'Catalogue', path: '/demo/catalogue' },
+      { icon: Truck, label: 'Fulfillment', path: '/demo/fulfillment' },
+      { icon: PackageCheck, label: 'Shipping', path: '/demo/shipping' },
+      { icon: RotateCcw, label: 'Returns', path: '/demo/returns' },
     ],
   },
   {
     label: 'Growth & Insights',
     items: [
-      { icon: TrendingUp, label: 'Growth', path: '/growth' },
-      { icon: BarChart3, label: 'Analytics', path: '/analytics' },
-      { icon: Bot, label: 'AI Coach', path: '/ai-coach' },
+      { icon: TrendingUp, label: 'Growth', path: '/demo/growth' },
+      { icon: BarChart3, label: 'Analytics', path: '/demo/analytics' },
+      { icon: Bot, label: 'AI Coach', path: '/demo/ai-coach' },
     ],
   },
   {
     label: 'People',
     items: [
-      { icon: Users, label: 'Customers', path: '/customers' },
-      { icon: UserCog, label: 'Employees', path: '/employees' },
+      { icon: Users, label: 'Customers', path: '/demo/customers' },
+      { icon: UserCog, label: 'Employees', path: '/demo/employees' },
     ],
   },
   {
     label: 'Admin',
     items: [
-      { icon: Store, label: 'Stores', path: '/admin' },
-      { icon: UserCheck, label: 'Approvals', path: '/admin/approvals' },
-      { icon: Link2, label: 'Channels', path: '/channels' },
-      { icon: Settings, label: 'Settings', path: '/settings' },
+      { icon: Store, label: 'Stores', path: '/demo/admin' },
+      { icon: UserCheck, label: 'Approvals', path: '/demo/admin/approvals' },
+      { icon: Link2, label: 'Channels', path: '/demo/channels' },
+      { icon: Settings, label: 'Settings', path: '/demo/settings' },
     ],
   },
 ];
 
 const roleAccess: Record<string, string[]> = {
   admin: ['*'],
-  manager: ['/dashboard', '/orders', '/fulfillment', '/shipping', '/catalogue', '/inventory', '/returns', '/customers', '/employees', '/analytics', '/finance', '/ai-coach', '/admin/approvals', '/feedback', '/growth'],
-  sales: ['/dashboard', '/orders', '/fulfillment', '/catalogue', '/customers', '/returns', '/ai-coach', '/sales-coach', '/feedback', '/growth'],
-  operations: ['/dashboard', '/orders', '/fulfillment', '/shipping', '/catalogue', '/inventory', '/returns', '/feedback'],
-  finance: ['/dashboard', '/orders', '/analytics', '/finance'],
-  viewer: ['/dashboard', '/analytics'],
+  manager: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/shipping', '/demo/catalogue', '/demo/inventory', '/demo/returns', '/demo/customers', '/demo/employees', '/demo/analytics', '/demo/finance', '/demo/ai-coach', '/demo/admin/approvals', '/demo/feedback', '/demo/growth'],
+  sales: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/catalogue', '/demo/customers', '/demo/returns', '/demo/ai-coach', '/demo/sales-coach', '/demo/feedback', '/demo/growth'],
+  operations: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/shipping', '/demo/catalogue', '/demo/inventory', '/demo/returns', '/demo/feedback'],
+  finance: ['/demo/dashboard', '/demo/orders', '/demo/analytics', '/demo/finance'],
+  viewer: ['/demo/dashboard', '/demo/analytics'],
 };
 
 function canAccess(role: string | null, path: string): boolean {
@@ -80,7 +80,7 @@ export function SellerOSMoreMenu({ onClose }: { onClose: () => void }) {
   const { role, signOut } = useAuth();
 
   const isActive = (path: string) => {
-    if (path === '/orders') return location.pathname === '/orders';
+    if (path === '/demo/orders') return location.pathname === '/demo/orders';
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 

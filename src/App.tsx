@@ -2,13 +2,14 @@ import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { StoreProvider } from "@/contexts/StoreContext";
 import { AICoachChatBubble } from "./components/ai-coach/AICoachChatBubble";
 
 const queryClient = new QueryClient();
 
+const Landing = lazy(() => import("./pages/Landing"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Hub = lazy(() => import("./pages/Hub"));
 const Catalogue = lazy(() => import("./pages/Catalogue"));
@@ -73,10 +74,19 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
   if (!isApproved) return <Navigate to="/pending-approval" replace />;
 
   if (allowedRoles && role && !allowedRoles.includes(role as AllowedRole)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/demo/dashboard" replace />;
   }
 
   return <>{children}</>;
+}
+
+function LegacyRedirect({ to }: { to: string }) {
+  const params = useParams();
+  const path = Object.entries(params).reduce(
+    (next, [key, value]) => next.replace(`:${key}`, value || ''),
+    to,
+  );
+  return <Navigate to={path} replace />;
 }
 
 function AppRoutes() {
@@ -89,45 +99,73 @@ function AppRoutes() {
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/pending-approval" element={<PendingApproval />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Landing />} />
 
-          {/* Core - SellerOS primary tabs */}
-          <Route path="/dashboard" element={<ProtectedRoute><Hub /></ProtectedRoute>} />
-          <Route path="/orders" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Orders /></ProtectedRoute>} />
-          <Route path="/orders/new" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><CreateOrder /></ProtectedRoute>} />
-          <Route path="/orders/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><OrderDetail /></ProtectedRoute>} />
-          <Route path="/inventory" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><Inventory /></ProtectedRoute>} />
-          <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
-          <Route path="/finance" element={<ProtectedRoute allowedRoles={['admin', 'finance']}><Finance /></ProtectedRoute>} />
-          <Route path="/growth" element={<ProtectedRoute><Growth /></ProtectedRoute>} />
+          {/* Demo app */}
+          <Route path="/demo/dashboard" element={<ProtectedRoute><Hub /></ProtectedRoute>} />
+          <Route path="/demo/orders" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Orders /></ProtectedRoute>} />
+          <Route path="/demo/orders/new" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><CreateOrder /></ProtectedRoute>} />
+          <Route path="/demo/orders/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><OrderDetail /></ProtectedRoute>} />
+          <Route path="/demo/inventory" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><Inventory /></ProtectedRoute>} />
+          <Route path="/demo/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
+          <Route path="/demo/finance" element={<ProtectedRoute allowedRoles={['admin', 'finance']}><Finance /></ProtectedRoute>} />
+          <Route path="/demo/growth" element={<ProtectedRoute><Growth /></ProtectedRoute>} />
 
           {/* Operations */}
-          <Route path="/fulfillment" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Fulfillment /></ProtectedRoute>} />
-          <Route path="/shipping" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><Shipping /></ProtectedRoute>} />
-          <Route path="/catalogue" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Catalogue /></ProtectedRoute>} />
-          <Route path="/catalogue/add" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><AddProduct /></ProtectedRoute>} />
-          <Route path="/catalogue/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><ProductDetail /></ProtectedRoute>} />
-          <Route path="/returns" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Returns /></ProtectedRoute>} />
+          <Route path="/demo/fulfillment" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Fulfillment /></ProtectedRoute>} />
+          <Route path="/demo/shipping" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><Shipping /></ProtectedRoute>} />
+          <Route path="/demo/catalogue" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Catalogue /></ProtectedRoute>} />
+          <Route path="/demo/catalogue/add" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><AddProduct /></ProtectedRoute>} />
+          <Route path="/demo/catalogue/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><ProductDetail /></ProtectedRoute>} />
+          <Route path="/demo/returns" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Returns /></ProtectedRoute>} />
 
           {/* People */}
-          <Route path="/customers" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><Customers /></ProtectedRoute>} />
-          <Route path="/customers/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><Customer360 /></ProtectedRoute>} />
-          <Route path="/employees" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><Employees /></ProtectedRoute>} />
+          <Route path="/demo/customers" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><Customers /></ProtectedRoute>} />
+          <Route path="/demo/customers/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales']}><Customer360 /></ProtectedRoute>} />
+          <Route path="/demo/employees" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><Employees /></ProtectedRoute>} />
 
           {/* Insights */}
-          <Route path="/analytics" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'finance']}><Analytics /></ProtectedRoute>} />
+          <Route path="/demo/analytics" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'finance']}><Analytics /></ProtectedRoute>} />
 
           {/* Administration */}
-          <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminPanel /></ProtectedRoute>} />
-          <Route path="/admin/approvals" element={<ProtectedRoute allowedRoles={['admin']}><Approvals /></ProtectedRoute>} />
-          <Route path="/channels" element={<ProtectedRoute allowedRoles={['admin']}><Channels /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute allowedRoles={['admin']}><SettingsPage /></ProtectedRoute>} />
-          <Route path="/operations" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><OperationsPanel /></ProtectedRoute>} />
+          <Route path="/demo/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminPanel /></ProtectedRoute>} />
+          <Route path="/demo/admin/approvals" element={<ProtectedRoute allowedRoles={['admin']}><Approvals /></ProtectedRoute>} />
+          <Route path="/demo/channels" element={<ProtectedRoute allowedRoles={['admin']}><Channels /></ProtectedRoute>} />
+          <Route path="/demo/settings" element={<ProtectedRoute allowedRoles={['admin']}><SettingsPage /></ProtectedRoute>} />
+          <Route path="/demo/operations" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><OperationsPanel /></ProtectedRoute>} />
 
           {/* AI */}
-          <Route path="/sales-coach" element={<ProtectedRoute allowedRoles={['admin', 'sales']}><SalesCoach /></ProtectedRoute>} />
-          <Route path="/ai-coach" element={<ProtectedRoute allowedRoles={['admin', 'sales']}><AICoachPage /></ProtectedRoute>} />
-          <Route path="/ui-kit" element={<ProtectedRoute allowedRoles={['admin']}><UIKit /></ProtectedRoute>} />
+          <Route path="/demo/sales-coach" element={<ProtectedRoute allowedRoles={['admin', 'sales']}><SalesCoach /></ProtectedRoute>} />
+          <Route path="/demo/ai-coach" element={<ProtectedRoute allowedRoles={['admin', 'sales']}><AICoachPage /></ProtectedRoute>} />
+          <Route path="/demo/ui-kit" element={<ProtectedRoute allowedRoles={['admin']}><UIKit /></ProtectedRoute>} />
+
+          {/* Legacy app paths redirect to the open demo namespace. */}
+          <Route path="/dashboard" element={<Navigate to="/demo/dashboard" replace />} />
+          <Route path="/orders" element={<Navigate to="/demo/orders" replace />} />
+          <Route path="/orders/new" element={<Navigate to="/demo/orders/new" replace />} />
+          <Route path="/orders/:id" element={<LegacyRedirect to="/demo/orders/:id" />} />
+          <Route path="/inventory" element={<Navigate to="/demo/inventory" replace />} />
+          <Route path="/feedback" element={<Navigate to="/demo/feedback" replace />} />
+          <Route path="/finance" element={<Navigate to="/demo/finance" replace />} />
+          <Route path="/growth" element={<Navigate to="/demo/growth" replace />} />
+          <Route path="/fulfillment" element={<Navigate to="/demo/fulfillment" replace />} />
+          <Route path="/shipping" element={<Navigate to="/demo/shipping" replace />} />
+          <Route path="/catalogue" element={<Navigate to="/demo/catalogue" replace />} />
+          <Route path="/catalogue/add" element={<Navigate to="/demo/catalogue/add" replace />} />
+          <Route path="/catalogue/:id" element={<LegacyRedirect to="/demo/catalogue/:id" />} />
+          <Route path="/returns" element={<Navigate to="/demo/returns" replace />} />
+          <Route path="/customers" element={<Navigate to="/demo/customers" replace />} />
+          <Route path="/customers/:id" element={<LegacyRedirect to="/demo/customers/:id" />} />
+          <Route path="/employees" element={<Navigate to="/demo/employees" replace />} />
+          <Route path="/analytics" element={<Navigate to="/demo/analytics" replace />} />
+          <Route path="/admin" element={<Navigate to="/demo/admin" replace />} />
+          <Route path="/admin/approvals" element={<Navigate to="/demo/admin/approvals" replace />} />
+          <Route path="/channels" element={<Navigate to="/demo/channels" replace />} />
+          <Route path="/settings" element={<Navigate to="/demo/settings" replace />} />
+          <Route path="/operations" element={<Navigate to="/demo/operations" replace />} />
+          <Route path="/sales-coach" element={<Navigate to="/demo/sales-coach" replace />} />
+          <Route path="/ai-coach" element={<Navigate to="/demo/ai-coach" replace />} />
+          <Route path="/ui-kit" element={<Navigate to="/demo/ui-kit" replace />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

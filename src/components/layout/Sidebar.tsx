@@ -204,7 +204,7 @@ export function Sidebar() {
                 <ShoppingBag className="h-4 w-4 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-sm font-bold text-foreground leading-none">Clozzet</h1>
+                <h1 className="text-sm font-bold text-foreground leading-none">SeeCen</h1>
                 <p className="text-[10px] text-sidebar-muted mt-0.5">SellerOS</p>
               </div>
             </div>

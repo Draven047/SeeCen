@@ -34,7 +34,7 @@ export default function UIKit() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-display">UI Kit — Design System</h1>
-            <p className="text-muted-foreground mt-1">Clozzet SellerOS component library and token reference</p>
+            <p className="text-muted-foreground mt-1">SeeCen component library and token reference</p>
           </div>
           <Button variant="outline" size="sm" onClick={toggleTheme} className="gap-2">
             {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

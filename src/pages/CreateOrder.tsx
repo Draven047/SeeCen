@@ -432,7 +432,7 @@ export default function CreateOrder() {
   const total = subtotal + totalTax;
 
   const generateQRCode = async (orderNumber: string, amount: number) => {
-    const upiLink = `upi://pay?pa=clozzet@upi&pn=Clozzet&am=${amount}&tn=Order%20${orderNumber}`;
+    const upiLink = `upi://pay?pa=seecen@upi&pn=SeeCen&am=${amount}&tn=Order%20${orderNumber}`;
     const qrUrl = await QRCode.toDataURL(upiLink, { width: 200, margin: 2 });
     return qrUrl;
   };
@@ -674,7 +674,7 @@ export default function CreateOrder() {
     const doc = new jsPDF({ format: [100, 150] });
     
     doc.setFontSize(14);
-    doc.text('Clozzet', 50, 15, { align: 'center' });
+    doc.text('SeeCen', 50, 15, { align: 'center' });
     doc.setFontSize(10);
     doc.text(`Order: ${createdOrder.order_number}`, 50, 25, { align: 'center' });
     

@@ -35,27 +35,27 @@ interface RecentOrder {
 }
 
 const primaryActions = [
-  { icon: ShoppingCart, label: 'Orders', path: '/orders' },
-  { icon: Boxes, label: 'Inventory', path: '/inventory' },
-  { icon: IndianRupee, label: 'Finance', path: '/finance' },
-  { icon: MessageSquareWarning, label: 'Feedback', path: '/feedback' },
+  { icon: ShoppingCart, label: 'Orders', path: '/demo/orders' },
+  { icon: Boxes, label: 'Inventory', path: '/demo/inventory' },
+  { icon: IndianRupee, label: 'Finance', path: '/demo/finance' },
+  { icon: MessageSquareWarning, label: 'Feedback', path: '/demo/feedback' },
 ];
 
 const moreActions = [
-  { icon: RotateCcw, label: 'Returns', path: '/returns' },
-  { icon: Users, label: 'Customers', path: '/customers' },
-  { icon: Truck, label: 'Shipping', path: '/shipping' },
-  { icon: BarChart3, label: 'Analytics', path: '/analytics' },
-  { icon: UserCog, label: 'Staff', path: '/employees' },
-  { icon: Bot, label: 'AI Coach', path: '/ai-coach' },
-  { icon: TrendingUp, label: 'Growth', path: '/growth' },
-  { icon: Settings, label: 'Settings', path: '/settings' },
+  { icon: RotateCcw, label: 'Returns', path: '/demo/returns' },
+  { icon: Users, label: 'Customers', path: '/demo/customers' },
+  { icon: Truck, label: 'Shipping', path: '/demo/shipping' },
+  { icon: BarChart3, label: 'Analytics', path: '/demo/analytics' },
+  { icon: UserCog, label: 'Staff', path: '/demo/employees' },
+  { icon: Bot, label: 'AI Coach', path: '/demo/ai-coach' },
+  { icon: TrendingUp, label: 'Growth', path: '/demo/growth' },
+  { icon: Settings, label: 'Settings', path: '/demo/settings' },
 ];
 
 const insightCards = [
-  { title: 'Sales Overview', desc: 'Revenue trends and performance', icon: TrendingUp, path: '/analytics', accent: 'border-l-primary' },
-  { title: 'Order Funnel', desc: 'Conversion & fulfillment rates', icon: ShoppingCart, path: '/analytics', accent: 'border-l-warning' },
-  { title: 'Inventory Health', desc: 'Stock levels & reorder alerts', icon: Boxes, path: '/inventory', accent: 'border-l-success' },
+  { title: 'Sales Overview', desc: 'Revenue trends and performance', icon: TrendingUp, path: '/demo/analytics', accent: 'border-l-primary' },
+  { title: 'Order Funnel', desc: 'Conversion & fulfillment rates', icon: ShoppingCart, path: '/demo/analytics', accent: 'border-l-warning' },
+  { title: 'Inventory Health', desc: 'Stock levels & reorder alerts', icon: Boxes, path: '/demo/inventory', accent: 'border-l-success' },
 ];
 
 function getGreeting() {
@@ -355,7 +355,7 @@ function RecentOrdersSection({
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-base font-semibold text-foreground">Recent orders</h2>
         <button
-          onClick={() => navigate('/orders')}
+          onClick={() => navigate('/demo/orders')}
           className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 transition-colors"
         >
           View all <ArrowRight className="h-3 w-3" />
@@ -379,7 +379,7 @@ function RecentOrdersSection({
           </p>
           {currentStoreName && (
             <button
-              onClick={() => navigate('/orders/new')}
+              onClick={() => navigate('/demo/orders/new')}
               className="mt-5 inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
             >
               Create order
@@ -398,7 +398,7 @@ function RecentOrdersSection({
             return (
               <button
                 key={order.id}
-                onClick={() => navigate(`/orders/${order.id}`)}
+                onClick={() => navigate(`/demo/orders/${order.id}`)}
                 className="flex items-center w-full px-4 py-4 rounded-xl hover:bg-card transition-colors text-left group"
               >
                 <div className="flex-1 min-w-0">

@@ -116,10 +116,10 @@ function fmtCur(n: number): string {
 
 function channelLabel(ch?: string): string {
   const map: Record<string, string> = {
-    in_store: 'Clozzet', website: 'Website', instagram: 'Instagram', whatsapp: 'WhatsApp',
+    in_store: 'SeeCen', website: 'Website', instagram: 'Instagram', whatsapp: 'WhatsApp',
     myntra: 'Myntra', flipkart: 'Flipkart', amazon: 'Amazon', ajio: 'Ajio', other: 'Other'
   };
-  return map[ch || 'in_store'] || ch || 'Clozzet';
+  return map[ch || 'in_store'] || ch || 'SeeCen';
 }
 
 // ─── Generator ─────────────────────────────────────────────────────
@@ -218,10 +218,10 @@ export function generateClozzetInvoice(data: InvoiceData): jsPDF {
 
   y = Math.max(storeY + 4, metaY + 2);
 
-  // Powered by Clozzet
+  // Powered by SeeCen
   doc.setFontSize(6);
   setColor(C.mid);
-  txt('Powered by Clozzet', M, y);
+  txt('Powered by SeeCen', M, y);
   y += 5;
 
   // Divider
@@ -504,7 +504,7 @@ export function generateClozzetInvoice(data: InvoiceData): jsPDF {
   // Footer
   doc.setFontSize(6);
   setColor(C.mid);
-  txt(`Goods sold by ${data.store.name}. Clozzet is a platform facilitator.`, M, y);
+  txt(`Goods sold by ${data.store.name}. SeeCen is a platform facilitator.`, M, y);
   y += 3;
   txt('This is a computer-generated invoice.', M, y);
   if (data.store.footerNotes) {

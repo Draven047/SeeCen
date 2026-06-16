@@ -16,16 +16,16 @@ export interface ChannelConnectorV2 {
   healthCheck: (credentials: Record<string, string>) => Promise<{ ok: boolean; message: string }>;
 }
 
-// ---- Clozzet Website Mock ----
+// ---- SeeCen Website Mock ----
 const clozzetMock: ChannelConnectorV2 = {
   id: 'clozzet_website',
-  name: 'Clozzet',
+  name: 'SeeCen',
   icon: 'Globe',
   color: 'bg-blue-500/10 text-blue-600',
-  description: 'Your official Clozzet e-commerce storefront',
+  description: 'Your official SeeCen e-commerce storefront',
   credentialFields: [
     { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'clz_live_...' },
-    { key: 'store_url', label: 'Store URL', type: 'text', placeholder: 'https://yourstore.clozzet.com' },
+    { key: 'store_url', label: 'Store URL', type: 'text', placeholder: 'https://yourstore.example.com' },
   ],
   pullOrders: async () => {
     await new Promise(r => setTimeout(r, 800));

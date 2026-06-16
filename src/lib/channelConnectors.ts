@@ -115,7 +115,7 @@ export const mockWhatsAppConnector: ChannelConnector = {
   id: 'whatsapp', name: 'WhatsApp Business', icon: 'MessageCircle', color: 'text-green-500', isConnected: false, fetchOrders: async () => [],
 };
 export const mockWebsiteConnector: ChannelConnector = {
-  id: 'website', name: 'Clozzet', icon: 'Globe', color: 'text-blue-500', isConnected: false, fetchOrders: async () => [],
+  id: 'website', name: 'SeeCen', icon: 'Globe', color: 'text-blue-500', isConnected: false, fetchOrders: async () => [],
 };
 export const mockMarketplaceConnector: ChannelConnector = {
   id: 'marketplace', name: 'Marketplace (Myntra, Ajio)', icon: 'ShoppingCart', color: 'text-orange-500', isConnected: false, fetchOrders: async () => [],

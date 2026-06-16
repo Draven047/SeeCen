@@ -16,7 +16,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const { user, signIn, signUp } = useAuth();
 
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to="/demo/dashboard" replace />;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

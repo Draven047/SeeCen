@@ -139,7 +139,7 @@ export function AICoachDashboardCard() {
               <p className="text-sm text-muted-foreground">{recommendation.daily_summary}</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => navigate('/ai-coach')} className="gap-1 shrink-0">
+          <Button variant="outline" size="sm" onClick={() => navigate('/demo/ai-coach')} className="gap-1 shrink-0">
             Full Recommendations
             <ChevronRight className="w-4 h-4" />
           </Button>

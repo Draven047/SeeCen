@@ -25,46 +25,46 @@ interface NavGroup {
 }
 
 const primaryNav: NavItem[] = [
-  { icon: ShoppingCart, label: 'Orders', path: '/orders' },
-  { icon: Boxes, label: 'Inventory', path: '/inventory' },
-  { icon: LayoutGrid, label: 'Hub', path: '/dashboard' },
-  { icon: MessageSquareWarning, label: 'Feedback', path: '/feedback' },
-  { icon: IndianRupee, label: 'Finance', path: '/finance' },
+  { icon: ShoppingCart, label: 'Orders', path: '/demo/orders' },
+  { icon: Boxes, label: 'Inventory', path: '/demo/inventory' },
+  { icon: LayoutGrid, label: 'Hub', path: '/demo/dashboard' },
+  { icon: MessageSquareWarning, label: 'Feedback', path: '/demo/feedback' },
+  { icon: IndianRupee, label: 'Finance', path: '/demo/finance' },
 ];
 
 const secondaryGroups: NavGroup[] = [
   {
     label: 'More',
     items: [
-      { icon: TrendingUp, label: 'Growth', path: '/growth' },
-      { icon: Package, label: 'Catalogue', path: '/catalogue' },
-      { icon: Truck, label: 'Fulfillment', path: '/fulfillment' },
-      { icon: PackageCheck, label: 'Shipping', path: '/shipping' },
-      { icon: RotateCcw, label: 'Returns', path: '/returns' },
-      { icon: Users, label: 'Customers', path: '/customers' },
-      { icon: UserCog, label: 'Employees', path: '/employees' },
-      { icon: BarChart3, label: 'Analytics', path: '/analytics' },
-      { icon: Bot, label: 'AI Coach', path: '/ai-coach' },
+      { icon: TrendingUp, label: 'Growth', path: '/demo/growth' },
+      { icon: Package, label: 'Catalogue', path: '/demo/catalogue' },
+      { icon: Truck, label: 'Fulfillment', path: '/demo/fulfillment' },
+      { icon: PackageCheck, label: 'Shipping', path: '/demo/shipping' },
+      { icon: RotateCcw, label: 'Returns', path: '/demo/returns' },
+      { icon: Users, label: 'Customers', path: '/demo/customers' },
+      { icon: UserCog, label: 'Employees', path: '/demo/employees' },
+      { icon: BarChart3, label: 'Analytics', path: '/demo/analytics' },
+      { icon: Bot, label: 'AI Coach', path: '/demo/ai-coach' },
     ],
   },
   {
     label: 'Admin',
     items: [
-      { icon: Store, label: 'Stores', path: '/admin' },
-      { icon: UserCheck, label: 'Approvals', path: '/admin/approvals' },
-      { icon: Link2, label: 'Channels', path: '/channels' },
-      { icon: Settings, label: 'Settings', path: '/settings' },
+      { icon: Store, label: 'Stores', path: '/demo/admin' },
+      { icon: UserCheck, label: 'Approvals', path: '/demo/admin/approvals' },
+      { icon: Link2, label: 'Channels', path: '/demo/channels' },
+      { icon: Settings, label: 'Settings', path: '/demo/settings' },
     ],
   },
 ];
 
 const roleAccess: Record<string, string[]> = {
   admin: ['*'],
-  manager: ['/dashboard', '/orders', '/fulfillment', '/shipping', '/catalogue', '/inventory', '/returns', '/customers', '/employees', '/analytics', '/finance', '/ai-coach', '/admin/approvals', '/feedback', '/growth'],
-  sales: ['/dashboard', '/orders', '/fulfillment', '/catalogue', '/customers', '/returns', '/ai-coach', '/feedback', '/growth'],
-  operations: ['/dashboard', '/orders', '/fulfillment', '/shipping', '/catalogue', '/inventory', '/returns', '/feedback'],
-  finance: ['/dashboard', '/orders', '/analytics', '/finance'],
-  viewer: ['/dashboard', '/analytics'],
+  manager: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/shipping', '/demo/catalogue', '/demo/inventory', '/demo/returns', '/demo/customers', '/demo/employees', '/demo/analytics', '/demo/finance', '/demo/ai-coach', '/demo/admin/approvals', '/demo/feedback', '/demo/growth'],
+  sales: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/catalogue', '/demo/customers', '/demo/returns', '/demo/ai-coach', '/demo/feedback', '/demo/growth'],
+  operations: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/shipping', '/demo/catalogue', '/demo/inventory', '/demo/returns', '/demo/feedback'],
+  finance: ['/demo/dashboard', '/demo/orders', '/demo/analytics', '/demo/finance'],
+  viewer: ['/demo/dashboard', '/demo/analytics'],
 };
 
 function canAccess(role: string | null, path: string): boolean {
@@ -94,14 +94,14 @@ export function SellerOSSidebar() {
   }, [role]);
 
   const isActive = (path: string) => {
-    if (path === '/orders') return location.pathname === '/orders' || location.pathname.startsWith('/orders/');
-    if (path === '/dashboard') return location.pathname === '/dashboard';
+    if (path === '/demo/orders') return location.pathname === '/demo/orders' || location.pathname.startsWith('/demo/orders/');
+    if (path === '/demo/dashboard') return location.pathname === '/demo/dashboard';
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
   const renderItem = (item: NavItem) => {
     const active = isActive(item.path);
-    const showBadge = item.path === '/admin/approvals' && pendingCount > 0;
+    const showBadge = item.path === '/demo/admin/approvals' && pendingCount > 0;
 
     const link = (
       <NavLink
@@ -162,8 +162,8 @@ export function SellerOSSidebar() {
                 <ShoppingBag className="h-4 w-4 text-background" />
               </div>
               <div>
-                <h1 className="text-sm font-bold text-foreground leading-none">Clozzet</h1>
-                <p className="text-[10px] text-muted-foreground mt-0.5">SellerOS</p>
+                <h1 className="text-sm font-bold text-foreground leading-none">SeeCen</h1>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Open demo</p>
               </div>
             </div>
             <button

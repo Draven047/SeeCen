@@ -39,7 +39,7 @@ export function Breadcrumbs() {
 
   return (
     <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm">
-      <Link to="/dashboard" className="flex items-center text-muted-foreground hover:text-foreground transition-colors">
+      <Link to="/demo/dashboard" className="flex items-center text-muted-foreground hover:text-foreground transition-colors">
         <Home className="h-3.5 w-3.5" />
       </Link>
       {crumbs.map((crumb) => (

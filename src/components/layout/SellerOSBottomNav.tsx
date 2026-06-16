@@ -4,11 +4,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { icon: ShoppingCart, label: 'Orders', path: '/orders' },
-  { icon: Boxes, label: 'Inventory', path: '/inventory' },
-  { icon: LayoutGrid, label: 'Hub', path: '/dashboard' },
-  { icon: MessageSquareWarning, label: 'Feedback', path: '/feedback' },
-  { icon: IndianRupee, label: 'Finance', path: '/finance' },
+  { icon: ShoppingCart, label: 'Orders', path: '/demo/orders' },
+  { icon: Boxes, label: 'Inventory', path: '/demo/inventory' },
+  { icon: LayoutGrid, label: 'Hub', path: '/demo/dashboard' },
+  { icon: MessageSquareWarning, label: 'Feedback', path: '/demo/feedback' },
+  { icon: IndianRupee, label: 'Finance', path: '/demo/finance' },
 ];
 
 export function SellerOSBottomNav() {
@@ -16,8 +16,8 @@ export function SellerOSBottomNav() {
   const { role } = useAuth();
 
   const isActive = (path: string) => {
-    if (path === '/orders') return location.pathname === '/orders' || location.pathname.startsWith('/orders/');
-    if (path === '/dashboard') return location.pathname === '/dashboard';
+    if (path === '/demo/orders') return location.pathname === '/demo/orders' || location.pathname.startsWith('/demo/orders/');
+    if (path === '/demo/dashboard') return location.pathname === '/demo/dashboard';
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 

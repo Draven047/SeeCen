@@ -37,7 +37,7 @@ export function WarningBannerSystem() {
         message: 'Channel sync failed in the last 24 hours',
         icon: RefreshCw,
         cta: 'View Channels',
-        ctaPath: '/channels',
+        ctaPath: '/demo/channels',
       });
     }
 
@@ -58,7 +58,7 @@ export function WarningBannerSystem() {
         message: `₹${totalCodGap.toLocaleString('en-IN')} COD pending reconciliation`,
         icon: IndianRupee,
         cta: 'Review',
-        ctaPath: '/finance',
+        ctaPath: '/demo/finance',
       });
     }
 
@@ -76,7 +76,7 @@ export function WarningBannerSystem() {
         message: 'Some items are running low on stock',
         icon: AlertTriangle,
         cta: 'View Inventory',
-        ctaPath: '/inventory',
+        ctaPath: '/demo/inventory',
       });
     }
 

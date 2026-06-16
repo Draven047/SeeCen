@@ -18,7 +18,7 @@ export function NewOrderFAB() {
   const scannerRef = useRef<any>(null);
   const readerRef = useRef<HTMLDivElement>(null);
 
-  const isOnNewOrder = location.pathname === '/orders/new';
+  const isOnNewOrder = location.pathname === '/demo/orders/new';
 
   return (
     <>
@@ -66,7 +66,7 @@ export function NewOrderFAB() {
           <button
             onClick={() => {
               if (expanded) {
-                navigate('/orders/new');
+                navigate('/demo/orders/new');
                 setExpanded(false);
               } else {
                 setExpanded(true);
@@ -127,7 +127,7 @@ export function NewOrderFAB() {
               if (isOnNewOrder) {
                 window.dispatchEvent(new CustomEvent('barcode-product-found', { detail: { cigarId: productId } }));
               } else {
-                navigate(`/orders/new?cigar=${productId}`);
+                navigate(`/demo/orders/new?cigar=${productId}`);
               }
             }}
             onClose={() => setShowScanner(false)}

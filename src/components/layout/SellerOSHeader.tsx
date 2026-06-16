@@ -49,7 +49,8 @@ export function SellerOSHeader() {
     return () => window.removeEventListener('clozzet-pending-orders', handler);
   }, []);
 
-  const pageTitle = pageTitles[location.pathname] || '';
+  const pagePath = location.pathname.replace(/^\/demo/, '') || '/dashboard';
+  const pageTitle = pageTitles[pagePath] || '';
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-card/90 backdrop-blur-md px-4">
@@ -66,7 +67,7 @@ export function SellerOSHeader() {
                 isOnline ? 'bg-success' : 'bg-muted-foreground'
               )} />
               <span className="text-sm font-semibold text-foreground truncate max-w-[140px]">
-                {currentStore?.name || 'Clozzet'}
+                {currentStore?.name || 'SeeCen'}
               </span>
             </div>
           </button>
@@ -81,7 +82,7 @@ export function SellerOSHeader() {
                 isOnline ? 'bg-success' : 'bg-muted-foreground'
               )} />
               <span className="text-sm font-medium text-foreground">
-                {currentStore?.name || 'Clozzet'}
+                {currentStore?.name || 'SeeCen'}
               </span>
               <span className={cn(
                 'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',

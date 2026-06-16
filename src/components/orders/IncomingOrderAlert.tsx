@@ -44,13 +44,13 @@ const FASHION_ITEMS = [
   { name: 'Leather Belt', variant: 'Free Size · Brown', price: 899 },
 ];
 
-const CHANNELS = ['Clozzet', 'Myntra', 'Amazon', 'WhatsApp', 'Instagram', 'Walk-in'];
+const CHANNELS = ['SeeCen', 'Myntra', 'Amazon', 'WhatsApp', 'Instagram', 'Walk-in'];
 const PAYMENT_TYPES: Array<{ label: string; color: string }> = [
   { label: 'Prepaid', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' },
   { label: 'COD', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
 ];
 const DELIVERY_TYPES = ['Delivery', 'Pickup', 'Self-ship'];
-const STORES = ['Clozzet HSR Layout', 'Clozzet Koramangala', 'Clozzet Indiranagar'];
+const STORES = ['SeeCen Mumbai', 'SeeCen Delhi', 'SeeCen Bengaluru'];
 
 const REJECT_REASONS = [
   'Out of stock',
