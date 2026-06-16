@@ -110,9 +110,11 @@ serve(async (req) => {
       }))
     };
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      console.error('LOVABLE_API_KEY is not configured');
+    const AI_PROVIDER_API_KEY = Deno.env.get('AI_PROVIDER_API_KEY');
+    const AI_PROVIDER_CHAT_URL = Deno.env.get('AI_PROVIDER_CHAT_URL') || 'https://api.openai.com/v1/chat/completions';
+    const AI_PROVIDER_MODEL = Deno.env.get('AI_PROVIDER_MODEL') || 'gpt-4o-mini';
+    if (!AI_PROVIDER_API_KEY) {
+      console.error('AI_PROVIDER_API_KEY is not configured');
       return new Response(JSON.stringify({ error: 'Service temporarily unavailable' }), {
         status: 503,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -178,16 +180,16 @@ Provide personalized recommendations to help them improve their sales performanc
 
 Return ONLY valid JSON matching the specified format.`;
 
-    console.log('Calling Lovable AI for sales recommendations...');
+    console.log('Calling configured AI provider for sales recommendations...');
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch(AI_PROVIDER_CHAT_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${AI_PROVIDER_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: AI_PROVIDER_MODEL,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }

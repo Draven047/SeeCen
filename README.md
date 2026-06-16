@@ -1,74 +1,183 @@
-# Welcome to your Lovable project
+# SeeCen
 
-## Project info
+SeeCen is an open-source seller command center for managing orders, inventory, customers, shipping, returns, finance, analytics, and AI-assisted sales coaching.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+The app is designed to be easy to try, fork, and self-host. It runs out of the box with a resettable in-browser demo, so you do not need Supabase, a database, or paid API keys to explore the product.
 
-## How can I edit this code?
+Live demo: https://seecen.seekerscentral.com
 
-There are several ways of editing your application.
+Repository: https://github.com/Draven047/SeeCen
 
-**Use Lovable**
+## What SeeCen Includes
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- Public landing page with product details and open-source download links
+- Resettable demo dashboard under `/demo/dashboard`
+- Order queue and fulfillment workflow
+- Customer management and customer 360 views
+- Product catalogue and inventory health
+- Shipping, pickup, and tracking screens
+- Returns and exchange workflows
+- Finance, settlements, COD reconciliation, invoices, and credit notes
+- Analytics dashboards for sales and operations
+- Local deterministic AI Coach for demo insights
 
-Changes made via Lovable will be committed automatically to this repo.
+## Demo Mode
 
-**Use your preferred IDE**
+SeeCen currently ships as a demo-first open-source app.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- No Supabase project is required.
+- No `.env` file is required.
+- Demo data is seeded in the browser at app load.
+- Changes persist while you navigate inside the app.
+- Refreshing the browser resets the demo to the original seeded state.
+- The AI Coach uses local deterministic insights from demo data.
 
-The only requirement is having Bun installed - [install Bun](https://bun.sh/docs/installation)
+This makes the project simple for anyone to download, run, inspect, and improve without paying for hosted services.
 
-Follow these steps:
+## Tech Stack
+
+- Bun
+- Vite
+- React
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- Recharts
+- Lucide icons
+
+## Download and Run Locally
+
+### Option 1: Clone with Git
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
+git clone https://github.com/Draven047/SeeCen.git
+cd SeeCen
 bun install
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
 bun run dev
 ```
 
-**Edit a file directly in GitHub**
+Open the local URL shown in your terminal, usually:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```txt
+http://localhost:8080
+```
 
-**Use GitHub Codespaces**
+### Option 2: Download ZIP
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Download the latest source code:
 
-## What technologies are used for this project?
+```txt
+https://github.com/Draven047/SeeCen/archive/refs/heads/main.zip
+```
 
-This project is built with:
+Then unzip it and run:
 
-- Bun 1.3.4
-- Vite 7.2.7
-- TypeScript
-- React 19.2.1
-- shadcn-ui
-- Tailwind CSS
+```sh
+cd SeeCen-main
+bun install
+bun run dev
+```
 
-## How can I deploy this project?
+## Useful Commands
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+```sh
+bun install
+```
 
-## Can I connect a custom domain to my Lovable project?
+Install dependencies.
 
-Yes, you can!
+```sh
+bun run dev
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Start the development server.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+```sh
+bun run build
+```
+
+Create a production build.
+
+```sh
+bun run preview
+```
+
+Preview the production build locally.
+
+```sh
+bun run lint
+```
+
+Run lint checks.
+
+## App Routes
+
+Public:
+
+```txt
+/
+```
+
+Demo:
+
+```txt
+/demo/dashboard
+/demo/orders
+/demo/customers
+/demo/inventory
+/demo/finance
+/demo/shipping
+/demo/returns
+/demo/analytics
+/demo/ai-coach
+```
+
+## Optional AI Provider Setup
+
+The current open-source demo does not call an external AI provider. The AI Coach generates local deterministic recommendations from seeded demo data.
+
+If you want to extend SeeCen with your own AI provider later, start from `.env.example`:
+
+```sh
+cp .env.example .env
+```
+
+Then add your own provider values:
+
+```txt
+AI_PROVIDER_API_KEY=
+AI_PROVIDER_CHAT_URL=
+AI_PROVIDER_MODEL=
+```
+
+## Deployment
+
+SeeCen is a Vite single-page app. It can be deployed to Vercel, Netlify, Cloudflare Pages, or any static host.
+
+For Vercel:
+
+```sh
+bun run build
+```
+
+Build command:
+
+```txt
+bun run build
+```
+
+Output directory:
+
+```txt
+dist
+```
+
+The included `vercel.json` rewrites all routes to `index.html`, so direct refreshes like `/demo/orders` work correctly.
+
+## Project Direction
+
+SeeCen is built to become a practical, open-source seller operating system. The current version focuses on a strong free demo and a clean foundation. Future self-hosted versions can add persistent storage, authentication, real marketplace connectors, and bring-your-own-key AI providers.
+
+## License
+
+This project is open source. Add your preferred license in `LICENSE` before distributing modified versions publicly.
