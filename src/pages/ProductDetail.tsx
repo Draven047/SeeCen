@@ -13,6 +13,8 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, Package, Edit2, Save, Loader2, Layers, Box, IndianRupee, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { ProductFormDialog } from '@/components/catalogue/ProductFormDialog';
+import { PageLoading } from '@/components/ui/page-loading';
 
 interface Product {
   id: string; name: string; brand: string | null; category: string; hsn_code: string | null;
@@ -57,6 +59,7 @@ export default function ProductDetail() {
   // Inventory edits
   const [inventoryEdits, setInventoryEdits] = useState<Record<string, number>>({});
   const [savingInventory, setSavingInventory] = useState<string | null>(null);
+  const [productDialogOpen, setProductDialogOpen] = useState(false);
 
   useEffect(() => { if (id) fetchAll(); }, [id]);
 
@@ -94,7 +97,7 @@ export default function ProductDetail() {
     const edits = variantEdits[vId];
     if (!edits) return;
     setSavingVariant(vId);
-    const update: any = {};
+    const update: Partial<Pick<Variant, 'sku' | 'barcode' | 'price_override'>> = {};
     if (edits.sku !== undefined) update.sku = edits.sku || null;
     if (edits.barcode !== undefined) update.barcode = edits.barcode || null;
     if (edits.price_override !== undefined) update.price_override = edits.price_override || null;
@@ -122,9 +125,7 @@ export default function ProductDetail() {
 
   if (loading) return (
     <DashboardLayout>
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
+      <PageLoading label="Loading product detail" rows={3} />
     </DashboardLayout>
   );
 
@@ -133,7 +134,7 @@ export default function ProductDetail() {
       <div className="text-center py-20">
         <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4 opacity-50" />
         <h2 className="text-xl font-semibold">Product not found</h2>
-        <Button variant="outline" className="mt-4" onClick={() => navigate('/catalogue')}>Back to Catalogue</Button>
+        <Button variant="outline" className="mt-4" onClick={() => navigate('/demo/catalogue')}>Back to Catalogue</Button>
       </div>
     </DashboardLayout>
   );
@@ -151,7 +152,7 @@ export default function ProductDetail() {
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
         {/* Back */}
-        <Button variant="ghost" size="sm" onClick={() => navigate('/catalogue')}>
+        <Button variant="ghost" size="sm" onClick={() => navigate('/demo/catalogue')}>
           <ArrowLeft className="w-4 h-4 mr-1.5" /> Catalogue
         </Button>
 
@@ -170,7 +171,14 @@ export default function ProductDetail() {
                 <h1 className="text-xl font-bold">{product.name}</h1>
                 <p className="text-sm text-muted-foreground">{product.category}{product.brand ? ` · ${product.brand}` : ''}</p>
               </div>
-              <Badge className={cn('text-white shrink-0', stockColor)}>{stockStatus}</Badge>
+              <div className="flex shrink-0 items-center gap-2">
+                {canManage && (
+                  <Button size="sm" onClick={() => setProductDialogOpen(true)} className="min-h-[40px] gap-1.5">
+                    <Edit2 className="w-3.5 h-3.5" /> Edit product
+                  </Button>
+                )}
+                <Badge className={cn('text-white shrink-0', stockColor)}>{stockStatus}</Badge>
+              </div>
             </div>
             <div className="flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -287,7 +295,7 @@ export default function ProductDetail() {
                                   type="number"
                                   value={edits.price_override ?? v.price_override ?? ''}
                                   placeholder={String(product.base_price)}
-                                  onChange={e => setVariantEdits(prev => ({...prev, [v.id]: {...(prev[v.id]||{}), price_override: e.target.value ? parseFloat(e.target.value) : null as any}}))}
+                                  onChange={e => setVariantEdits(prev => ({...prev, [v.id]: {...(prev[v.id]||{}), price_override: e.target.value ? parseFloat(e.target.value) : null}}))}
                                   className="h-8 text-xs w-20"
                                 />
                               ) : (
@@ -476,6 +484,15 @@ export default function ProductDetail() {
             )}
           </TabsContent>
         </Tabs>
+        {product && (
+          <ProductFormDialog
+            open={productDialogOpen}
+            onOpenChange={setProductDialogOpen}
+            editingProduct={product}
+            existingVariants={variants.map((variant) => ({ ...variant, created_at: '' }))}
+            onSaved={fetchAll}
+          />
+        )}
       </div>
     </DashboardLayout>
   );

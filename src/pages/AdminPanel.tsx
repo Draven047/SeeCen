@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { PageLoading } from '@/components/ui/page-loading';
 
 interface TeamMember {
   id: string;
@@ -392,16 +393,18 @@ export default function AdminPanel() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="mx-auto max-w-7xl space-y-5 animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="rounded-[28px] border border-black/[0.04] bg-white p-6 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)]">
+        <div className="flex items-end justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-primary" />
+            <div className="w-12 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center">
+              <Building2 className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-display">Business Command Center</h1>
-              <p className="text-muted-foreground text-sm">Complete oversight of your cigar empire</p>
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Administration</p>
+              <h1 className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-[#17191c]">Business Command Center</h1>
+              <p className="text-muted-foreground text-sm mt-2">Complete oversight of your seller operations</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -410,9 +413,12 @@ export default function AdminPanel() {
             </Button>
           </div>
         </div>
+        </div>
+
+        {loading && <PageLoading label="Loading admin command center" rows={4} />}
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {!loading && <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { icon: DollarSign, label: 'Total Revenue', value: formatCurrency(stats.totalRevenue), trend: '+12.5%', up: true, color: 'text-success' },
             { icon: Store, label: 'Active Stores', value: stats.totalStores, trend: `${stats.totalStores} locations`, up: true, color: 'text-primary' },
@@ -438,10 +444,10 @@ export default function AdminPanel() {
               <p className="text-sm text-muted-foreground">{stat.label}</p>
             </div>
           ))}
-        </div>
+        </div>}
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        {!loading && <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-muted/50 p-1 flex-wrap">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="team">Team Management</TabsTrigger>
@@ -1019,7 +1025,7 @@ export default function AdminPanel() {
               </div>
             </div>
           </TabsContent>
-        </Tabs>
+        </Tabs>}
       </div>
 
       {/* Assign Store Dialog */}

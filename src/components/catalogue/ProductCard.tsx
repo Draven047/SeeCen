@@ -110,10 +110,10 @@ export function ProductCard({
           </Button>
           {canManage && (
             <>
-              <Button variant="outline" size="icon" className="h-9 w-9" onClick={onEdit}>
+              <Button variant="outline" size="icon" className="h-9 w-9" onClick={onEdit} aria-label={`Edit ${product.name}`}>
                 <Edit className="w-4 h-4" />
               </Button>
-              <Button variant="outline" size="icon" className="h-9 w-9 border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete}>
+              <Button variant="outline" size="icon" className="h-9 w-9 border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete} aria-label={`Delete ${product.name}`}>
                 <Trash2 className="w-4 h-4" />
               </Button>
             </>

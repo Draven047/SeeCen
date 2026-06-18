@@ -415,7 +415,7 @@ export default function OrderInbox() {
 
       {/* CSV Import Dialog */}
       <Dialog open={showCSVDialog} onOpenChange={setShowCSVDialog}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Import Orders from CSV</DialogTitle>
           </DialogHeader>

@@ -162,18 +162,22 @@ export function NotificationsDropdown() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button className="relative p-2 hover:bg-muted rounded-lg transition-colors">
-          <Bell className="w-5 h-5 text-muted-foreground" />
+        <button
+          type="button"
+          aria-label={unreadCount > 0 ? `Open notifications, ${unreadCount} unread` : 'Open notifications'}
+          className="relative flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#17191c] shadow-[0_14px_36px_-30px_rgba(15,23,42,0.65)] transition-transform hover:scale-[1.03]"
+        >
+          <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center font-medium">
+            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#563ed5] px-1 text-[10px] font-bold text-white">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0 bg-card border-border" align="end">
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h3 className="font-semibold">Notifications</h3>
+      <PopoverContent className="w-80 overflow-hidden rounded-[28px] border-black/[0.06] bg-white p-0 shadow-[0_24px_70px_-36px_rgba(15,23,42,0.45)]" align="end">
+        <div className="flex items-center justify-between border-b border-black/[0.06] p-4">
+          <h3 className="font-bold text-[#17191c]">Notifications</h3>
           {unreadCount > 0 && (
             <Button 
               variant="ghost" 
@@ -203,8 +207,8 @@ export function NotificationsDropdown() {
                 <div
                   key={notification.id}
                   className={cn(
-                    "p-4 hover:bg-muted/50 transition-colors cursor-pointer",
-                    !notification.read && "bg-primary/5"
+                    "p-4 transition-colors cursor-pointer hover:bg-[#f4f5f2]",
+                    !notification.read && "bg-[#563ed5]/10"
                   )}
                   onClick={() => handleNotificationClick(notification)}
                 >
@@ -240,7 +244,7 @@ export function NotificationsDropdown() {
         </ScrollArea>
         
         {notifications.length > 0 && (
-          <div className="p-2 border-t border-border">
+          <div className="border-t border-black/[0.06] p-2">
             <Button 
               variant="ghost" 
               className="w-full text-sm h-8 text-muted-foreground"

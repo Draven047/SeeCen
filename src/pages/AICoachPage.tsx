@@ -130,6 +130,7 @@ export default function AICoachPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [history, setHistory] = useState<DailyRecommendation[]>([]);
   const [activeTab, setActiveTab] = useState('today');
+  const [aiServiceError, setAiServiceError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -210,6 +211,7 @@ export default function AICoachPage() {
 
   const generateRecommendations = async () => {
     setLoading(true);
+    setAiServiceError(null);
     try {
       const { data, error } = await supabase.functions.invoke('ai-coach-generate');
       
@@ -227,9 +229,14 @@ export default function AICoachPage() {
       });
     } catch (error) {
       console.error('Error:', error);
+      const message = error instanceof Error ? error.message : 'Failed to get recommendations';
+      const configuredMessage = /not configured|AI service/i.test(message)
+        ? 'AI service is not configured on the server. Add AI_PROVIDER_API_KEY to the Supabase edge function environment.'
+        : message;
+      setAiServiceError(configuredMessage);
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to get recommendations',
+        description: configuredMessage,
         variant: 'destructive',
       });
     } finally {
@@ -259,15 +266,22 @@ export default function AICoachPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="mx-auto max-w-6xl space-y-5 animate-fade-in">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="rounded-[28px] border border-black/[0.04] bg-white p-6 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)]">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <h1 className="text-display flex items-center gap-2">
-              <Brain className="w-7 h-7 text-primary" />
-              AI Sales Coach
-            </h1>
-            <p className="text-muted-foreground mt-1">
+            <div className="mb-3 flex items-center gap-3">
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+                <Brain className="w-5 h-5" />
+              </span>
+              <Badge variant={aiServiceError ? 'destructive' : 'secondary'} className="rounded-full">
+                {aiServiceError ? 'Server key needed' : 'Server configured'}
+              </Badge>
+            </div>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Daily selling intelligence</p>
+            <h1 className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-[#17191c]">AI Sales Coach</h1>
+            <p className="mt-2 text-sm font-medium text-muted-foreground">
               Your intelligent daily partner for sales success
             </p>
           </div>
@@ -295,6 +309,12 @@ export default function AICoachPage() {
               {loading ? 'Generating...' : 'Generate Today\'s Advice'}
             </Button>
           </div>
+        </div>
+        {aiServiceError && (
+          <div className="mt-5 rounded-[22px] border border-destructive/20 bg-destructive/5 p-4 text-sm font-medium text-destructive">
+            {aiServiceError}
+          </div>
+        )}
         </div>
 
         {/* Initial State */}
@@ -477,7 +497,10 @@ export default function AICoachPage() {
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <div>
                                 <h4 className="font-medium text-sm">{customer.customerName}</h4>
-                                <a href={`tel:${customer.phone}`} className="text-xs text-primary hover:underline">
+                                <a
+                                  href={`tel:${customer.phone}`}
+                                  className="inline-flex min-h-8 items-center rounded-full px-2 text-xs font-medium text-primary hover:bg-primary/10"
+                                >
                                   {customer.phone}
                                 </a>
                               </div>

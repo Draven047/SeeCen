@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   ShoppingCart, Package, Boxes, Truck, PackageCheck, RotateCcw,
   Users, UserCog, BarChart3, IndianRupee, Store, Link2, Settings,
-  LogOut, Bot, TrendingUp, Palette, UserCheck, LayoutGrid,
+  Bot, TrendingUp, UserCheck, LayoutGrid,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreSwitcher } from './StoreSwitcher';
@@ -60,11 +60,11 @@ const menuGroups: NavGroup[] = [
 
 const roleAccess: Record<string, string[]> = {
   admin: ['*'],
-  manager: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/shipping', '/demo/catalogue', '/demo/inventory', '/demo/returns', '/demo/customers', '/demo/employees', '/demo/analytics', '/demo/finance', '/demo/ai-coach', '/demo/admin/approvals', '/demo/feedback', '/demo/growth'],
+  manager: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/shipping', '/demo/catalogue', '/demo/inventory', '/demo/returns', '/demo/customers', '/demo/employees', '/demo/analytics', '/demo/ai-coach', '/demo/feedback', '/demo/growth'],
   sales: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/catalogue', '/demo/customers', '/demo/returns', '/demo/ai-coach', '/demo/sales-coach', '/demo/feedback', '/demo/growth'],
   operations: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/shipping', '/demo/catalogue', '/demo/inventory', '/demo/returns', '/demo/feedback'],
-  finance: ['/demo/dashboard', '/demo/orders', '/demo/analytics', '/demo/finance'],
-  viewer: ['/demo/dashboard', '/demo/analytics'],
+  finance: ['/demo/dashboard', '/demo/analytics', '/demo/finance'],
+  viewer: ['/demo/dashboard'],
 };
 
 function canAccess(role: string | null, path: string): boolean {
@@ -77,7 +77,7 @@ function canAccess(role: string | null, path: string): boolean {
 
 export function SellerOSMoreMenu({ onClose }: { onClose: () => void }) {
   const location = useLocation();
-  const { role, signOut } = useAuth();
+  const { role } = useAuth();
 
   const isActive = (path: string) => {
     if (path === '/demo/orders') return location.pathname === '/demo/orders';
@@ -85,17 +85,17 @@ export function SellerOSMoreMenu({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-border">
+    <div className="flex max-h-[520px] flex-col bg-[#f6f7f3]">
+      <div className="border-b border-black/[0.04] bg-white p-4">
         <StoreSwitcher collapsed={false} />
       </div>
-      <div className="flex-1 overflow-y-auto py-2">
+      <div className="flex-1 overflow-y-auto py-3">
         {menuGroups.map((group) => {
           const visible = group.items.filter(i => canAccess(role, i.path));
           if (visible.length === 0) return null;
           return (
-            <div key={group.label} className="px-2 mb-1">
-              <p className="px-3 pt-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div key={group.label} className="mb-2 px-3">
+              <p className="px-3 pb-2 pt-3 text-[11px] font-bold uppercase tracking-[0.18em] text-[#a1a7b0]">
                 {group.label}
               </p>
               {visible.map((navItem) => (
@@ -104,9 +104,9 @@ export function SellerOSMoreMenu({ onClose }: { onClose: () => void }) {
                   to={navItem.path}
                   onClick={onClose}
                   className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors min-h-[44px]',
-                    'text-foreground/70 hover:text-foreground hover:bg-muted/50',
-                    isActive(navItem.path) && 'bg-foreground text-background hover:bg-foreground/90 hover:text-background',
+                    'mb-1 flex min-h-[46px] items-center gap-3 rounded-[18px] px-3 text-sm font-bold transition-colors',
+                    'text-[#69707a] hover:bg-white hover:text-[#17191c]',
+                    isActive(navItem.path) && 'bg-[#563ed5] text-white hover:bg-[#563ed5]',
                   )}
                 >
                   <navItem.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
@@ -117,15 +117,7 @@ export function SellerOSMoreMenu({ onClose }: { onClose: () => void }) {
           );
         })}
       </div>
-      <div className="border-t border-border p-2">
-        <button
-          onClick={() => { onClose(); signOut(); }}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors min-h-[44px]"
-        >
-          <LogOut className="h-[18px] w-[18px]" strokeWidth={1.75} />
-          <span>Sign Out</span>
-        </button>
-      </div>
+      <div className="border-t border-black/[0.04] bg-white p-3" />
     </div>
   );
 }

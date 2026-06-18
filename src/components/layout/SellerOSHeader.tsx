@@ -1,12 +1,10 @@
-import { useAuth } from '@/contexts/AuthContext';
 import { useStore } from '@/contexts/StoreContext';
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { useLocation } from 'react-router-dom';
 import { NotificationsDropdown } from './NotificationsDropdown';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { Menu, HelpCircle, ShoppingBag } from 'lucide-react';
+import { Menu, ShoppingBag } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { SellerOSMoreMenu } from './SellerOSMoreMenu';
 import { StoreStatusDrawer } from './StoreStatusDrawer';
@@ -31,7 +29,6 @@ const pageTitles: Record<string, string> = {
 };
 
 export function SellerOSHeader() {
-  const { user } = useAuth();
   const { currentStore } = useStore();
   const isMobile = useIsMobile();
   const location = useLocation();
@@ -53,20 +50,22 @@ export function SellerOSHeader() {
   const pageTitle = pageTitles[pagePath] || '';
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-card/90 backdrop-blur-md px-4">
+    <header className="sticky top-0 z-30 flex h-[76px] items-center justify-between bg-[#f6f7f3]/90 px-3 backdrop-blur-xl md:px-6">
       {/* Left: Store info */}
       <div className="flex items-center gap-2 min-w-0">
         {isMobile ? (
           <button
+            type="button"
             onClick={() => setStoreStatusOpen(true)}
-            className="flex items-center gap-2 min-w-0"
+            aria-label="Open store status"
+            className="flex min-h-[44px] items-center gap-2 rounded-full border border-black/[0.04] bg-white px-3 shadow-[0_14px_36px_-30px_rgba(15,23,42,0.65)]"
           >
             <div className="flex items-center gap-1.5 min-w-0">
               <span className={cn(
                 'w-2 h-2 rounded-full shrink-0',
-                isOnline ? 'bg-success' : 'bg-muted-foreground'
+                isOnline ? 'bg-[#563ed5]' : 'bg-[#9aa0a8]'
               )} />
-              <span className="text-sm font-semibold text-foreground truncate max-w-[140px]">
+              <span className="max-w-[140px] truncate text-sm font-bold text-[#17191c]">
                 {currentStore?.name || 'SeeCen'}
               </span>
             </div>
@@ -74,27 +73,29 @@ export function SellerOSHeader() {
         ) : (
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => setStoreStatusOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border hover:bg-muted/50 transition-colors"
+              aria-label="Open store status"
+              className="flex min-h-[48px] items-center gap-2 rounded-full border border-black/[0.04] bg-white px-4 shadow-[0_14px_36px_-30px_rgba(15,23,42,0.65)] transition-transform hover:scale-[1.01]"
             >
               <span className={cn(
                 'w-2 h-2 rounded-full shrink-0',
-                isOnline ? 'bg-success' : 'bg-muted-foreground'
+                isOnline ? 'bg-[#563ed5]' : 'bg-[#9aa0a8]'
               )} />
-              <span className="text-sm font-medium text-foreground">
+              <span className="text-sm font-bold text-[#17191c]">
                 {currentStore?.name || 'SeeCen'}
               </span>
               <span className={cn(
-                'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
+                'rounded-full px-2 py-1 text-[10px] font-bold',
                 isOnline
-                  ? 'bg-success/10 text-success'
-                  : 'bg-muted text-muted-foreground'
+                  ? 'bg-[#563ed5] text-white'
+                  : 'bg-[#f0f2f0] text-[#777e87]'
               )}>
                 {isOnline ? 'Online' : 'Offline'}
               </span>
             </button>
             {pageTitle && (
-              <span className="text-sm text-muted-foreground font-medium">
+              <span className="text-sm font-bold text-[#a1a7b0]">
                 / {pageTitle}
               </span>
             )}
@@ -106,9 +107,9 @@ export function SellerOSHeader() {
       <div className="flex items-center gap-1.5">
         {/* Pending orders badge */}
         {pendingOrders > 0 && (
-          <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-destructive/10 animate-pulse">
-            <ShoppingBag className="h-4.5 w-4.5 text-destructive" />
-            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
+          <div className="relative flex h-11 w-11 animate-pulse items-center justify-center rounded-full bg-white text-[#17191c] shadow-[0_14px_36px_-30px_rgba(15,23,42,0.65)]">
+            <ShoppingBag className="h-5 w-5" />
+            <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#563ed5] text-[10px] font-bold text-white">
               {pendingOrders}
             </span>
           </div>
@@ -119,11 +120,11 @@ export function SellerOSHeader() {
         {isMobile && (
           <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
             <SheetTrigger asChild>
-              <button className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-muted/50 transition-colors">
-                <Menu className="h-5 w-5 text-foreground" />
+              <button type="button" aria-label="Open more navigation" className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#17191c] shadow-[0_14px_36px_-30px_rgba(15,23,42,0.65)]">
+                <Menu className="h-5 w-5" />
               </button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[280px] p-0">
+            <SheetContent side="right" className="max-h-[520px] w-[280px] p-0">
               <SellerOSMoreMenu onClose={() => setMoreOpen(false)} />
             </SheetContent>
           </Sheet>

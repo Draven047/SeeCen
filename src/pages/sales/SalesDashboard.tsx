@@ -156,7 +156,7 @@ export default function SalesDashboard() {
                     {customer.phone && (
                       <a
                         href={`tel:${customer.phone}`}
-                        className="text-sm text-primary hover:underline"
+                        className="inline-flex min-h-8 items-center rounded-full px-2 text-sm font-medium text-primary hover:bg-primary/10"
                       >
                         {customer.phone}
                       </a>

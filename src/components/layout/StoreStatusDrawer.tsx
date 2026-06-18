@@ -41,7 +41,7 @@ export function StoreStatusDrawer({ open, onOpenChange, isOnline, onToggleOnline
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-2xl max-h-[70vh]">
+      <SheetContent side="top" className="p-4">
         <SheetHeader className="pb-4">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-left">Store Status</SheetTitle>

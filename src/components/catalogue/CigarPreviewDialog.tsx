@@ -63,7 +63,7 @@ export function CigarPreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden">
+      <DialogContent className="max-w-lg p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="font-display text-2xl">{cigar.name}</DialogTitle>
           <p className="text-muted-foreground text-sm">Premium cigar details and specifications</p>

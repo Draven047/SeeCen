@@ -1122,7 +1122,7 @@ export default function Customers() {
 
         {/* View Customer Dialog */}
         <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-          <DialogContent className="glass-card max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogContent className="glass-card max-w-lg max-h-[70vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Customer Details</DialogTitle>
             </DialogHeader>
@@ -1288,7 +1288,7 @@ export default function Customers() {
 
         {/* CSV Preview Dialog */}
         <Dialog open={csvPreviewOpen} onOpenChange={setCsvPreviewOpen}>
-          <DialogContent className="glass-card max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogContent className="glass-card max-w-xl max-h-[70vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Preview Import Data</DialogTitle>
             </DialogHeader>

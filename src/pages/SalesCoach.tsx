@@ -292,7 +292,7 @@ export default function SalesCoach() {
                           {action.customerPhone && (
                             <a 
                               href={`tel:${action.customerPhone}`}
-                              className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                              className="mt-2 inline-flex min-h-8 items-center gap-1 rounded-full px-2 text-xs font-medium text-primary hover:bg-primary/10"
                             >
                               <Phone className="w-3 h-3" />
                               {action.customerPhone}

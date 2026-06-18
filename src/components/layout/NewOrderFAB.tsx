@@ -36,10 +36,10 @@ export function NewOrderFAB() {
               setShowScanner(true);
             }}
             className={cn(
-              'flex items-center gap-2 rounded-full bg-card border border-border text-foreground shadow-lg',
+              'flex items-center gap-2 rounded-full border border-black/[0.05] bg-white text-[#17191c] shadow-[0_18px_42px_-28px_rgba(15,23,42,0.72)]',
               'h-12 px-4 text-sm font-medium',
               'active:scale-95 transition-all animate-fade-in',
-              'hover:bg-muted/50'
+              'hover:bg-[#f4f5f2]'
             )}
             aria-label="Scan product"
           >
@@ -52,10 +52,10 @@ export function NewOrderFAB() {
           <button
             onClick={() => setShowScanner(true)}
             className={cn(
-              'flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-lg',
+              'flex items-center gap-2 rounded-full bg-[#17191c] text-white shadow-[0_18px_42px_-24px_rgba(0,0,0,0.75)]',
               'h-14 px-5 text-sm font-semibold',
               'active:scale-95 transition-transform',
-              'hover:bg-primary/90'
+              'hover:bg-[#2a2d32]'
             )}
             aria-label="Scan product"
           >
@@ -74,10 +74,10 @@ export function NewOrderFAB() {
             }}
             onBlur={() => setTimeout(() => setExpanded(false), 200)}
             className={cn(
-              'flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-lg',
+              'flex items-center gap-2 rounded-full bg-[#17191c] text-white shadow-[0_18px_42px_-24px_rgba(0,0,0,0.75)]',
               'h-14 px-5 text-sm font-semibold',
               'active:scale-95 transition-transform',
-              'hover:bg-primary/90'
+              'hover:bg-[#2a2d32]'
             )}
             aria-label="New Order"
           >

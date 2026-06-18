@@ -10,6 +10,7 @@ import {
   Calendar, Filter, Package, User,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { PageLoading } from '@/components/ui/page-loading';
 
 const tabs = [
   { id: 'returns', label: 'Returns', icon: RotateCcw },
@@ -75,8 +76,12 @@ export default function Feedback() {
 
   return (
     <SellerOSLayout>
-      <div className="space-y-4 animate-fade-in max-w-2xl">
-        <h1 className="text-lg font-bold text-foreground">Feedback</h1>
+      <div className="mx-auto max-w-5xl space-y-5 animate-fade-in">
+        <div className="rounded-[28px] border border-black/[0.04] bg-white p-6 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)]">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Customer recovery</p>
+          <h1 className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-[#17191c]">Feedback</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Returns, complaints, and reviews in one operating queue.</p>
+        </div>
 
         {/* Pill Tabs */}
         <div className="flex gap-2 overflow-x-auto scrollbar-thin pb-1">
@@ -119,9 +124,7 @@ export default function Feedback() {
             </div>
 
             {loading ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              </div>
+              <PageLoading label="Loading feedback" rows={2} />
             ) : returns.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { StoreProvider } from "@/contexts/StoreContext";
 import { AICoachChatBubble } from "./components/ai-coach/AICoachChatBubble";
+import { PageLoading } from "@/components/ui/page-loading";
 
 const queryClient = new QueryClient();
 
@@ -44,20 +45,9 @@ type AllowedRole = 'admin' | 'manager' | 'sales' | 'operations' | 'finance' | 'v
 
 function AppLoadingShell({ label = "Preparing your workspace" }: { label?: string }) {
   return (
-    <div className="min-h-screen bg-background px-5 py-6 text-foreground">
+    <div className="min-h-screen bg-[#f6f7f3] px-5 py-6 text-foreground">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-6xl items-center justify-center">
-        <div className="w-full max-w-sm space-y-5 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-card shadow-[var(--shadow-card)]">
-            <div className="h-5 w-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold">{label}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Loading the next SeeCen view.</p>
-          </div>
-          <div className="mx-auto h-1.5 w-44 overflow-hidden rounded-full bg-muted">
-            <div className="h-full w-1/2 animate-pulse rounded-full bg-primary/70" />
-          </div>
-        </div>
+        <PageLoading label={label} rows={3} />
       </div>
     </div>
   );

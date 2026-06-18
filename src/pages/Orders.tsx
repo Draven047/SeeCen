@@ -29,6 +29,7 @@ import {
   CHANNEL_CONFIG, FULFILLMENT_CONFIG,
   parseCSVOrders, type ChannelOrder, getSlaStatus,
 } from '@/lib/channelConnectors';
+import { PageLoading } from '@/components/ui/page-loading';
 
 interface OrderRow {
   id: string;
@@ -153,6 +154,7 @@ export default function Orders() {
   const [activeTab, setActiveTab] = useState('new_orders');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('urgency');
+  const [posMode, setPosMode] = useState(false);
 
   // Detail panel
   const [detailItems, setDetailItems] = useState<OrderItem[]>([]);
@@ -531,7 +533,7 @@ export default function Orders() {
             variant="ghost"
             className="w-full gap-2 text-xs"
             size="sm"
-            onClick={() => navigate(`/orders/${selectedOrder.id}`)}
+            onClick={() => navigate(`/demo/orders/${selectedOrder.id}`)}
           >
             Open Full Details <ExternalLink className="w-3 h-3" />
           </Button>
@@ -542,14 +544,25 @@ export default function Orders() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-[calc(100vh-8rem)] animate-fade-in">
+      <div className={cn("flex flex-col animate-fade-in", posMode ? "h-[calc(100vh-6rem)]" : "h-[calc(100vh-8rem)]")}>
         {/* ─── Header ─── */}
-        <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="mb-3 rounded-[28px] border border-black/[0.04] bg-white p-4 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)]">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-lg font-bold">Orders</h1>
-            <p className="text-muted-foreground text-xs">{filtered.length} orders</p>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">POS operations</p>
+            <h1 className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-[#17191c]">Orders</h1>
+            <p className="text-muted-foreground text-xs mt-1">{filtered.length} orders · {queue.length} in current queue</p>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant={posMode ? "default" : "outline"}
+              size="sm"
+              className="min-h-[44px] gap-1.5"
+              onClick={() => setPosMode((next) => !next)}
+            >
+              <ShoppingCart className="w-4 h-4" />
+              {posMode ? 'POS mode on' : 'POS mode'}
+            </Button>
             {/* Search (desktop inline) */}
             <div className="relative hidden sm:block">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -557,13 +570,13 @@ export default function Orders() {
                 placeholder="Search orders..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-8 h-8 text-xs w-48"
+                className="pl-8 min-h-[44px] text-sm w-56 rounded-full"
               />
             </div>
 
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                <Button variant="outline" size="sm" className="min-h-[44px] gap-1.5 text-xs">
                   <Filter className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Filters</span>
                   {activeFilterCount > 0 && (
@@ -629,17 +642,18 @@ export default function Orders() {
               </PopoverContent>
             </Popover>
 
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={fetchOrders}>
+            <Button variant="outline" size="icon" className="h-11 w-11" onClick={fetchOrders} aria-label="Refresh orders">
               <RefreshCw className="w-3.5 h-3.5" />
             </Button>
             <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
-            <Button variant="outline" size="icon" className="h-8 w-8 hidden sm:flex" onClick={() => fileInputRef.current?.click()}>
+            <Button variant="outline" size="icon" className="h-11 w-11 hidden sm:flex" onClick={() => fileInputRef.current?.click()} aria-label="Import orders CSV">
               <Upload className="w-3.5 h-3.5" />
             </Button>
-            <Button size="sm" className="h-8 hidden sm:flex gap-1 text-xs" onClick={() => navigate('/orders/new')}>
+            <Button size="sm" className="min-h-[44px] hidden sm:flex gap-1 text-xs" onClick={() => navigate('/demo/orders/new')}>
               <Plus className="w-3.5 h-3.5" /> New
             </Button>
           </div>
+        </div>
         </div>
 
         {/* Active filter pills */}
@@ -685,7 +699,7 @@ export default function Orders() {
                 key={tab.key}
                 onClick={() => { setActiveTab(tab.key); setSelectedId(null); }}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors shrink-0',
+                  'inline-flex min-h-[40px] items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors shrink-0',
                   isActive
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -747,8 +761,8 @@ export default function Orders() {
             !isMobile && selectedOrder && 'max-w-[55%]'
           )}>
             {loading ? (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="w-7 h-7 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <div className="flex-1 p-4">
+                <PageLoading label="Loading order queue" rows={2} />
               </div>
             ) : queue.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center py-16 px-4 text-center">
@@ -777,7 +791,8 @@ export default function Orders() {
                         key={order.id}
                         onClick={() => selectOrder(order.id)}
                         className={cn(
-                          'flex items-center gap-2 px-3 py-2 cursor-pointer transition-all',
+                          'flex items-center gap-2 cursor-pointer transition-all',
+                          posMode ? 'px-4 py-4' : 'px-3 py-2',
                           'border-l-[3px]',
                           isSelected
                             ? 'bg-primary/[0.06] border-l-primary'
@@ -832,7 +847,8 @@ export default function Orders() {
                             size="sm"
                             variant={urgency <= 1 ? 'default' : 'outline'}
                             className={cn(
-                              'h-7 text-[11px] px-2.5 shrink-0 font-medium',
+                              'shrink-0 font-bold',
+                              posMode ? 'min-h-[44px] px-4 text-xs' : 'h-8 px-3 text-[11px]',
                               urgency <= 1 && 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
                             )}
                             onClick={e => { e.stopPropagation(); updateStatus(order.id, nextAction.status); }}
@@ -865,7 +881,7 @@ export default function Orders() {
         {/* Mobile Detail Sheet */}
         {isMobile && (
           <Sheet open={mobileDetailOpen} onOpenChange={setMobileDetailOpen}>
-            <SheetContent side="bottom" className="h-[85vh] p-0 rounded-t-2xl">
+            <SheetContent side="bottom" className="max-h-[70vh] p-0">
               <SheetHeader className="px-4 pt-4 pb-0">
                 <SheetTitle className="text-base">Order Details</SheetTitle>
               </SheetHeader>

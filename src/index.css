@@ -6,8 +6,8 @@
 
 @layer base {
   :root {
-    /* SellerOS Light — Electric Indigo + Warm Neutrals */
-    --background: 220 14% 96%;
+    /* SellerOS Light — Purple command center + soft neutrals */
+    --background: 80 13% 96%;
     --foreground: 220 20% 14%;
 
     --card: 0 0% 100%;
@@ -19,14 +19,14 @@
     --primary: 250 65% 54%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 94%;
+    --secondary: 80 12% 95%;
     --secondary-foreground: 220 14% 28%;
 
-    --muted: 220 14% 93%;
+    --muted: 80 12% 93%;
     --muted-foreground: 220 10% 46%;
 
-    --accent: 250 60% 96%;
-    --accent-foreground: 250 65% 44%;
+    --accent: 249 58% 96%;
+    --accent-foreground: 249 65% 44%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
@@ -40,8 +40,8 @@
     --info: 210 90% 56%;
     --info-foreground: 0 0% 100%;
 
-    --border: 220 13% 90%;
-    --input: 220 13% 90%;
+    --border: 220 10% 90%;
+    --input: 220 10% 90%;
     --ring: 250 65% 54%;
 
     --chart-1: 250 65% 54%;
@@ -154,13 +154,13 @@
 
 @layer components {
   /* Compat aliases — used across pages, maps to new tokens */
-  .glass-card { @apply bg-card border border-border rounded-xl shadow-[var(--shadow-card)]; }
-  .stat-card { @apply bg-card rounded-xl border border-border p-5 transition-shadow hover:shadow-md; }
-  .stat-card-highlight { @apply bg-card rounded-xl border-2 border-primary p-5; }
-  .filter-card { @apply bg-card border border-border rounded-xl p-5; }
-  .quick-action-btn { @apply flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent rounded-lg transition-colors border border-border min-h-[44px]; }
+  .glass-card { @apply bg-white border border-black/[0.04] rounded-[26px] shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)]; }
+  .stat-card { @apply bg-white rounded-[24px] border border-black/[0.04] p-5 transition-all shadow-[0_18px_45px_-38px_rgba(15,23,42,0.5)] hover:-translate-y-0.5 hover:shadow-[0_22px_55px_-40px_rgba(15,23,42,0.58)]; }
+  .stat-card-highlight { @apply bg-white rounded-[24px] border border-primary/20 p-5 shadow-[0_18px_45px_-38px_rgba(86,62,213,0.45)]; }
+  .filter-card { @apply bg-white border border-black/[0.04] rounded-[24px] p-5 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.45)]; }
+  .quick-action-btn { @apply flex min-h-[44px] w-full items-center gap-3 rounded-full border border-black/[0.05] bg-white px-4 py-2.5 text-sm font-bold text-foreground/80 transition-all hover:bg-muted/60 hover:text-foreground hover:shadow-sm; }
 
-  .sidebar-item { @apply flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-accent transition-colors text-sm font-medium min-h-[44px]; }
+  .sidebar-item { @apply flex min-h-[44px] items-center gap-3 rounded-[18px] px-3 py-2 text-sm font-bold text-sidebar-foreground/70 transition-colors hover:bg-white hover:text-sidebar-foreground; }
   .sidebar-item-active { @apply bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground; }
   .sidebar-section-label { @apply px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider; }
 
@@ -189,12 +189,12 @@
 
   /* Pill tabs */
   .pill-tab { @apply px-4 py-2.5 rounded-full text-sm font-medium transition-colors min-h-[44px] whitespace-nowrap; }
-  .pill-tab-active { @apply bg-foreground text-background; }
-  .pill-tab-inactive { @apply bg-muted text-muted-foreground hover:text-foreground; }
+  .pill-tab-active { @apply bg-primary text-primary-foreground; }
+  .pill-tab-inactive { @apply bg-white text-muted-foreground hover:text-foreground; }
 
   /* Segmented control */
-  .segmented-control { @apply inline-flex bg-muted/50 rounded-xl p-1 gap-0.5; }
-  .segmented-item { @apply px-4 py-2 rounded-lg text-sm font-medium transition-all min-h-[40px]; }
+  .segmented-control { @apply inline-flex gap-0.5 rounded-full bg-white p-1 shadow-[0_12px_30px_-26px_rgba(15,23,42,0.7)]; }
+  .segmented-item { @apply min-h-[40px] rounded-full px-4 py-2 text-sm font-bold transition-all; }
   .segmented-item-active { @apply bg-card text-foreground shadow-sm; }
   .segmented-item-inactive { @apply text-muted-foreground hover:text-foreground; }
 
@@ -207,6 +207,27 @@
 
   .days-badge { @apply px-2 py-0.5 rounded-full text-xs font-medium bg-primary text-primary-foreground; }
   .table-row-hover { @apply transition-colors hover:bg-muted/30; }
+
+  main .rounded-lg.border.bg-card,
+  main .rounded-xl.border.bg-card,
+  main .rounded-2xl.border.bg-card {
+    @apply rounded-[24px] border-black/[0.04] bg-white shadow-[0_18px_45px_-40px_rgba(15,23,42,0.5)];
+  }
+
+  main .rounded-lg.border.bg-background,
+  main .rounded-xl.border.bg-background {
+    @apply rounded-[24px] border-black/[0.04] bg-white;
+  }
+
+  main .rounded-lg.border:not(input):not(textarea),
+  main .rounded-xl.border:not(input):not(textarea) {
+    @apply border-black/[0.06];
+  }
+
+  main h1,
+  main .text-display {
+    @apply tracking-[-0.04em] text-[#17191c];
+  }
 
   /* Empty state */
   .empty-state { @apply flex flex-col items-center justify-center py-16 text-center; }
@@ -250,6 +271,14 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: hsl(var(--muted-foreground) / 0.3);
     border-radius: 3px;
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 
   .pb-safe {

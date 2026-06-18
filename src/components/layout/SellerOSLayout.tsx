@@ -15,19 +15,19 @@ function SellerOSContent({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#f6f7f3]">
       {/* Desktop sidebar */}
       {!isMobile && <SellerOSSidebar />}
 
       <div className={cn(
         'min-h-screen flex flex-col transition-all duration-200',
-        isMobile ? 'ml-0' : collapsed ? 'ml-[60px]' : 'ml-56'
+        isMobile ? 'ml-0' : collapsed ? 'ml-[76px]' : 'ml-60'
       )}>
         <SellerOSHeader />
         <WarningBannerSystem />
         <main className={cn(
           'flex-1 overflow-auto',
-          isMobile ? 'px-4 pt-3 pb-[72px]' : 'p-6'
+          isMobile ? 'px-3 pt-3 pb-[76px]' : 'px-6 py-5 xl:px-8'
         )}>
           <PageTransition>{children}</PageTransition>
         </main>

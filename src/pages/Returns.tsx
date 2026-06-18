@@ -332,7 +332,7 @@ export default function Returns() {
 
         {/* Create Return Dialog */}
         <Dialog open={showCreateDialog} onOpenChange={v => { if (!v) resetCreateForm(); }}>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-md max-h-[70vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>New Return Request</DialogTitle>
               <DialogDescription>Search for an order and select items to return</DialogDescription>

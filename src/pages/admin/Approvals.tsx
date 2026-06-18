@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { UserCheck, UserX, Clock, Users, Store, Shield, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { PageLoading } from '@/components/ui/page-loading';
 
 interface PendingUser {
   id: string;
@@ -181,15 +182,17 @@ export default function Approvals() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="mx-auto max-w-6xl space-y-5 animate-fade-in">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="rounded-[28px] border border-black/[0.04] bg-white p-6 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)]">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
-              <UserCheck className="w-6 h-6 text-warning" />
+            <div className="w-12 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center">
+              <UserCheck className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-display">Account Approvals</h1>
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Access control</p>
+              <h1 className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-[#17191c]">Account Approvals</h1>
               <p className="text-muted-foreground text-sm">
                 {pendingCount > 0
                   ? `${pendingCount} pending approval${pendingCount > 1 ? 's' : ''}`
@@ -208,12 +211,11 @@ export default function Approvals() {
             </SelectContent>
           </Select>
         </div>
+        </div>
 
         {/* List */}
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          </div>
+          <PageLoading label="Loading approvals" rows={3} />
         ) : filteredUsers.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Users className="w-12 h-12 mb-3 opacity-40" />

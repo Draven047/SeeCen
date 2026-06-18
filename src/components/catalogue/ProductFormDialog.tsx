@@ -117,8 +117,9 @@ export function ProductFormDialog({ open, onOpenChange, editingProduct, existing
       toast.success(editingProduct ? 'Product updated!' : 'Product added!');
       onOpenChange(false);
       onSaved();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to save product');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save product';
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -126,7 +127,7 @@ export function ProductFormDialog({ open, onOpenChange, editingProduct, existing
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-card max-w-xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="glass-card max-w-lg max-h-[70vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
         </DialogHeader>

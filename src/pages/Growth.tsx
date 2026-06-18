@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useStore } from '@/contexts/StoreContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { PageLoading } from '@/components/ui/page-loading';
 
 interface Offer {
   id: string;
@@ -213,25 +214,26 @@ export default function Growth() {
   if (loading) {
     return (
       <SellerOSLayout>
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
+        <PageLoading label="Loading growth" rows={4} />
       </SellerOSLayout>
     );
   }
 
   return (
     <SellerOSLayout>
-      <div className="space-y-5 animate-fade-in max-w-3xl">
+      <div className="mx-auto max-w-6xl space-y-5 animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="rounded-[28px] border border-black/[0.04] bg-white p-6 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)]">
+        <div className="flex items-end justify-between gap-4">
           <div>
-            <h1 className="text-lg font-bold text-foreground">Growth</h1>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Revenue campaigns</p>
+            <h1 className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-[#17191c]">Growth</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Run offers, boost sales & grow your store</p>
           </div>
           <Button size="sm" onClick={() => openCreate()} className="min-h-[44px] gap-1.5">
             <Plus className="h-4 w-4" /> New Offer
           </Button>
+        </div>
         </div>
 
         {/* Tabs */}

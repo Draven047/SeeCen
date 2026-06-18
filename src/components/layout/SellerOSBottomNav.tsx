@@ -11,6 +11,22 @@ const navItems = [
   { icon: IndianRupee, label: 'Finance', path: '/demo/finance' },
 ];
 
+const roleAccess: Record<string, string[]> = {
+  admin: ['*'],
+  manager: ['/demo/dashboard', '/demo/orders', '/demo/inventory', '/demo/feedback'],
+  sales: ['/demo/dashboard', '/demo/orders', '/demo/feedback'],
+  operations: ['/demo/dashboard', '/demo/orders', '/demo/inventory', '/demo/feedback'],
+  finance: ['/demo/dashboard', '/demo/finance'],
+  viewer: ['/demo/dashboard'],
+};
+
+function canAccess(role: string | null, path: string): boolean {
+  if (!role) return false;
+  const allowed = roleAccess[role];
+  if (!allowed) return false;
+  return allowed.includes('*') || allowed.includes(path);
+}
+
 export function SellerOSBottomNav() {
   const location = useLocation();
   const { role } = useAuth();
@@ -22,30 +38,32 @@ export function SellerOSBottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-md md:hidden">
-      <div className="flex items-stretch justify-around h-[56px] pb-safe">
-        {navItems.map((item) => {
+    <nav aria-label="Primary mobile navigation" className="fixed bottom-0 left-0 right-0 z-50 border-t border-black/[0.04] bg-white/95 shadow-[0_-18px_40px_-34px_rgba(15,23,42,0.55)] backdrop-blur-xl md:hidden">
+      <div className="flex h-[64px] items-stretch justify-around px-2 pb-safe">
+        {navItems.filter((item) => canAccess(role, item.path)).map((item) => {
           const active = isActive(item.path);
           return (
             <NavLink
               key={item.path}
               to={item.path}
-              className="flex flex-1 flex-col items-center justify-center gap-0.5 min-h-[44px] transition-colors relative"
+              aria-label={item.label}
+              aria-current={active ? 'page' : undefined}
+              className="relative flex min-h-[48px] flex-1 flex-col items-center justify-center gap-0.5 transition-colors"
             >
               {active && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full bg-foreground" />
+                <span className="absolute top-2 h-9 w-9 rounded-full bg-[#563ed5]" />
               )}
               <item.icon
                 className={cn(
-                  'h-[22px] w-[22px] transition-colors',
-                  active ? 'text-foreground' : 'text-muted-foreground'
+                  'relative h-[21px] w-[21px] transition-colors',
+                  active ? 'text-white' : 'text-[#9aa0a8]'
                 )}
                 strokeWidth={active ? 2.2 : 1.75}
               />
               <span
                 className={cn(
-                  'text-[10px] font-medium transition-colors',
-                  active ? 'text-foreground' : 'text-muted-foreground'
+                  'relative text-[10px] font-bold transition-colors',
+                  active ? 'text-[#563ed5]' : 'text-[#8f959d]'
                 )}
               >
                 {item.label}

@@ -1,14 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SellerOSLayout } from '@/components/layout/SellerOSLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useStore } from '@/contexts/StoreContext';
-import { useIsMobile } from '@/hooks/use-mobile';
 import {
-  ShoppingCart, IndianRupee, TrendingUp, Users, BarChart3,
-  RotateCcw, Settings, UserCog, MessageSquareWarning, Bot, Truck,
-  ChevronRight, Boxes, ArrowUpRight,
-  CheckCircle2, MoreHorizontal, ArrowRight,
+  Activity, ArrowRight, ArrowUpRight, BarChart3, Bot, Boxes, CalendarDays,
+  ChevronRight, Clock3, IndianRupee, MessageSquareWarning,
+  MoreHorizontal, PackageCheck, RotateCcw, Settings, ShoppingCart, Sparkles,
+  TrendingUp, Truck, Users, Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -46,17 +45,12 @@ const moreActions = [
   { icon: Users, label: 'Customers', path: '/demo/customers' },
   { icon: Truck, label: 'Shipping', path: '/demo/shipping' },
   { icon: BarChart3, label: 'Analytics', path: '/demo/analytics' },
-  { icon: UserCog, label: 'Staff', path: '/demo/employees' },
   { icon: Bot, label: 'AI Coach', path: '/demo/ai-coach' },
   { icon: TrendingUp, label: 'Growth', path: '/demo/growth' },
   { icon: Settings, label: 'Settings', path: '/demo/settings' },
 ];
 
-const insightCards = [
-  { title: 'Sales Overview', desc: 'Revenue trends and performance', icon: TrendingUp, path: '/demo/analytics', accent: 'border-l-primary' },
-  { title: 'Order Funnel', desc: 'Conversion & fulfillment rates', icon: ShoppingCart, path: '/demo/analytics', accent: 'border-l-warning' },
-  { title: 'Inventory Health', desc: 'Stock levels & reorder alerts', icon: Boxes, path: '/demo/inventory', accent: 'border-l-success' },
-];
+const activityBars = [28, 32, 37, 48, 66, 88, 72, 58, 41, 34, 31, 29, 26, 25, 30, 34, 37, 52, 66];
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -65,10 +59,13 @@ function getGreeting() {
   return 'Good evening';
 }
 
+function formatCurrency(value: number) {
+  return `₹${Math.round(value).toLocaleString('en-IN')}`;
+}
+
 export default function Hub() {
   const navigate = useNavigate();
   const { currentStore } = useStore();
-  const isMobile = useIsMobile();
   const [stats, setStats] = useState<TodayStats>({ totalSales: 0, totalOrders: 0, liveOrders: 0, avgOrderValue: 0 });
   const [loading, setLoading] = useState(true);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
@@ -126,185 +123,284 @@ export default function Hub() {
   }, [currentStore]);
 
   const dateStr = new Date().toLocaleDateString('en-IN', {
-    weekday: 'long', day: 'numeric', month: 'long',
+    weekday: 'short', day: 'numeric', month: 'short',
   });
 
-  // ─── MOBILE ───────────────────────────────────────────────
-  if (isMobile) {
-    return (
-      <SellerOSLayout>
-        <div className="animate-fade-in pb-6">
-          {/* Greeting + date */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">{getGreeting()}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{currentStore?.name || 'All stores'} · {dateStr}</p>
-          </div>
+  const pulseMetrics = useMemo(() => [
+    { label: 'Orders', value: loading ? '—' : stats.totalOrders.toString(), helper: 'today', icon: ShoppingCart },
+    { label: 'Live', value: loading ? '—' : stats.liveOrders.toString(), helper: 'needs action', icon: Activity, highlight: stats.liveOrders > 0 },
+    { label: 'Avg order', value: loading ? '—' : formatCurrency(stats.avgOrderValue), helper: 'basket value', icon: IndianRupee },
+  ], [loading, stats.avgOrderValue, stats.liveOrders, stats.totalOrders]);
 
-          {/* Hero — single prominent sales number */}
-          <div className="mb-5">
-            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1">Today's revenue</p>
-            <p className="text-4xl font-bold text-foreground tracking-tight leading-none">
-              {loading ? '—' : `₹${stats.totalSales.toLocaleString('en-IN')}`}
-            </p>
-          </div>
-
-          {/* Secondary stats — inline, no cards */}
-          <div className="flex items-center gap-6 mb-8 text-sm">
-            <div>
-              <span className="font-semibold text-foreground">{loading ? '—' : stats.totalOrders}</span>
-              <span className="text-muted-foreground ml-1.5">orders</span>
-            </div>
-            <div className="w-px h-4 bg-border" />
-            <div>
-              <span className={cn("font-semibold", stats.liveOrders > 0 ? "text-warning" : "text-foreground")}>
-                {loading ? '—' : stats.liveOrders}
-              </span>
-              <span className="text-muted-foreground ml-1.5">live</span>
-            </div>
-            <div className="w-px h-4 bg-border" />
-            <div>
-              <span className="font-semibold text-foreground">
-                {loading ? '—' : `₹${Math.round(stats.avgOrderValue).toLocaleString('en-IN')}`}
-              </span>
-              <span className="text-muted-foreground ml-1.5">avg</span>
-            </div>
-          </div>
-
-          {/* Quick actions — compact pills */}
-          <div className="flex gap-2 flex-wrap mb-10">
-            {primaryActions.map(a => (
-              <button
-                key={a.path}
-                onClick={() => navigate(a.path)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-border bg-card hover:bg-muted/50 active:scale-[0.97] transition-all"
-              >
-                <a.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">{a.label}</span>
-              </button>
-            ))}
-            <MoreActionsPopover navigate={navigate} />
-          </div>
-
-          {/* Recent orders */}
-          <div className="mb-10">
-            <RecentOrdersSection
-              currentStoreName={currentStore?.name}
-              loadError={loadError}
-              orders={recentOrders}
-              navigate={navigate}
-            />
-          </div>
-
-          {/* Insights */}
-          <InsightsSection navigate={navigate} />
-        </div>
-      </SellerOSLayout>
-    );
-  }
-
-  // ─── DESKTOP ──────────────────────────────────────────────
   return (
     <SellerOSLayout>
-      <div className="animate-fade-in max-w-[1080px]">
-
-        {/* ── SECTION 1: Hero ──────────────────────────────── */}
-        <div className="mb-12">
-          {/* Greeting */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">{getGreeting()}</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {currentStore?.name || 'All stores'} · {dateStr}
-            </p>
-          </div>
-
-          {/* Stats — single visual group, not separate cards */}
-          <div className="flex items-end gap-12">
-            {/* Primary metric */}
-            <div>
-              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1.5">
-                Today's revenue
-              </p>
-              <div className="flex items-baseline gap-3">
-                <p className="text-5xl font-bold text-foreground tracking-tight leading-none">
-                  {loading ? '—' : `₹${stats.totalSales.toLocaleString('en-IN')}`}
-                </p>
-                {!loading && stats.totalOrders > 0 && (
-                  <span className="text-xs font-medium text-success flex items-center gap-0.5 mb-1">
-                    <ArrowUpRight className="h-3 w-3" />
-                    {stats.totalOrders} orders
-                  </span>
-                )}
+      <div className="mx-auto w-full max-w-[1480px] animate-fade-in space-y-5 pb-8 text-[#191b1f] md:space-y-6">
+        <section className="flex flex-col gap-5 rounded-[28px] border border-black/[0.04] bg-white px-4 py-5 shadow-[0_18px_60px_-45px_rgba(15,23,42,0.45)] md:flex-row md:items-end md:justify-between md:px-8 md:py-7">
+          <div className="min-w-0">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#563ed5] text-white shadow-[0_0_26px_rgba(86,62,213,0.28)]">
+                <Sparkles className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[#1b1d21]">{getGreeting()}, {currentStore?.name || 'SeeCen'}</p>
+                <p className="text-xs font-medium text-[#8b9098]">Seller command center · {dateStr}</p>
               </div>
             </div>
-
-            {/* Supporting metrics — text only, no boxes */}
-            <div className="flex items-center gap-8 pb-1.5">
-              <MetricInline label="Orders" value={loading ? '—' : stats.totalOrders.toString()} />
-              <div className="w-px h-5 bg-border" />
-              <MetricInline
-                label="Live"
-                value={loading ? '—' : stats.liveOrders.toString()}
-                highlight={stats.liveOrders > 0}
-              />
-              <div className="w-px h-5 bg-border" />
-              <MetricInline
-                label="Avg order"
-                value={loading ? '—' : `₹${Math.round(stats.avgOrderValue).toLocaleString('en-IN')}`}
-              />
+            <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+              <div>
+                <p className="text-[12px] font-semibold uppercase tracking-[0.24em] text-[#a7adb5]">Today's revenue</p>
+                <h1 className="mt-1 text-[3.1rem] font-semibold leading-none tracking-[-0.04em] text-[#111315] sm:text-[4.6rem]">
+                  {loading ? '—' : formatCurrency(stats.totalSales)}
+                </h1>
+              </div>
+              <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-[#563ed5] px-3 py-1.5 text-xs font-bold text-white">
+                <ArrowUpRight className="h-3.5 w-3.5" />
+                {loading ? 'Live sync' : `${stats.totalOrders} orders`}
+              </span>
             </div>
           </div>
-        </div>
 
-        {/* ── SECTION 2: Quick Actions ─────────────────────── */}
-        <div className="flex items-center gap-2.5 mb-12">
-          {primaryActions.map(a => (
+          <div className="flex flex-wrap gap-2">
+            <Pill icon={CalendarDays} label="This week" />
+            <Pill icon={Clock3} label="24h" />
             <button
-              key={a.path}
-              onClick={() => navigate(a.path)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-border bg-card hover:bg-muted/40 hover:shadow-sm transition-all group"
+              type="button"
+              onClick={() => navigate('/demo/orders/new')}
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#17191c] px-5 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(0,0,0,0.8)] transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#563ed5]"
             >
-              <a.icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-              <span className="text-sm font-medium text-foreground">{a.label}</span>
+              New order
+              <ArrowRight className="h-4 w-4" />
             </button>
-          ))}
-          <MoreActionsPopover navigate={navigate} />
-        </div>
-
-        {/* ── SECTION 3: Main content ──────────────────────── */}
-        <div className="grid grid-cols-12 gap-10">
-
-          {/* Left — Recent Orders (dominant) */}
-          <div className="col-span-7">
-            <RecentOrdersSection
-              currentStoreName={currentStore?.name}
-              loadError={loadError}
-              orders={recentOrders}
-              navigate={navigate}
-            />
           </div>
+        </section>
 
-          {/* Right — Insights + Health (supportive) */}
-          <div className="col-span-5">
-            <InsightsSection navigate={navigate} />
-          </div>
-        </div>
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(260px,0.9fr)_minmax(480px,1.65fr)_minmax(270px,0.9fr)]">
+          <MetricStack loading={loading} stats={stats} />
+          <ActivityPanel metrics={pulseMetrics} />
+          <ProgressPanel navigate={navigate} stats={stats} loading={loading} />
+        </section>
+
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] xl:grid-cols-[minmax(330px,0.75fr)_minmax(0,1.25fr)_minmax(290px,0.7fr)]">
+          <GrowthCard navigate={navigate} />
+          <RecentOrdersSection
+            currentStoreName={currentStore?.name}
+            loadError={loadError}
+            orders={recentOrders}
+            navigate={navigate}
+          />
+          <ActionsPanel navigate={navigate} />
+        </section>
       </div>
     </SellerOSLayout>
   );
 }
 
-// ─── Sub-components ─────────────────────────────────────────
-
-function MetricInline({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function Pill({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
   return (
-    <div className="flex items-baseline gap-2">
-      <span className={cn(
-        'text-xl font-bold tracking-tight',
-        highlight ? 'text-warning' : 'text-foreground'
-      )}>
-        {value}
-      </span>
-      <span className="text-xs text-muted-foreground font-medium">{label}</span>
+    <span className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-black/[0.05] bg-[#f7f8f5] px-4 text-sm font-semibold text-[#34373c] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+      <Icon className="h-4 w-4 text-[#7f858d]" />
+      {label}
+    </span>
+  );
+}
+
+function MetricStack({ loading, stats }: { loading: boolean; stats: TodayStats }) {
+  return (
+    <div className="rounded-[26px] border border-black/[0.04] bg-[#fbfcf8] p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.6)]">
+      <div className="flex items-center justify-between">
+        <PanelTitle dot="bg-[#563ed5]" title="Sales pulse" />
+        <span className="rounded-full bg-[#17191c] px-2.5 py-1 text-[11px] font-semibold text-white">Now</span>
+      </div>
+      <div className="mt-9">
+        <p className="text-5xl font-semibold leading-none tracking-[-0.05em] text-[#111315]">
+          {loading ? '—' : formatCurrency(stats.totalSales)}
+        </p>
+        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8f959d]">Sales today</p>
+      </div>
+      <div className="mt-12 grid grid-cols-2 divide-x divide-black/[0.06] border-t border-black/[0.06] pt-5">
+        <SmallMetric label="Orders" value={loading ? '—' : stats.totalOrders.toString()} />
+        <SmallMetric label="Live queue" value={loading ? '—' : stats.liveOrders.toString()} align="right" />
+      </div>
+    </div>
+  );
+}
+
+function ActivityPanel({ metrics }: { metrics: { label: string; value: string; helper: string; icon: React.ElementType; highlight?: boolean }[] }) {
+  return (
+    <div className="rounded-[28px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_55px_-42px_rgba(15,23,42,0.55)] md:p-6">
+      <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+        <div>
+          <PanelTitle dot="bg-[#563ed5]" title="Analytics" />
+          <div className="mt-6 flex flex-wrap gap-6 md:gap-10">
+            {metrics.map((metric) => (
+              <div key={metric.label} className="min-w-[88px]">
+                <div className="flex items-center gap-2">
+                  <metric.icon className={cn('h-4 w-4', metric.highlight ? 'text-[#17191c]' : 'text-[#9096a0]')} />
+                  <p className="text-xs font-semibold text-[#777e87]">{metric.label}</p>
+                </div>
+                <p className="mt-1 text-4xl font-semibold leading-none tracking-[-0.05em] text-[#111315]">{metric.value}</p>
+                <p className="mt-1 text-[11px] font-medium text-[#a1a7b0]">{metric.helper}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="button" aria-label="Expand analytics" className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4f5f2] text-[#17191c]">
+            <Zap className="h-4 w-4" />
+          </button>
+          <button type="button" aria-label="Analytics options" className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4f5f2] text-[#17191c]">
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-8 flex h-[190px] items-end gap-2 overflow-hidden rounded-[24px] bg-[#fbfcf8] px-4 pb-5 pt-7 sm:gap-3">
+        {activityBars.map((height, index) => {
+          const active = index === 5 || index === 17;
+          return (
+            <div key={index} className="flex h-full min-w-0 flex-1 items-end justify-center">
+              <div
+                className={cn(
+                  'w-full max-w-[26px] rounded-full transition-all',
+                  active ? 'bg-[#563ed5] shadow-[0_0_24px_rgba(86,62,213,0.28)]' : 'bg-[#1d2024]'
+                )}
+                style={{ height: `${height}%` }}
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+        {['Tracker', 'Sales', 'Inventory', 'Customers', 'AI Coach'].map((tab, index) => (
+          <button
+            key={tab}
+            type="button"
+            className={cn(
+              'min-h-8 whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition-colors',
+              index === 0 ? 'bg-[#563ed5] text-white' : 'bg-[#f4f5f2] text-[#757b84] hover:text-[#17191c]'
+            )}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProgressPanel({ navigate, stats, loading }: { navigate: (path: string) => void; stats: TodayStats; loading: boolean }) {
+  const progressRows = [
+    { label: 'Packing', value: loading ? '—' : `${Math.max(stats.liveOrders, 1)} open`, active: true },
+    { label: 'Shipping', value: '3 ready' },
+    { label: 'Returns', value: '2 review' },
+  ];
+
+  return (
+    <div className="rounded-[26px] border border-black/[0.04] bg-[#f0f2f0] p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.55)]">
+      <div className="flex items-center justify-between">
+        <PanelTitle dot="bg-[#563ed5]" title="Progress" />
+        <button type="button" aria-label="Progress options" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-[#17191c]">
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+      </div>
+      <button
+        type="button"
+        onClick={() => navigate('/demo/fulfillment')}
+        className="mt-6 flex w-full items-center gap-4 rounded-[24px] bg-white p-3 text-left transition-transform hover:scale-[1.01]"
+      >
+        <span className="flex h-20 w-24 shrink-0 items-center justify-center rounded-[20px] bg-[#563ed5] text-white">
+          <PackageCheck className="h-9 w-9" />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-xs font-semibold text-[#777e87]">Fulfilment</span>
+          <span className="mt-1 block text-5xl font-semibold leading-none tracking-[-0.06em] text-[#111315]">
+            {loading ? '—' : Math.max(87, 100 - stats.liveOrders * 3)}
+          </span>
+        </span>
+      </button>
+      <div className="mt-5 space-y-2">
+        {progressRows.map((row) => (
+          <button
+            key={row.label}
+            type="button"
+            onClick={() => navigate(row.label === 'Returns' ? '/demo/returns' : '/demo/orders')}
+            className={cn(
+              'flex w-full items-center justify-between rounded-2xl px-3 py-3 text-sm font-semibold transition-colors',
+              row.active ? 'bg-white text-[#17191c]' : 'text-[#8b9098] hover:bg-white/70 hover:text-[#17191c]'
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <span className={cn('h-2.5 w-2.5 rounded-full', row.active ? 'bg-[#17191c]' : 'bg-white')} />
+              {row.label}
+            </span>
+            <span className={cn(row.active && 'rounded-full bg-[#563ed5] px-2 py-1 text-xs text-white')}>{row.value}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function GrowthCard({ navigate }: { navigate: (path: string) => void }) {
+  return (
+    <div className="relative overflow-hidden rounded-[28px] border border-black/[0.04] bg-white p-6 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)]">
+      <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-[#563ed5]/25 blur-2xl" />
+      <PanelTitle dot="bg-[#563ed5]" title="Exposure" />
+      <h2 className="mt-8 max-w-[13rem] text-3xl font-semibold leading-[0.98] tracking-[-0.05em] text-[#17191c]">
+        Monitor growth with precision
+      </h2>
+      <p className="mt-5 max-w-xs text-sm font-medium leading-6 text-[#838993]">
+        Watch revenue, fulfilment, feedback, and channel momentum from one daily operating view.
+      </p>
+      <div className="mt-8 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => navigate('/demo/growth')}
+          className="rounded-full bg-[#17191c] px-5 py-2.5 text-sm font-semibold text-white"
+        >
+          Open growth
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/demo/analytics')}
+          className="inline-flex min-h-[36px] items-center rounded-full px-3 text-sm font-semibold text-[#777e87] hover:bg-[#f4f5f2] hover:text-[#17191c]"
+        >
+          Analytics
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ActionsPanel({ navigate }: { navigate: (path: string) => void }) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-[26px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.5)]">
+        <PanelTitle dot="bg-[#563ed5]" title="Actions" />
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          {primaryActions.map((action) => (
+            <button
+              key={action.path}
+              type="button"
+              onClick={() => navigate(action.path)}
+              className="flex min-h-[86px] flex-col justify-between rounded-[20px] border border-black/[0.04] bg-[#fbfcf8] p-3 text-left transition-transform hover:scale-[1.02]"
+            >
+              <action.icon className="h-5 w-5 text-[#17191c]" />
+              <span className="text-sm font-bold text-[#17191c]">{action.label}</span>
+            </button>
+          ))}
+        </div>
+        <MoreActionsPopover navigate={navigate} />
+      </div>
+      <div className="rounded-[26px] bg-[#563ed5] p-5 text-white shadow-[0_18px_45px_-34px_rgba(86,62,213,0.45)]">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-bold">AI suggestion</p>
+          <Bot className="h-5 w-5" />
+        </div>
+        <p className="mt-6 text-4xl font-semibold leading-none tracking-[-0.05em]">10.57</p>
+        <p className="mt-2 text-xs font-bold uppercase tracking-[0.18em]">Priority score</p>
+      </div>
     </div>
   );
 }
@@ -313,19 +409,23 @@ function MoreActionsPopover({ navigate }: { navigate: (path: string) => void }) 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-border bg-card hover:bg-muted/40 transition-all text-sm font-medium text-muted-foreground">
+        <button
+          type="button"
+          className="mt-3 inline-flex min-h-[42px] w-full items-center justify-center gap-2 rounded-full bg-[#f4f5f2] px-4 text-sm font-bold text-[#5e656f] transition-colors hover:text-[#17191c]"
+        >
           <MoreHorizontal className="h-4 w-4" />
-          More
+          More controls
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-52 p-2">
+      <PopoverContent align="start" className="w-56 rounded-3xl border-black/[0.06] bg-white p-2 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.45)]">
         {moreActions.map(a => (
           <button
             key={a.path}
+            type="button"
             onClick={() => navigate(a.path)}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-muted/60 transition-colors"
+            className="flex min-h-[42px] w-full items-center gap-3 rounded-2xl px-3 text-sm font-semibold text-[#30343a] transition-colors hover:bg-[#f4f5f2]"
           >
-            <a.icon className="h-4 w-4 text-muted-foreground" />
+            <a.icon className="h-4 w-4 text-[#7d838c]" />
             {a.label}
           </button>
         ))}
@@ -351,43 +451,45 @@ function RecentOrdersSection({
   navigate: (path: string) => void;
 }) {
   return (
-    <div>
-      <div className="flex items-center justify-between mb-5">
-        <h2 className="text-base font-semibold text-foreground">Recent orders</h2>
+    <div className="rounded-[28px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)] md:p-6">
+      <div className="flex items-center justify-between gap-4">
+        <PanelTitle dot="bg-[#563ed5]" title="Recent orders" />
         <button
+          type="button"
           onClick={() => navigate('/demo/orders')}
-          className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 transition-colors"
+          className="inline-flex items-center gap-1 rounded-full bg-[#f4f5f2] px-3 py-2 text-xs font-bold text-[#737a83] transition-colors hover:text-[#17191c]"
         >
-          View all <ArrowRight className="h-3 w-3" />
+          View all <ArrowRight className="h-3.5 w-3.5" />
         </button>
       </div>
 
       {loadError ? (
-        <div className="rounded-xl border border-warning/25 bg-warning/5 px-4 py-5 text-sm text-warning">
+        <div className="mt-5 rounded-[22px] border border-[#563ed5]/25 bg-[#563ed5]/10 px-4 py-5 text-sm font-semibold text-[#2f2377]">
           {loadError}
         </div>
       ) : orders.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card/50 px-5 py-10 text-center">
-          <ShoppingCart className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm font-medium text-foreground">
+        <div className="mt-5 rounded-[24px] border border-dashed border-black/[0.08] bg-[#fbfcf8] px-5 py-10 text-center">
+          <ShoppingCart className="mx-auto mb-3 h-9 w-9 text-[#b7bdc5]" />
+          <p className="text-sm font-bold text-[#17191c]">
             {currentStoreName ? 'No recent orders yet' : 'Choose a store to see live orders'}
           </p>
-          <p className="mx-auto mt-1 max-w-xs text-xs text-muted-foreground">
+          <p className="mx-auto mt-1 max-w-xs text-xs font-medium leading-5 text-[#8b9098]">
             {currentStoreName
               ? 'Create a demo order or wait for channel orders to land here.'
               : 'Once a store is active, today’s queue and revenue will stay in view.'}
           </p>
           {currentStoreName && (
             <button
+              type="button"
               onClick={() => navigate('/demo/orders/new')}
-              className="mt-5 inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+              className="mt-5 inline-flex min-h-[40px] items-center justify-center rounded-full bg-[#17191c] px-5 text-xs font-bold text-white"
             >
               Create order
             </button>
           )}
         </div>
       ) : (
-        <div className="space-y-1">
+        <div className="mt-5 space-y-2">
           {orders.map((order) => {
             const customerName = getCustomerName(order.customer);
             const statusLabel = order.fulfillment_status?.replace('_', ' ') || 'new';
@@ -398,36 +500,35 @@ function RecentOrdersSection({
             return (
               <button
                 key={order.id}
+                type="button"
                 onClick={() => navigate(`/demo/orders/${order.id}`)}
-                className="flex items-center w-full px-4 py-4 rounded-xl hover:bg-card transition-colors text-left group"
+                className="group flex min-h-[74px] w-full items-center rounded-[22px] bg-[#fbfcf8] px-4 text-left transition-colors hover:bg-[#f4f5f2]"
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-sm font-semibold text-foreground font-mono tracking-tight">
-                      {orderNumber}
-                    </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-sm font-bold tracking-tight text-[#17191c]">{orderNumber}</span>
                     <span className={cn(
-                      'text-[10px] px-2 py-0.5 rounded-full font-medium capitalize',
-                      isDelivered && 'bg-success/10 text-success',
-                      isUnfulfilled && 'bg-warning/10 text-warning',
-                      !isDelivered && !isUnfulfilled && 'bg-muted text-muted-foreground',
+                      'rounded-full px-2 py-1 text-[10px] font-bold capitalize',
+                      isDelivered && 'bg-emerald-100 text-emerald-700',
+                      isUnfulfilled && 'bg-[#563ed5] text-white',
+                      !isDelivered && !isUnfulfilled && 'bg-[#ecefeb] text-[#747b84]',
                     )}>
                       {statusLabel}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{customerName}</p>
+                  <p className="mt-1 text-xs font-semibold text-[#8c929a]">{customerName}</p>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-semibold text-foreground tabular-nums">
+                <div className="shrink-0 text-right">
+                  <p className="text-sm font-bold tabular-nums text-[#17191c]">
                     ₹{Number(order.total || 0).toLocaleString('en-IN')}
                   </p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                  <p className="mt-0.5 text-[11px] font-medium text-[#9aa0a8]">
                     {order.created_at
                       ? new Date(order.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
                       : 'Just now'}
                   </p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/0 group-hover:text-muted-foreground/40 ml-2 shrink-0 transition-colors" />
+                <ChevronRight className="ml-2 h-4 w-4 shrink-0 text-[#b7bdc5] transition-transform group-hover:translate-x-0.5" />
               </button>
             );
           })}
@@ -437,51 +538,20 @@ function RecentOrdersSection({
   );
 }
 
-function InsightsSection({ navigate }: { navigate: (path: string) => void }) {
-  const storeHealth = [
-    { label: 'Fulfilment rate', value: '96%' },
-    { label: 'Avg pack time', value: '12 min' },
-    { label: 'Return rate', value: '3.2%' },
-  ];
-
+function PanelTitle({ dot, title }: { dot: string; title: string }) {
   return (
-    <div>
-      {/* Insights */}
-      <h2 className="text-base font-semibold text-foreground mb-5">Insights</h2>
-      <div className="space-y-1 mb-10">
-        {insightCards.map((card) => (
-          <button
-            key={card.title}
-            onClick={() => navigate(card.path)}
-            className={cn(
-              'flex items-center gap-4 w-full px-4 py-4 rounded-xl text-left group hover:bg-card transition-colors',
-            )}
-          >
-            <div className={cn('w-1 h-8 rounded-full shrink-0', card.accent.replace('border-l-', 'bg-'))} />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground">{card.title}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{card.desc}</p>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground/0 group-hover:text-muted-foreground/40 shrink-0 transition-colors" />
-          </button>
-        ))}
-      </div>
+    <div className="flex items-center gap-2">
+      <span className={cn('h-4 w-4 rounded-[5px]', dot)} />
+      <h2 className="text-sm font-bold text-[#17191c]">{title}</h2>
+    </div>
+  );
+}
 
-      {/* Store health — ultra-minimal */}
-      <div>
-        <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-4">Store health</h2>
-        <div className="space-y-3.5">
-          {storeHealth.map(m => (
-            <div key={m.label} className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">{m.label}</span>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-foreground tabular-nums">{m.value}</span>
-                <CheckCircle2 className="h-3.5 w-3.5 text-success/60" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+function SmallMetric({ label, value, align = 'left' }: { label: string; value: string; align?: 'left' | 'right' }) {
+  return (
+    <div className={cn('px-1', align === 'right' && 'pl-5 text-right')}>
+      <p className="text-4xl font-semibold leading-none tracking-[-0.05em] text-[#111315]">{value}</p>
+      <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-[#8f959d]">{label}</p>
     </div>
   );
 }

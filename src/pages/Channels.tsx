@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type ElementType } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,17 +22,20 @@ import { channelConnectors, getConnector, parseCSVOrders } from '@/lib/channelCo
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { PageLoading } from '@/components/ui/page-loading';
 
-const ICON_MAP: Record<string, any> = { Globe, ShoppingCart, ShoppingBag, Shirt, FileSpreadsheet, Link2 };
+const ICON_MAP: Record<string, ElementType> = { Globe, ShoppingCart, ShoppingBag, Shirt, FileSpreadsheet, Link2 };
 
 interface ChannelAccount {
   id: string;
-  channel_type: string;
-  channel_name: string;
+  channel_type?: string;
+  channel_name?: string;
+  channel?: string;
+  display_name?: string;
   store_id: string | null;
   is_active: boolean;
-  credentials: Record<string, string>;
-  settings: Record<string, any>;
+  credentials?: Record<string, string>;
+  settings?: Record<string, unknown>;
   last_sync_at: string | null;
   created_at: string;
 }
@@ -40,10 +43,11 @@ interface ChannelAccount {
 interface SyncLog {
   id: string;
   channel_account_id: string;
-  sync_type: string;
+  sync_type?: string;
+  message?: string | null;
   status: string;
-  records_processed: number;
-  records_failed: number;
+  records_processed?: number;
+  records_failed?: number;
   error_message: string | null;
   started_at: string;
   completed_at: string | null;
@@ -157,7 +161,9 @@ export default function Channels() {
       toast.success(`${connector.name} connected!`);
       setShowConnect(false);
       fetchAll();
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to connect channel');
+    }
     setConnecting(false);
   };
 
@@ -170,11 +176,11 @@ export default function Channels() {
   // Sync Now
   const handleSyncNow = async (account: ChannelAccount) => {
     setSyncing(account.id);
-    const connector = getConnector(account.channel_type);
+    const connector = getConnector(getAccountType(account));
     if (!connector) { setSyncing(null); return; }
 
     try {
-      const orders = await connector.pullOrders(account.credentials);
+      const orders = await connector.pullOrders(account.credentials || {});
       await supabase.from('channel_accounts').update({ last_sync_at: new Date().toISOString() }).eq('id', account.id);
       await supabase.from('channel_sync_logs').insert({
         channel_account_id: account.id,
@@ -182,19 +188,20 @@ export default function Channels() {
         status: orders.length > 0 ? 'success' : 'no_data',
         records_processed: orders.length,
         completed_at: new Date().toISOString(),
-        details: { order_ids: orders.map(o => o.external_order_id) } as any,
+        details: { order_ids: orders.map(o => o.external_order_id) },
       });
-      toast.success(`Synced ${orders.length} orders from ${account.channel_name}`);
+      toast.success(`Synced ${orders.length} orders from ${getAccountName(account)}`);
       fetchAll();
-    } catch (e: any) {
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Sync failed';
       await supabase.from('channel_sync_logs').insert({
         channel_account_id: account.id,
         sync_type: 'pull_orders',
         status: 'error',
-        error_message: e.message,
+        error_message: message,
         completed_at: new Date().toISOString(),
       });
-      toast.error(`Sync failed: ${e.message}`);
+      toast.error(`Sync failed: ${message}`);
       fetchAll();
     }
     setSyncing(null);
@@ -202,9 +209,9 @@ export default function Channels() {
 
   // Health Check
   const runHealthCheck = async (account: ChannelAccount) => {
-    const connector = getConnector(account.channel_type);
+    const connector = getConnector(getAccountType(account));
     if (!connector) return;
-    const result = await connector.healthCheck(account.credentials);
+    const result = await connector.healthCheck(account.credentials || {});
     setHealthResults(prev => ({ ...prev, [account.id]: result }));
     await supabase.from('channel_sync_logs').insert({
       channel_account_id: account.id,
@@ -227,7 +234,7 @@ export default function Channels() {
     }
     if (result.orders.length > 0) {
       // Find or create CSV account
-      let csvAccount = accounts.find(a => a.channel_type === 'csv_import');
+      let csvAccount = accounts.find(a => getAccountType(a) === 'csv_import');
       if (!csvAccount && user) {
         const { data } = await supabase.from('channel_accounts').insert({
           channel_type: 'csv_import', channel_name: 'CSV Import', store_id: currentStore?.id || null,
@@ -281,24 +288,34 @@ export default function Channels() {
     fetchAll();
   };
 
-  const connectedTypes = accounts.filter(a => a.is_active).map(a => a.channel_type);
+  const getAccountType = (account: ChannelAccount) => account.channel_type || account.channel || 'unknown';
+  const getAccountName = (account: ChannelAccount) => account.channel_name || account.display_name || getConnector(getAccountType(account))?.name || 'Unknown channel';
+  const formatSyncType = (type?: string | null) => (type || 'sync').replace(/_/g, ' ');
+  const connectedTypes = accounts.filter(a => a.is_active).map(a => getAccountType(a));
   const accountLogs = (accountId: string) => syncLogs.filter(l => l.channel_account_id === accountId);
   const accountMappings = (accountId: string) => skuMappings.filter(m => m.channel_account_id === accountId);
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-fade-in">
-        <div className="flex items-start justify-between flex-wrap gap-4">
+      <div className="mx-auto max-w-7xl space-y-5 animate-fade-in">
+        <div className="rounded-[28px] border border-black/[0.04] bg-white p-6 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)]">
+        <div className="flex items-end justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-display">Channels & Integrations</h1>
-            <p className="text-muted-foreground text-sm mt-1">Connect marketplaces, sync orders, and manage SKU mappings</p>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Omnichannel sync</p>
+            <h1 className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-[#17191c]">Channels & Integrations</h1>
+            <p className="text-muted-foreground text-sm mt-2">Connect marketplaces, sync orders, and manage SKU mappings</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowCsvImport(true)}>
+            <Button variant="outline" className="min-h-[44px]" onClick={() => setShowCsvImport(true)}>
               <Upload className="w-4 h-4 mr-2" /> CSV Import
             </Button>
           </div>
         </div>
+        </div>
+
+        {loading ? (
+          <PageLoading label="Loading channels" rows={3} />
+        ) : (
 
         <Tabs defaultValue="channels">
           <TabsList>
@@ -312,7 +329,7 @@ export default function Channels() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {channelConnectors.map(connector => {
                 const Icon = ICON_MAP[connector.icon] || Link2;
-                const account = accounts.find(a => a.channel_type === connector.id && a.is_active);
+                const account = accounts.find(a => getAccountType(a) === connector.id && a.is_active);
                 const isConnected = !!account;
                 const lastSync = account?.last_sync_at;
 
@@ -386,7 +403,7 @@ export default function Channels() {
                 return (
                   <div key={account.id} className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-medium">{account.channel_name}</h3>
+                      <h3 className="font-medium">{getAccountName(account)}</h3>
                       <Button size="sm" variant="outline" onClick={() => openSkuMapping(account.id)}>
                         <Plus className="w-3 h-3 mr-1" /> Add Mapping
                       </Button>
@@ -445,20 +462,20 @@ export default function Channels() {
                 const lastLog = logs[0];
                 const health = healthResults[account.id];
                 const errorCount = logs.filter(l => l.status === 'error').length;
-                const connector = getConnector(account.channel_type);
+                const connector = getConnector(getAccountType(account));
 
                 return (
                   <Card key={account.id}>
                     <CardContent className="pt-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm">{account.channel_name}</h4>
+                        <h4 className="font-medium text-sm">{getAccountName(account)}</h4>
                         <Badge variant={errorCount > 0 ? 'destructive' : 'secondary'} className="text-[10px]">
                           {errorCount > 0 ? `${errorCount} errors` : 'Healthy'}
                         </Badge>
                       </div>
                       <div className="text-xs space-y-1 text-muted-foreground">
                         <p>Last sync: {account.last_sync_at ? format(new Date(account.last_sync_at), 'dd MMM HH:mm') : 'Never'}</p>
-                        {lastLog && <p>Last action: {lastLog.sync_type} — {lastLog.status}</p>}
+                        {lastLog && <p>Last action: {formatSyncType(lastLog.sync_type)} — {lastLog.status}</p>}
                         {health && <p className={health.ok ? 'text-success' : 'text-destructive'}>{health.message}</p>}
                       </div>
                       <div className="flex gap-2">
@@ -498,16 +515,16 @@ export default function Channels() {
                       return (
                         <TableRow key={log.id}>
                           <TableCell className="text-xs text-muted-foreground">{format(new Date(log.started_at), 'dd MMM HH:mm')}</TableCell>
-                          <TableCell className="text-sm">{account?.channel_name || 'Unknown'}</TableCell>
-                          <TableCell className="text-sm capitalize">{log.sync_type.replace('_', ' ')}</TableCell>
+                          <TableCell className="text-sm">{account ? getAccountName(account) : 'Unknown'}</TableCell>
+                          <TableCell className="text-sm capitalize">{formatSyncType(log.sync_type)}</TableCell>
                           <TableCell>
                             <Badge variant={log.status === 'success' ? 'secondary' : log.status === 'error' ? 'destructive' : 'outline'} className="text-[10px]">
                               {log.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-sm">{log.records_processed}</TableCell>
-                          <TableCell className="text-sm">{log.records_failed > 0 ? <span className="text-destructive">{log.records_failed}</span> : '-'}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{log.error_message || '-'}</TableCell>
+                          <TableCell className="text-sm">{log.records_processed ?? '-'}</TableCell>
+                          <TableCell className="text-sm">{(log.records_failed || 0) > 0 ? <span className="text-destructive">{log.records_failed}</span> : '-'}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{log.error_message || log.message || '-'}</TableCell>
                         </TableRow>
                       );
                     })}
@@ -520,6 +537,7 @@ export default function Channels() {
             </div>
           </TabsContent>
         </Tabs>
+        )}
       </div>
 
       {/* Connect Channel Dialog */}

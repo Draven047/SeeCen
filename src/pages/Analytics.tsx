@@ -20,6 +20,7 @@ import {
 import { CHANNEL_CONFIG, type SalesChannel } from '@/lib/channelConnectors';
 import { cn } from '@/lib/utils';
 import { format, differenceInMinutes } from 'date-fns';
+import { PageLoading } from '@/components/ui/page-loading';
 
 function exportCSV(data: Record<string, any>[], filename: string) {
   if (data.length === 0) return;
@@ -47,6 +48,12 @@ const CHANNEL_ICONS: Record<string, React.ElementType> = {
 const PIE_COLORS = ['hsl(var(--primary))', 'hsl(142,76%,36%)', 'hsl(330,80%,60%)', 'hsl(200,80%,50%)', 'hsl(30,90%,55%)', 'hsl(270,60%,55%)'];
 const fmt = (v: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v);
 const fmtPct = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+const chartTooltipStyle = {
+  background: '#fff',
+  border: '1px solid rgba(0,0,0,0.06)',
+  borderRadius: 18,
+  boxShadow: '0 18px 45px -32px rgba(15,23,42,0.6)',
+};
 
 export default function Analytics() {
   const { role } = useAuth();
@@ -177,15 +184,17 @@ export default function Analytics() {
     return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   };
 
-  if (loading) return <DashboardLayout><div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div></DashboardLayout>;
+  if (loading) return <DashboardLayout><PageLoading label="Loading analytics" rows={4} /></DashboardLayout>;
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-fade-in">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="mx-auto max-w-7xl space-y-5 animate-fade-in">
+        <div className="rounded-[28px] border border-black/[0.04] bg-white p-6 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)]">
+        <div className="flex items-end justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-display">Analytics</h1>
-            <p className="text-muted-foreground text-sm mt-1">Sales, operations, inventory & team performance</p>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Performance board</p>
+            <h1 className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-[#17191c]">Analytics</h1>
+            <p className="text-muted-foreground text-sm mt-2">Sales, operations, inventory & team performance</p>
           </div>
           <div className="flex gap-3">
             <Select value={storeFilter} onValueChange={setStoreFilter}>
@@ -206,9 +215,10 @@ export default function Analytics() {
             </Select>
           </div>
         </div>
+        </div>
 
         <Tabs defaultValue="sales">
-          <TabsList className="flex-wrap">
+          <TabsList className="flex-wrap rounded-full bg-white p-1 shadow-[0_16px_35px_-30px_rgba(15,23,42,0.75)]">
             <TabsTrigger value="sales"><DollarSign className="w-3 h-3 mr-1" /> Sales</TabsTrigger>
             <TabsTrigger value="ops"><Truck className="w-3 h-3 mr-1" /> Operations</TabsTrigger>
             <TabsTrigger value="inventory"><Package className="w-3 h-3 mr-1" /> Inventory</TabsTrigger>
@@ -246,11 +256,11 @@ export default function Analytics() {
               {salesTrend.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={salesTrend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="date" tickFormatter={fmtDateLabel} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                    <YAxis tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                    <Tooltip formatter={(v: number) => [fmt(v), 'Revenue']} labelFormatter={fmtDateLabel} />
-                    <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                    <CartesianGrid vertical={false} stroke="rgba(17,19,21,0.06)" />
+                    <XAxis dataKey="date" tickFormatter={fmtDateLabel} tick={{ fontSize: 11, fill: '#7f858d' }} axisLine={false} tickLine={false} />
+                    <YAxis tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#7f858d' }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={chartTooltipStyle} formatter={(v: number) => [fmt(v), 'Revenue']} labelFormatter={fmtDateLabel} cursor={{ fill: 'rgba(86,62,213,0.08)' }} />
+                    <Bar dataKey="revenue" fill="#563ed5" radius={[14, 14, 14, 14]} maxBarSize={48} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : <p className="text-sm text-muted-foreground text-center py-8">No data</p>}
@@ -289,10 +299,10 @@ export default function Analytics() {
                 {channelPerf.length > 0 ? (
                   <ResponsiveContainer width="100%" height={260}>
                     <PieChart>
-                      <Pie data={channelPerf.map(c => ({ name: CHANNEL_CONFIG[c.channel as SalesChannel]?.label || c.channel, value: c.revenue }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                      <Pie data={channelPerf.map(c => ({ name: CHANNEL_CONFIG[c.channel as SalesChannel]?.label || c.channel, value: c.revenue }))} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={54} outerRadius={92} paddingAngle={3} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
                         {channelPerf.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                       </Pie>
-                      <Tooltip formatter={(v: number) => fmt(v)} />
+                      <Tooltip contentStyle={chartTooltipStyle} formatter={(v: number) => fmt(v)} />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : <p className="text-sm text-muted-foreground text-center py-8">No data</p>}

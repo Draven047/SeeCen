@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Search, Plus, Package, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProductCard, type Product, type ProductVariant } from '@/components/catalogue/ProductCard';
+import { ProductFormDialog } from '@/components/catalogue/ProductFormDialog';
+import { PageLoading } from '@/components/ui/page-loading';
 
 export default function Catalogue() {
   const navigate = useNavigate();
@@ -20,6 +22,8 @@ export default function Catalogue() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [brandFilter, setBrandFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -56,6 +60,16 @@ export default function Catalogue() {
 
   const canManage = role === 'admin' || role === 'operations' || role === 'manager';
 
+  const openAddDialog = () => {
+    setEditingProduct(null);
+    setFormOpen(true);
+  };
+
+  const openEditDialog = (product: Product) => {
+    setEditingProduct(product);
+    setFormOpen(true);
+  };
+
   const deleteProduct = async (id: string) => {
     if (!confirm('Delete this product and all its variants?')) return;
     const { error } = await supabase.from('products').delete().eq('id', id);
@@ -79,7 +93,7 @@ export default function Catalogue() {
               {filtered.length} product{filtered.length !== 1 ? 's' : ''}
             </div>
             {canManage && (
-              <Button className="btn-primary" onClick={() => navigate('/catalogue/add')}>
+              <Button className="btn-primary" onClick={openAddDialog}>
                 <Plus className="w-4 h-4 mr-2" /> Add Product
               </Button>
             )}
@@ -125,12 +139,7 @@ export default function Catalogue() {
 
         {/* Products Grid */}
         {loading ? (
-          <div className="glass-card p-12">
-            <div className="flex flex-col items-center justify-center">
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-muted-foreground mt-4">Loading catalogue...</p>
-            </div>
-          </div>
+          <PageLoading label="Loading catalogue" rows={4} />
         ) : filtered.length === 0 ? (
           <div className="glass-card p-12 text-center">
             <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
@@ -146,14 +155,24 @@ export default function Catalogue() {
                 variantCount={variantsMap[product.id]?.length || 0}
                 totalStock={0} // Will be computed from store_inventory in later steps
                 canManage={canManage}
-                onView={() => navigate(`/catalogue/${product.id}`)}
-                onEdit={() => navigate(`/catalogue/${product.id}`)}
+                onView={() => navigate(`/demo/catalogue/${product.id}`)}
+                onEdit={() => openEditDialog(product)}
                 onDelete={() => deleteProduct(product.id)}
                 formatCurrency={formatCurrency}
               />
             ))}
           </div>
         )}
+        <ProductFormDialog
+          open={formOpen}
+          onOpenChange={(open) => {
+            setFormOpen(open);
+            if (!open) setEditingProduct(null);
+          }}
+          editingProduct={editingProduct}
+          existingVariants={editingProduct ? variantsMap[editingProduct.id] || [] : []}
+          onSaved={fetchData}
+        />
       </div>
     </DashboardLayout>
   );
