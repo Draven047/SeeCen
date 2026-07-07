@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useStore } from '@/contexts/StoreContext';
 
-const MOCK_ORDER_KEY = 'clozzet_mock_order_enabled';
+const MOCK_ORDER_KEY = 'seecen_mock_order_enabled';
 const NOTIFICATIONS_KEY = 'seecen_notifications_enabled';
 
 export default function SettingsPage() {

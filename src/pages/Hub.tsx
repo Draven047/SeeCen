@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { SellerOSLayout } from '@/components/layout/SellerOSLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useStore } from '@/contexts/StoreContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { brand, formatCurrency } from '@/config/brand';
 import {
-  Activity, ArrowRight, ArrowUpRight, BarChart3, Bot, Boxes, CalendarDays,
-  ChevronRight, Clock3, IndianRupee, MessageSquareWarning,
-  MoreHorizontal, PackageCheck, RotateCcw, Settings, ShoppingCart, Sparkles,
-  TrendingUp, Truck, Users, Zap,
+  AlertTriangle, ArrowRight, ArrowUpRight, ArrowDownRight, BarChart3, Bot, Boxes,
+  ChevronRight, IndianRupee, MessageSquareWarning, MoreHorizontal, PackageCheck,
+  RotateCcw, Settings, ShoppingCart, Sparkles, Target, TrendingUp, Truck, Users, Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -16,22 +17,45 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 
-interface TodayStats {
-  totalSales: number;
-  totalOrders: number;
-  liveOrders: number;
-  avgOrderValue: number;
-}
+const DAY = 24 * 60 * 60 * 1000;
 
-interface RecentOrder {
+type RangeKey = 'today' | '7d' | '30d';
+
+const RANGES: { key: RangeKey; label: string }[] = [
+  { key: 'today', label: 'Today' },
+  { key: '7d', label: '7 days' },
+  { key: '30d', label: '30 days' },
+];
+
+type ChartTab = 'revenue' | 'orders' | 'customers';
+
+interface OrderRow {
   id: string;
   order_number: string | null;
   total: number | string | null;
   status: string | null;
   fulfillment_status: string | null;
-  created_at: string | null;
-  customer: { name: string | null } | { name: string | null }[] | null;
+  payment_type: string | null;
+  channel: string | null;
+  sla_deadline: string | null;
+  created_at: string;
+  shipped_at: string | null;
+  customer?: { name: string | null } | { name: string | null }[] | null;
+  order_items?: { product_id: string; quantity: number; total_price: number }[];
 }
+
+interface HubData {
+  orders: OrderRow[];
+  pendingReturns: number;
+  lowStockCount: number;
+  codPendingAmount: number;
+  target: { target_amount: number; start_date: string } | null;
+  aiSummary: string | null;
+  productNames: Record<string, string>;
+}
+
+const CLOSED_STATUSES = ['delivered', 'fulfilled', 'cancelled', 'declined', 'returned', 'rto'];
+const PRE_DISPATCH_STATUSES = ['new', 'unfulfilled', 'pending', 'accepted', 'picking', 'packed', 'ready'];
 
 const primaryActions = [
   { icon: ShoppingCart, label: 'Orders', path: '/demo/orders' },
@@ -50,8 +74,6 @@ const moreActions = [
   { icon: Settings, label: 'Settings', path: '/demo/settings' },
 ];
 
-const activityBars = [28, 32, 37, 48, 66, 88, 72, 58, 41, 34, 31, 29, 26, 25, 30, 34, 37, 52, 66];
-
 function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
@@ -59,78 +81,167 @@ function getGreeting() {
   return 'Good evening';
 }
 
-function formatCurrency(value: number) {
-  return `₹${Math.round(value).toLocaleString('en-IN')}`;
+function startOfToday() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+}
+
+function rangeWindow(range: RangeKey): { start: number; prevStart: number; prevEnd: number } {
+  const now = Date.now();
+  if (range === 'today') {
+    const start = startOfToday();
+    return { start, prevStart: start - DAY, prevEnd: start };
+  }
+  const days = range === '7d' ? 7 : 30;
+  const start = now - days * DAY;
+  return { start, prevStart: start - days * DAY, prevEnd: start };
+}
+
+function orderRevenue(order: OrderRow) {
+  return order.fulfillment_status === 'cancelled' ? 0 : Number(order.total || 0);
 }
 
 export default function Hub() {
   const navigate = useNavigate();
   const { currentStore } = useStore();
-  const [stats, setStats] = useState<TodayStats>({ totalSales: 0, totalOrders: 0, liveOrders: 0, avgOrderValue: 0 });
+  const { user } = useAuth();
+  const [range, setRange] = useState<RangeKey>('today');
+  const [chartTab, setChartTab] = useState<ChartTab>('revenue');
   const [loading, setLoading] = useState(true);
-  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [data, setData] = useState<HubData>({
+    orders: [], pendingReturns: 0, lowStockCount: 0, codPendingAmount: 0,
+    target: null, aiSummary: null, productNames: {},
+  });
 
   useEffect(() => {
-    const fetchStats = async () => {
-      if (!currentStore) {
-        setRecentOrders([]);
-        setStats({ totalSales: 0, totalOrders: 0, liveOrders: 0, avgOrderValue: 0 });
-        setLoading(false);
-        return;
-      }
-
+    const fetchAll = async () => {
+      if (!currentStore) { setLoading(false); return; }
       setLoading(true);
       setLoadError(null);
-      const today = new Date().toISOString().split('T')[0];
+      const since = new Date(Date.now() - 62 * DAY).toISOString();
+      const today = new Date().toISOString().slice(0, 10);
 
       try {
-        const [ordersRes, recentRes] = await Promise.all([
+        const [ordersRes, returnsRes, inventoryRes, codRes, targetRes, aiRes, productsRes] = await Promise.all([
           supabase
             .from('orders')
-            .select('total, fulfillment_status, status')
+            .select('id, order_number, total, status, fulfillment_status, payment_type, channel, sla_deadline, created_at, shipped_at, customer:customers(name), order_items(product_id, quantity, total_price)')
             .eq('store_id', currentStore.id)
-            .gte('created_at', today),
+            .gte('created_at', since)
+            .order('created_at', { ascending: false }),
           supabase
-            .from('orders')
-            .select('id, order_number, total, status, fulfillment_status, created_at, customer:customers(name)')
+            .from('return_requests')
+            .select('id', { count: 'exact' })
             .eq('store_id', currentStore.id)
-            .order('created_at', { ascending: false })
-            .limit(5),
+            .eq('status', 'pending'),
+          supabase
+            .from('store_inventory')
+            .select('quantity, min_stock_level')
+            .eq('store_id', currentStore.id),
+          supabase
+            .from('cod_reconciliation')
+            .select('expected_amount, collected_amount, amount')
+            .eq('store_id', currentStore.id)
+            .eq('status', 'pending'),
+          user
+            ? supabase.from('sales_targets').select('target_amount, start_date').eq('user_id', user.id).limit(1)
+            : Promise.resolve({ data: null, error: null }),
+          user
+            ? supabase.from('ai_coach_daily_recommendations').select('daily_summary').eq('user_id', user.id).eq('recommendation_date', today).maybeSingle()
+            : Promise.resolve({ data: null, error: null }),
+          supabase.from('products').select('id, name'),
         ]);
 
         if (ordersRes.error) throw ordersRes.error;
-        if (recentRes.error) throw recentRes.error;
 
-        const orders = ordersRes.data || [];
-        const totalOrders = orders.length;
-        const totalSales = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
-        const liveOrders = orders.filter(order =>
-          !['delivered', 'fulfilled', 'cancelled', 'declined'].includes(order.fulfillment_status || '')
+        const lowStock = ((inventoryRes.data || []) as { quantity: number; min_stock_level: number | null }[]).filter(
+          (row) => Number(row.quantity) <= Number(row.min_stock_level || 0)
         ).length;
-        const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+        const codPending = ((codRes.data || []) as { expected_amount?: number; amount?: number; collected_amount?: number }[]).reduce(
+          (sum, row) => sum + Math.max(0, Number(row.expected_amount ?? row.amount ?? 0) - Number(row.collected_amount || 0)),
+          0
+        );
+        const productNames: Record<string, string> = {};
+        ((productsRes.data || []) as { id: string; name: string }[]).forEach((p) => { productNames[p.id] = p.name; });
 
-        setStats({ totalSales, totalOrders, liveOrders, avgOrderValue });
-        setRecentOrders((recentRes.data || []) as RecentOrder[]);
+        setData({
+          orders: (ordersRes.data || []) as OrderRow[],
+          pendingReturns: returnsRes.count ?? (returnsRes.data || []).length,
+          lowStockCount: lowStock,
+          codPendingAmount: codPending,
+          target: (targetRes.data && targetRes.data[0]) || null,
+          aiSummary: aiRes.data?.daily_summary || null,
+          productNames,
+        });
       } catch (error) {
-        console.error('Failed to load Hub stats', error);
+        console.error('Failed to load Hub data', error);
         setLoadError('Could not load live store data. Check your connection and refresh.');
       } finally {
         setLoading(false);
       }
     };
-    fetchStats();
-  }, [currentStore]);
+    fetchAll();
+  }, [currentStore, user]);
 
-  const dateStr = new Date().toLocaleDateString('en-IN', {
+  const { start, prevStart, prevEnd } = rangeWindow(range);
+
+  const metrics = useMemo(() => {
+    const inRange = data.orders.filter((o) => new Date(o.created_at).getTime() >= start);
+    const inPrev = data.orders.filter((o) => {
+      const t = new Date(o.created_at).getTime();
+      return t >= prevStart && t < prevEnd;
+    });
+    const revenue = inRange.reduce((s, o) => s + orderRevenue(o), 0);
+    const prevRevenue = inPrev.reduce((s, o) => s + orderRevenue(o), 0);
+    const orderCount = inRange.filter((o) => o.fulfillment_status !== 'cancelled').length;
+    const prevOrderCount = inPrev.filter((o) => o.fulfillment_status !== 'cancelled').length;
+    const liveQueue = data.orders.filter((o) => !CLOSED_STATUSES.includes(o.fulfillment_status || 'new')).length;
+    const avgOrder = orderCount > 0 ? revenue / orderCount : 0;
+    const revenueDelta = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : null;
+    return { inRange, revenue, prevRevenue, orderCount, prevOrderCount, liveQueue, avgOrder, revenueDelta };
+  }, [data.orders, start, prevStart, prevEnd]);
+
+  const actionItems = useMemo(() => {
+    const now = Date.now();
+    const overdueSla = data.orders.filter((o) =>
+      PRE_DISPATCH_STATUSES.includes(o.fulfillment_status || '') &&
+      o.sla_deadline && new Date(o.sla_deadline).getTime() < now
+    ).length;
+    const readyToShip = data.orders.filter((o) => o.fulfillment_status === 'packed').length;
+    const items = [
+      { key: 'sla', icon: AlertTriangle, label: 'Orders past SLA', count: overdueSla, path: '/demo/orders', urgent: true, detail: 'Dispatch these first' },
+      { key: 'ship', icon: Truck, label: 'Packed, ready to ship', count: readyToShip, path: '/demo/shipping', urgent: false, detail: 'Book pickups' },
+      { key: 'returns', icon: RotateCcw, label: 'Returns to review', count: data.pendingReturns, path: '/demo/returns', urgent: false, detail: 'Approve or decline' },
+      { key: 'stock', icon: Boxes, label: 'Low-stock SKUs', count: data.lowStockCount, path: '/demo/inventory', urgent: false, detail: 'Replenish soon' },
+      {
+        key: 'cod', icon: IndianRupee, label: 'COD to reconcile', count: data.codPendingAmount > 0 ? 1 : 0,
+        displayValue: data.codPendingAmount > 0 ? formatCurrency(data.codPendingAmount) : undefined,
+        path: '/demo/finance', urgent: false, detail: 'Match collections',
+      },
+    ];
+    return items.filter((i) => i.count > 0);
+  }, [data]);
+
+  const fulfilmentScore = useMemo(() => {
+    const now = Date.now();
+    const recent = data.orders.filter((o) => new Date(o.created_at).getTime() >= now - 30 * DAY);
+    const shipped = recent.filter((o) => o.shipped_at);
+    const onTime = shipped.filter((o) => !o.sla_deadline || new Date(o.shipped_at!).getTime() <= new Date(o.sla_deadline).getTime()).length;
+    const overdueOpen = recent.filter((o) =>
+      PRE_DISPATCH_STATUSES.includes(o.fulfillment_status || '') &&
+      o.sla_deadline && new Date(o.sla_deadline).getTime() < now
+    ).length;
+    const denominator = shipped.length + overdueOpen;
+    if (denominator === 0) return null;
+    return Math.round((onTime / denominator) * 100);
+  }, [data.orders]);
+
+  const dateStr = new Date().toLocaleDateString(brand.locale, {
     weekday: 'short', day: 'numeric', month: 'short',
   });
 
-  const pulseMetrics = useMemo(() => [
-    { label: 'Orders', value: loading ? '—' : stats.totalOrders.toString(), helper: 'today', icon: ShoppingCart },
-    { label: 'Live', value: loading ? '—' : stats.liveOrders.toString(), helper: 'needs action', icon: Activity, highlight: stats.liveOrders > 0 },
-    { label: 'Avg order', value: loading ? '—' : formatCurrency(stats.avgOrderValue), helper: 'basket value', icon: IndianRupee },
-  ], [loading, stats.avgOrderValue, stats.liveOrders, stats.totalOrders]);
+  const rangeLabel = range === 'today' ? "Today's revenue" : range === '7d' ? 'Revenue · last 7 days' : 'Revenue · last 30 days';
 
   return (
     <SellerOSLayout>
@@ -142,27 +253,38 @@ export default function Hub() {
                 <Sparkles className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[#1b1d21]">{getGreeting()}, {currentStore?.name || 'SeeCen'}</p>
+                <p className="text-sm font-semibold text-[#1b1d21]">{getGreeting()}, {currentStore?.name || brand.name}</p>
                 <p className="text-xs font-medium text-[#8b9098]">Seller command center · {dateStr}</p>
               </div>
             </div>
             <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
               <div>
-                <p className="text-[12px] font-semibold uppercase tracking-[0.24em] text-[#a7adb5]">Today's revenue</p>
+                <p className="text-[12px] font-semibold uppercase tracking-[0.24em] text-[#a7adb5]">{rangeLabel}</p>
                 <h1 className="mt-1 text-[3.1rem] font-semibold leading-none tracking-[-0.04em] text-[#111315] sm:text-[4.6rem]">
-                  {loading ? '—' : formatCurrency(stats.totalSales)}
+                  {loading ? '—' : formatCurrency(metrics.revenue)}
                 </h1>
               </div>
-              <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-[#563ed5] px-3 py-1.5 text-xs font-bold text-white">
-                <ArrowUpRight className="h-3.5 w-3.5" />
-                {loading ? 'Live sync' : `${stats.totalOrders} orders`}
-              </span>
+              <DeltaPill loading={loading} delta={metrics.revenueDelta} fallback={`${metrics.orderCount} orders`} />
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Pill icon={CalendarDays} label="This week" />
-            <Pill icon={Clock3} label="24h" />
+            <div className="flex rounded-full border border-black/[0.05] bg-[#f7f8f5] p-1">
+              {RANGES.map((r) => (
+                <button
+                  key={r.key}
+                  type="button"
+                  onClick={() => setRange(r.key)}
+                  aria-pressed={range === r.key}
+                  className={cn(
+                    'min-h-[36px] rounded-full px-4 text-sm font-semibold transition-colors',
+                    range === r.key ? 'bg-[#17191c] text-white' : 'text-[#7f858d] hover:text-[#17191c]',
+                  )}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               onClick={() => navigate('/demo/orders/new')}
@@ -175,64 +297,175 @@ export default function Hub() {
         </section>
 
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(260px,0.9fr)_minmax(480px,1.65fr)_minmax(270px,0.9fr)]">
-          <MetricStack loading={loading} stats={stats} />
-          <ActivityPanel metrics={pulseMetrics} />
-          <ProgressPanel navigate={navigate} stats={stats} loading={loading} />
+          <MetricStack loading={loading} metrics={metrics} range={range} />
+          <ActivityPanel
+            loading={loading}
+            orders={data.orders}
+            range={range}
+            chartTab={chartTab}
+            setChartTab={setChartTab}
+            metrics={metrics}
+            navigate={navigate}
+          />
+          <ProgressPanel navigate={navigate} loading={loading} fulfilmentScore={fulfilmentScore} data={data} orders={data.orders} />
         </section>
 
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] xl:grid-cols-[minmax(330px,0.75fr)_minmax(0,1.25fr)_minmax(290px,0.7fr)]">
-          <GrowthCard navigate={navigate} />
+          <ActionQueue items={actionItems} loading={loading} navigate={navigate} />
           <RecentOrdersSection
             currentStoreName={currentStore?.name}
             loadError={loadError}
-            orders={recentOrders}
+            orders={data.orders.slice(0, 5)}
             navigate={navigate}
           />
-          <ActionsPanel navigate={navigate} />
+          <ActionsPanel navigate={navigate} aiSummary={data.aiSummary} />
+        </section>
+
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <TargetCard loading={loading} target={data.target} orders={data.orders} />
+          <ChannelMixCard loading={loading} orders={metrics.inRange} />
+          <TopProductsCard loading={loading} orders={metrics.inRange} productNames={data.productNames} />
         </section>
       </div>
     </SellerOSLayout>
   );
 }
 
-function Pill({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
+function DeltaPill({ loading, delta, fallback }: { loading: boolean; delta: number | null; fallback: string }) {
+  if (loading) {
+    return (
+      <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-[#f4f5f2] px-3 py-1.5 text-xs font-bold text-[#8b9098]">
+        Loading
+      </span>
+    );
+  }
+  if (delta == null) {
+    return (
+      <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-[#563ed5] px-3 py-1.5 text-xs font-bold text-white">
+        <ArrowUpRight className="h-3.5 w-3.5" />
+        {fallback}
+      </span>
+    );
+  }
+  const positive = delta >= 0;
   return (
-    <span className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-black/[0.05] bg-[#f7f8f5] px-4 text-sm font-semibold text-[#34373c] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-      <Icon className="h-4 w-4 text-[#7f858d]" />
-      {label}
+    <span className={cn(
+      'mb-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold',
+      positive ? 'bg-[#563ed5] text-white' : 'bg-[#fdecec] text-[#c2352b]',
+    )}>
+      {positive ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
+      {positive ? '+' : ''}{delta.toFixed(0)}% vs previous
     </span>
   );
 }
 
-function MetricStack({ loading, stats }: { loading: boolean; stats: TodayStats }) {
+function MetricStack({ loading, metrics, range }: {
+  loading: boolean;
+  metrics: { revenue: number; orderCount: number; liveQueue: number };
+  range: RangeKey;
+}) {
   return (
     <div className="rounded-[26px] border border-black/[0.04] bg-[#fbfcf8] p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.6)]">
       <div className="flex items-center justify-between">
         <PanelTitle dot="bg-[#563ed5]" title="Sales pulse" />
-        <span className="rounded-full bg-[#17191c] px-2.5 py-1 text-[11px] font-semibold text-white">Now</span>
+        <span className="rounded-full bg-[#17191c] px-2.5 py-1 text-[11px] font-semibold text-white">
+          {range === 'today' ? 'Now' : range === '7d' ? '7d' : '30d'}
+        </span>
       </div>
       <div className="mt-9">
         <p className="text-5xl font-semibold leading-none tracking-[-0.05em] text-[#111315]">
-          {loading ? '—' : formatCurrency(stats.totalSales)}
+          {loading ? '—' : formatCurrency(metrics.revenue)}
         </p>
-        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8f959d]">Sales today</p>
+        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8f959d]">
+          {range === 'today' ? 'Sales today' : `Sales · last ${range === '7d' ? '7' : '30'} days`}
+        </p>
       </div>
       <div className="mt-12 grid grid-cols-2 divide-x divide-black/[0.06] border-t border-black/[0.06] pt-5">
-        <SmallMetric label="Orders" value={loading ? '—' : stats.totalOrders.toString()} />
-        <SmallMetric label="Live queue" value={loading ? '—' : stats.liveOrders.toString()} align="right" />
+        <SmallMetric label="Orders" value={loading ? '—' : metrics.orderCount.toString()} />
+        <SmallMetric label="Live queue" value={loading ? '—' : metrics.liveQueue.toString()} align="right" />
       </div>
     </div>
   );
 }
 
-function ActivityPanel({ metrics }: { metrics: { label: string; value: string; helper: string; icon: React.ElementType; highlight?: boolean }[] }) {
+function buildChart(orders: OrderRow[], range: RangeKey, tab: ChartTab) {
+  const now = new Date();
+  const buckets: { label: string; value: number; customers: Set<string> }[] = [];
+
+  if (range === 'today') {
+    const currentHour = now.getHours();
+    for (let h = 0; h <= currentHour; h++) {
+      buckets.push({ label: `${h}:00`, value: 0, customers: new Set() });
+    }
+    const midnight = startOfToday();
+    for (const o of orders) {
+      const t = new Date(o.created_at);
+      if (t.getTime() < midnight || o.fulfillment_status === 'cancelled') continue;
+      const bucket = buckets[t.getHours()];
+      if (!bucket) continue;
+      bucket.value += tab === 'revenue' ? Number(o.total || 0) : tab === 'orders' ? 1 : 0;
+      bucket.customers.add(o.customer ? JSON.stringify(o.customer) : 'walk-in');
+    }
+  } else {
+    const days = range === '7d' ? 7 : 30;
+    for (let d = days - 1; d >= 0; d--) {
+      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - d);
+      buckets.push({
+        label: date.toLocaleDateString(brand.locale, days === 7 ? { weekday: 'short' } : { day: 'numeric', month: 'short' }),
+        value: 0,
+        customers: new Set(),
+      });
+    }
+    const startDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1)).getTime();
+    for (const o of orders) {
+      const t = new Date(o.created_at);
+      if (o.fulfillment_status === 'cancelled') continue;
+      const dayIndex = Math.floor((new Date(t.getFullYear(), t.getMonth(), t.getDate()).getTime() - startDay) / DAY);
+      const bucket = buckets[dayIndex];
+      if (!bucket) continue;
+      bucket.value += tab === 'revenue' ? Number(o.total || 0) : tab === 'orders' ? 1 : 0;
+      bucket.customers.add(o.customer ? JSON.stringify(o.customer) : 'walk-in');
+    }
+  }
+
+  if (tab === 'customers') {
+    buckets.forEach((b) => { b.value = b.customers.size; });
+  }
+  return buckets;
+}
+
+function ActivityPanel({ loading, orders, range, chartTab, setChartTab, metrics, navigate }: {
+  loading: boolean;
+  orders: OrderRow[];
+  range: RangeKey;
+  chartTab: ChartTab;
+  setChartTab: (tab: ChartTab) => void;
+  metrics: { orderCount: number; liveQueue: number; avgOrder: number };
+  navigate: (path: string) => void;
+}) {
+  const chart = useMemo(() => buildChart(orders, range, chartTab), [orders, range, chartTab]);
+  const max = Math.max(1, ...chart.map((b) => b.value));
+  const maxIndex = chart.findIndex((b) => b.value === max);
+
+  const headline = [
+    { label: 'Orders', value: loading ? '—' : metrics.orderCount.toString(), helper: range === 'today' ? 'today' : 'in range', icon: ShoppingCart },
+    { label: 'Live', value: loading ? '—' : metrics.liveQueue.toString(), helper: 'needs action', icon: Zap, highlight: metrics.liveQueue > 0 },
+    { label: 'Avg order', value: loading ? '—' : formatCurrency(metrics.avgOrder), helper: 'basket value', icon: IndianRupee },
+  ];
+
+  const tabs: { key: ChartTab; label: string }[] = [
+    { key: 'revenue', label: 'Revenue' },
+    { key: 'orders', label: 'Orders' },
+    { key: 'customers', label: 'Customers' },
+  ];
+
   return (
     <div className="rounded-[28px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_55px_-42px_rgba(15,23,42,0.55)] md:p-6">
       <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
         <div>
           <PanelTitle dot="bg-[#563ed5]" title="Analytics" />
           <div className="mt-6 flex flex-wrap gap-6 md:gap-10">
-            {metrics.map((metric) => (
+            {headline.map((metric) => (
               <div key={metric.label} className="min-w-[88px]">
                 <div className="flex items-center gap-2">
                   <metric.icon className={cn('h-4 w-4', metric.highlight ? 'text-[#17191c]' : 'text-[#9096a0]')} />
@@ -244,25 +477,26 @@ function ActivityPanel({ metrics }: { metrics: { label: string; value: string; h
             ))}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button type="button" aria-label="Expand analytics" className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4f5f2] text-[#17191c]">
-            <Zap className="h-4 w-4" />
-          </button>
-          <button type="button" aria-label="Analytics options" className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4f5f2] text-[#17191c]">
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/demo/analytics')}
+          className="inline-flex items-center gap-1 self-start rounded-full bg-[#f4f5f2] px-3 py-2 text-xs font-bold text-[#737a83] transition-colors hover:text-[#17191c]"
+        >
+          Full analytics <ArrowRight className="h-3.5 w-3.5" />
+        </button>
       </div>
 
-      <div className="mt-8 flex h-[190px] items-end gap-2 overflow-hidden rounded-[24px] bg-[#fbfcf8] px-4 pb-5 pt-7 sm:gap-3">
-        {activityBars.map((height, index) => {
-          const active = index === 5 || index === 17;
+      <div className="mt-8 flex h-[190px] items-end gap-1.5 overflow-hidden rounded-[24px] bg-[#fbfcf8] px-4 pb-5 pt-7 sm:gap-2">
+        {chart.map((bucket, index) => {
+          const height = Math.max(4, Math.round((bucket.value / max) * 100));
+          const active = index === maxIndex && bucket.value > 0;
+          const tooltip = `${bucket.label} — ${chartTab === 'revenue' ? formatCurrency(bucket.value) : bucket.value}`;
           return (
-            <div key={index} className="flex h-full min-w-0 flex-1 items-end justify-center">
+            <div key={index} className="group relative flex h-full min-w-0 flex-1 items-end justify-center" title={tooltip}>
               <div
                 className={cn(
                   'w-full max-w-[26px] rounded-full transition-all',
-                  active ? 'bg-[#563ed5] shadow-[0_0_24px_rgba(86,62,213,0.28)]' : 'bg-[#1d2024]'
+                  active ? 'bg-[#563ed5] shadow-[0_0_24px_rgba(86,62,213,0.28)]' : bucket.value === 0 ? 'bg-[#e8eae6]' : 'bg-[#1d2024] group-hover:bg-[#563ed5]'
                 )}
                 style={{ height: `${height}%` }}
               />
@@ -272,16 +506,18 @@ function ActivityPanel({ metrics }: { metrics: { label: string; value: string; h
       </div>
 
       <div className="mt-4 flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
-        {['Tracker', 'Sales', 'Inventory', 'Customers', 'AI Coach'].map((tab, index) => (
+        {tabs.map((tab) => (
           <button
-            key={tab}
+            key={tab.key}
             type="button"
+            onClick={() => setChartTab(tab.key)}
+            aria-pressed={chartTab === tab.key}
             className={cn(
               'min-h-8 whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition-colors',
-              index === 0 ? 'bg-[#563ed5] text-white' : 'bg-[#f4f5f2] text-[#757b84] hover:text-[#17191c]'
+              chartTab === tab.key ? 'bg-[#563ed5] text-white' : 'bg-[#f4f5f2] text-[#757b84] hover:text-[#17191c]'
             )}
           >
-            {tab}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -289,20 +525,27 @@ function ActivityPanel({ metrics }: { metrics: { label: string; value: string; h
   );
 }
 
-function ProgressPanel({ navigate, stats, loading }: { navigate: (path: string) => void; stats: TodayStats; loading: boolean }) {
+function ProgressPanel({ navigate, loading, fulfilmentScore, data, orders }: {
+  navigate: (path: string) => void;
+  loading: boolean;
+  fulfilmentScore: number | null;
+  data: HubData;
+  orders: OrderRow[];
+}) {
+  const toPack = orders.filter((o) => ['new', 'unfulfilled', 'pending', 'accepted', 'picking'].includes(o.fulfillment_status || '')).length;
+  const toShip = orders.filter((o) => o.fulfillment_status === 'packed').length;
+
   const progressRows = [
-    { label: 'Packing', value: loading ? '—' : `${Math.max(stats.liveOrders, 1)} open`, active: true },
-    { label: 'Shipping', value: '3 ready' },
-    { label: 'Returns', value: '2 review' },
+    { label: 'Packing', value: loading ? '—' : `${toPack} open`, path: '/demo/fulfillment', active: toPack > 0 },
+    { label: 'Shipping', value: loading ? '—' : `${toShip} ready`, path: '/demo/shipping', active: toPack === 0 && toShip > 0 },
+    { label: 'Returns', value: loading ? '—' : `${data.pendingReturns} review`, path: '/demo/returns', active: false },
   ];
 
   return (
     <div className="rounded-[26px] border border-black/[0.04] bg-[#f0f2f0] p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.55)]">
       <div className="flex items-center justify-between">
         <PanelTitle dot="bg-[#563ed5]" title="Progress" />
-        <button type="button" aria-label="Progress options" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-[#17191c]">
-          <MoreHorizontal className="h-4 w-4" />
-        </button>
+        <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-[#5e656f]">30d</span>
       </div>
       <button
         type="button"
@@ -313,9 +556,9 @@ function ProgressPanel({ navigate, stats, loading }: { navigate: (path: string) 
           <PackageCheck className="h-9 w-9" />
         </span>
         <span className="min-w-0">
-          <span className="block text-xs font-semibold text-[#777e87]">Fulfilment</span>
+          <span className="block text-xs font-semibold text-[#777e87]">On-time dispatch</span>
           <span className="mt-1 block text-5xl font-semibold leading-none tracking-[-0.06em] text-[#111315]">
-            {loading ? '—' : Math.max(87, 100 - stats.liveOrders * 3)}
+            {loading || fulfilmentScore == null ? '—' : `${fulfilmentScore}%`}
           </span>
         </span>
       </button>
@@ -324,7 +567,7 @@ function ProgressPanel({ navigate, stats, loading }: { navigate: (path: string) 
           <button
             key={row.label}
             type="button"
-            onClick={() => navigate(row.label === 'Returns' ? '/demo/returns' : '/demo/orders')}
+            onClick={() => navigate(row.path)}
             className={cn(
               'flex w-full items-center justify-between rounded-2xl px-3 py-3 text-sm font-semibold transition-colors',
               row.active ? 'bg-white text-[#17191c]' : 'text-[#8b9098] hover:bg-white/70 hover:text-[#17191c]'
@@ -342,38 +585,67 @@ function ProgressPanel({ navigate, stats, loading }: { navigate: (path: string) 
   );
 }
 
-function GrowthCard({ navigate }: { navigate: (path: string) => void }) {
+function ActionQueue({ items, loading, navigate }: {
+  items: { key: string; icon: React.ElementType; label: string; count: number; displayValue?: string; path: string; urgent: boolean; detail: string }[];
+  loading: boolean;
+  navigate: (path: string) => void;
+}) {
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-black/[0.04] bg-white p-6 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)]">
-      <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-[#563ed5]/25 blur-2xl" />
-      <PanelTitle dot="bg-[#563ed5]" title="Exposure" />
-      <h2 className="mt-8 max-w-[13rem] text-3xl font-semibold leading-[0.98] tracking-[-0.05em] text-[#17191c]">
-        Monitor growth with precision
-      </h2>
-      <p className="mt-5 max-w-xs text-sm font-medium leading-6 text-[#838993]">
-        Watch revenue, fulfilment, feedback, and channel momentum from one daily operating view.
-      </p>
-      <div className="mt-8 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => navigate('/demo/growth')}
-          className="rounded-full bg-[#17191c] px-5 py-2.5 text-sm font-semibold text-white"
-        >
-          Open growth
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/demo/analytics')}
-          className="inline-flex min-h-[36px] items-center rounded-full px-3 text-sm font-semibold text-[#777e87] hover:bg-[#f4f5f2] hover:text-[#17191c]"
-        >
-          Analytics
-        </button>
+    <div className="rounded-[28px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)] md:p-6">
+      <div className="flex items-center justify-between">
+        <PanelTitle dot="bg-[#c2352b]" title="Needs attention" />
+        {!loading && items.length > 0 && (
+          <span className="rounded-full bg-[#fdecec] px-2.5 py-1 text-[11px] font-bold text-[#c2352b]">
+            {items.length} queue{items.length > 1 ? 's' : ''}
+          </span>
+        )}
       </div>
+
+      {loading ? (
+        <p className="mt-6 text-sm font-semibold text-[#8b9098]">Checking queues…</p>
+      ) : items.length === 0 ? (
+        <div className="mt-5 rounded-[24px] border border-dashed border-black/[0.08] bg-[#fbfcf8] px-5 py-10 text-center">
+          <PackageCheck className="mx-auto mb-3 h-9 w-9 text-[#43a047]" />
+          <p className="text-sm font-bold text-[#17191c]">All clear</p>
+          <p className="mx-auto mt-1 max-w-xs text-xs font-medium leading-5 text-[#8b9098]">
+            No overdue orders, returns, or stock alerts right now.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-5 space-y-2">
+          {items.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => navigate(item.path)}
+              className="group flex min-h-[64px] w-full items-center gap-3 rounded-[20px] bg-[#fbfcf8] px-4 text-left transition-colors hover:bg-[#f4f5f2]"
+            >
+              <span className={cn(
+                'flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl',
+                item.urgent ? 'bg-[#fdecec] text-[#c2352b]' : 'bg-[#eef0fb] text-[#563ed5]',
+              )}>
+                <item.icon className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-bold text-[#17191c]">{item.label}</span>
+                <span className="block text-xs font-medium text-[#8b9098]">{item.detail}</span>
+              </span>
+              <span className={cn(
+                'shrink-0 rounded-full px-2.5 py-1 text-xs font-bold tabular-nums',
+                item.urgent ? 'bg-[#c2352b] text-white' : 'bg-[#563ed5] text-white',
+              )}>
+                {item.displayValue ?? item.count}
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-[#b7bdc5] transition-transform group-hover:translate-x-0.5" />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function ActionsPanel({ navigate }: { navigate: (path: string) => void }) {
+function ActionsPanel({ navigate, aiSummary }: { navigate: (path: string) => void; aiSummary: string | null }) {
   return (
     <div className="space-y-4">
       <div className="rounded-[26px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.5)]">
@@ -393,14 +665,22 @@ function ActionsPanel({ navigate }: { navigate: (path: string) => void }) {
         </div>
         <MoreActionsPopover navigate={navigate} />
       </div>
-      <div className="rounded-[26px] bg-[#563ed5] p-5 text-white shadow-[0_18px_45px_-34px_rgba(86,62,213,0.45)]">
+      <button
+        type="button"
+        onClick={() => navigate('/demo/ai-coach')}
+        className="block w-full rounded-[26px] bg-[#563ed5] p-5 text-left text-white shadow-[0_18px_45px_-34px_rgba(86,62,213,0.45)] transition-transform hover:scale-[1.01]"
+      >
         <div className="flex items-center justify-between">
-          <p className="text-sm font-bold">AI suggestion</p>
+          <p className="text-sm font-bold">AI Coach · today</p>
           <Bot className="h-5 w-5" />
         </div>
-        <p className="mt-6 text-4xl font-semibold leading-none tracking-[-0.05em]">10.57</p>
-        <p className="mt-2 text-xs font-bold uppercase tracking-[0.18em]">Priority score</p>
-      </div>
+        <p className="mt-4 text-sm font-medium leading-6 text-white/90">
+          {aiSummary || 'Open the AI Coach for today’s prioritized follow-ups, stock priorities, and pitch ideas.'}
+        </p>
+        <span className="mt-4 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-[0.14em] text-white/80">
+          Open coach <ArrowRight className="h-3.5 w-3.5" />
+        </span>
+      </button>
     </div>
   );
 }
@@ -434,7 +714,155 @@ function MoreActionsPopover({ navigate }: { navigate: (path: string) => void }) 
   );
 }
 
-function getCustomerName(customer: RecentOrder['customer']) {
+function TargetCard({ loading, target, orders }: {
+  loading: boolean;
+  target: { target_amount: number; start_date: string } | null;
+  orders: OrderRow[];
+}) {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const achieved = orders
+    .filter((o) => new Date(o.created_at).getTime() >= monthStart && o.fulfillment_status !== 'cancelled')
+    .reduce((s, o) => s + Number(o.total || 0), 0);
+  const targetAmount = Number(target?.target_amount || 0);
+  const pct = targetAmount > 0 ? Math.min(100, Math.round((achieved / targetAmount) * 100)) : null;
+  const daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
+
+  return (
+    <div className="rounded-[26px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.5)]">
+      <div className="flex items-center justify-between">
+        <PanelTitle dot="bg-[#563ed5]" title="Monthly target" />
+        <Target className="h-4 w-4 text-[#9aa0a8]" />
+      </div>
+      <p className="mt-6 text-4xl font-semibold leading-none tracking-[-0.05em] text-[#111315]">
+        {loading ? '—' : pct == null ? '—' : `${pct}%`}
+      </p>
+      <p className="mt-2 text-xs font-semibold text-[#8b9098]">
+        {loading || pct == null
+          ? 'No target configured yet'
+          : `${formatCurrency(achieved)} of ${formatCurrency(targetAmount)} · ${daysLeft} days left`}
+      </p>
+      <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#f0f2f0]">
+        <div
+          className="h-full rounded-full bg-[#563ed5] transition-all"
+          style={{ width: `${pct ?? 0}%` }}
+        />
+      </div>
+      {!loading && pct != null && pct < 100 && targetAmount > achieved && daysLeft > 0 && (
+        <p className="mt-4 text-xs font-medium text-[#8b9098]">
+          Need about <span className="font-bold text-[#17191c]">{formatCurrency((targetAmount - achieved) / daysLeft)}</span> per day to close the gap.
+        </p>
+      )}
+    </div>
+  );
+}
+
+const CHANNEL_LABELS: Record<string, string> = {
+  website: 'Website',
+  amazon: 'Amazon',
+  instagram: 'Instagram',
+  in_store: 'In store',
+  walk_in: 'Walk-in',
+};
+
+function ChannelMixCard({ loading, orders }: { loading: boolean; orders: OrderRow[] }) {
+  const mix = useMemo(() => {
+    const byChannel: Record<string, number> = {};
+    for (const o of orders) {
+      if (o.fulfillment_status === 'cancelled') continue;
+      const key = o.channel || 'other';
+      byChannel[key] = (byChannel[key] || 0) + Number(o.total || 0);
+    }
+    const total = Object.values(byChannel).reduce((s, v) => s + v, 0);
+    return Object.entries(byChannel)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([channel, revenue]) => ({
+        channel,
+        revenue,
+        share: total > 0 ? Math.round((revenue / total) * 100) : 0,
+      }));
+  }, [orders]);
+
+  return (
+    <div className="rounded-[26px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.5)]">
+      <PanelTitle dot="bg-[#563ed5]" title="Channel mix" />
+      {loading ? (
+        <p className="mt-6 text-sm font-semibold text-[#8b9098]">Loading…</p>
+      ) : mix.length === 0 ? (
+        <p className="mt-6 text-sm font-semibold text-[#8b9098]">No orders in this range yet.</p>
+      ) : (
+        <div className="mt-6 space-y-4">
+          {mix.map((row) => (
+            <div key={row.channel}>
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-sm font-bold text-[#17191c]">{CHANNEL_LABELS[row.channel] || row.channel}</p>
+                <p className="text-xs font-semibold tabular-nums text-[#777e87]">
+                  {formatCurrency(row.revenue)} · {row.share}%
+                </p>
+              </div>
+              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#f0f2f0]">
+                <div className="h-full rounded-full bg-[#563ed5]" style={{ width: `${Math.max(3, row.share)}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TopProductsCard({ loading, orders, productNames }: {
+  loading: boolean;
+  orders: OrderRow[];
+  productNames: Record<string, string>;
+}) {
+  const top = useMemo(() => {
+    const byProduct: Record<string, { revenue: number; units: number }> = {};
+    for (const o of orders) {
+      if (o.fulfillment_status === 'cancelled') continue;
+      for (const item of o.order_items || []) {
+        const entry = (byProduct[item.product_id] ||= { revenue: 0, units: 0 });
+        entry.revenue += Number(item.total_price || 0);
+        entry.units += Number(item.quantity || 0);
+      }
+    }
+    return Object.entries(byProduct)
+      .sort((a, b) => b[1].revenue - a[1].revenue)
+      .slice(0, 4)
+      .map(([productId, stats]) => ({ productId, ...stats }));
+  }, [orders]);
+
+  return (
+    <div className="rounded-[26px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.5)] md:col-span-2 xl:col-span-1">
+      <PanelTitle dot="bg-[#563ed5]" title="Top products" />
+      {loading ? (
+        <p className="mt-6 text-sm font-semibold text-[#8b9098]">Loading…</p>
+      ) : top.length === 0 ? (
+        <p className="mt-6 text-sm font-semibold text-[#8b9098]">No sales in this range yet.</p>
+      ) : (
+        <div className="mt-5 space-y-2">
+          {top.map((row, index) => (
+            <div key={row.productId} className="flex min-h-[52px] items-center gap-3 rounded-[18px] bg-[#fbfcf8] px-3">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#eef0fb] text-xs font-bold text-[#563ed5]">
+                {index + 1}
+              </span>
+              <p className="min-w-0 flex-1 truncate text-sm font-bold text-[#17191c]">
+                {productNames[row.productId] || 'Product'}
+              </p>
+              <div className="shrink-0 text-right">
+                <p className="text-sm font-bold tabular-nums text-[#17191c]">{formatCurrency(row.revenue)}</p>
+                <p className="text-[11px] font-medium text-[#9aa0a8]">{row.units} unit{row.units === 1 ? '' : 's'}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getCustomerName(customer: OrderRow['customer']) {
   if (Array.isArray(customer)) return customer[0]?.name || 'Walk-in';
   return customer?.name || 'Walk-in';
 }
@@ -447,7 +875,7 @@ function RecentOrdersSection({
 }: {
   currentStoreName?: string;
   loadError: string | null;
-  orders: RecentOrder[];
+  orders: OrderRow[];
   navigate: (path: string) => void;
 }) {
   return (
@@ -494,8 +922,10 @@ function RecentOrdersSection({
             const customerName = getCustomerName(order.customer);
             const statusLabel = order.fulfillment_status?.replace('_', ' ') || 'new';
             const isDelivered = order.fulfillment_status === 'delivered';
-            const isUnfulfilled = order.fulfillment_status === 'unfulfilled' || order.fulfillment_status === 'new';
+            const isUnfulfilled = ['unfulfilled', 'new', 'pending'].includes(order.fulfillment_status || '');
             const orderNumber = order.order_number || `#${order.id.slice(0, 8)}`;
+            const createdAt = new Date(order.created_at);
+            const isToday = createdAt.getTime() >= startOfToday();
 
             return (
               <button
@@ -520,12 +950,12 @@ function RecentOrdersSection({
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="text-sm font-bold tabular-nums text-[#17191c]">
-                    ₹{Number(order.total || 0).toLocaleString('en-IN')}
+                    {formatCurrency(Number(order.total || 0))}
                   </p>
                   <p className="mt-0.5 text-[11px] font-medium text-[#9aa0a8]">
-                    {order.created_at
-                      ? new Date(order.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-                      : 'Just now'}
+                    {isToday
+                      ? createdAt.toLocaleTimeString(brand.locale, { hour: '2-digit', minute: '2-digit' })
+                      : createdAt.toLocaleDateString(brand.locale, { day: 'numeric', month: 'short' })}
                   </p>
                 </div>
                 <ChevronRight className="ml-2 h-4 w-4 shrink-0 text-[#b7bdc5] transition-transform group-hover:translate-x-0.5" />

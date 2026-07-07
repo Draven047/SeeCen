@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { brand } from '@/config/brand';
 
 interface NavItem {
   icon: React.ElementType;
@@ -169,8 +170,8 @@ export function SellerOSSidebar() {
               <ShoppingBag className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-[15px] font-black leading-5 tracking-[-0.03em] text-[#17191c]">SeeCen</p>
-                <p className="truncate text-[10px] font-bold uppercase tracking-[0.18em] text-[#9aa0a8]">Seller OS</p>
+                <p className="truncate text-[15px] font-black leading-5 tracking-[-0.03em] text-[#17191c]">{brand.name}</p>
+                <p className="truncate text-[10px] font-bold uppercase tracking-[0.18em] text-[#9aa0a8]">{brand.tagline}</p>
               </div>
             </div>
             <button

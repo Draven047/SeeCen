@@ -12,8 +12,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── Config ──────────────────────────────────────────────
-const MOCK_ORDER_KEY = 'clozzet_mock_order_enabled';
-const MUTE_KEY = 'clozzet_order_muted';
+const MOCK_ORDER_KEY = 'seecen_mock_order_enabled';
+const MUTE_KEY = 'seecen_order_muted';
 const INTERVAL_MS = 60_000;
 const COUNTDOWN_SECS = 120;
 const PACKING_MIN = 5;
@@ -209,7 +209,7 @@ export function IncomingOrderAlert() {
   // Broadcast pending order count for header badge
   useEffect(() => {
     const count = (order ? 1 : 0) + orderQueue.length;
-    window.dispatchEvent(new CustomEvent('clozzet-pending-orders', { detail: count }));
+    window.dispatchEvent(new CustomEvent('seecen-pending-orders', { detail: count }));
   }, [order, orderQueue]);
 
   // Main interval
