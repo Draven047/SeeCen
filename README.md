@@ -1,12 +1,18 @@
 # SeeCen
 
+[![CI](https://github.com/Draven047/SeeCen/actions/workflows/ci.yml/badge.svg)](https://github.com/Draven047/SeeCen/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-563ed5.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 SeeCen is an open-source seller command center for managing orders, inventory, customers, shipping, returns, finance, analytics, and AI-assisted sales coaching.
 
-The app is designed to be easy to try, fork, and self-host. It runs out of the box with a resettable in-browser demo, so you do not need Supabase, a database, or paid API keys to explore the product.
+The app is designed to be easy to try, fork, and self-host. It runs out of the box with a persistent in-browser demo, so you do not need Supabase, a database, or paid API keys to explore the product. It also installs as a PWA.
 
-Live demo: https://seecen.seekerscentral.com
+**Live demo: https://seecen.seekerscentral.com**
 
-Repository: https://github.com/Draven047/SeeCen
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FDraven047%2FSeeCen)
+
+![SeeCen dashboard](public/landing-hub.png)
 
 ## What SeeCen Includes
 
@@ -20,6 +26,10 @@ Repository: https://github.com/Draven047/SeeCen
 - Finance, settlements, COD reconciliation, invoices, and credit notes
 - Analytics dashboards for sales and operations
 - Local deterministic AI Coach for demo insights
+- Bulk order actions, printable pack slips, and GST invoices
+- Customer segments (VIP / new / at-risk) with one-tap WhatsApp follow-ups
+- ⌘K command palette, keyboard shortcuts, and installable PWA
+- Demo data backup/restore (export and import your sandbox as JSON)
 
 ## Demo Mode
 

@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { FlaskConical, RotateCcw } from 'lucide-react';
-import { isDemoMode, resetDemoData } from '@/integrations/supabase/client';
+import { useRef, useState } from 'react';
+import { Download, FlaskConical, RotateCcw, ShoppingBag, Upload } from 'lucide-react';
+import { toast } from 'sonner';
+import { exportDemoData, importDemoData, isDemoMode, resetDemoData } from '@/integrations/supabase/client';
 import { brand } from '@/config/brand';
 import {
   Popover,
@@ -8,10 +9,36 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 
+function downloadBackup() {
+  const json = exportDemoData();
+  if (!json) return;
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `seecen-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+  toast.success('Backup downloaded');
+}
+
 export function DemoModeControl() {
   const [confirming, setConfirming] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isDemoMode) return null;
+
+  const handleImportFile = async (file: File | undefined) => {
+    if (!file) return;
+    const text = await file.text();
+    const result = importDemoData(text);
+    if (result.ok) {
+      toast.success('Backup restored — reloading');
+      setTimeout(() => window.location.reload(), 600);
+    } else {
+      toast.error(result.error || 'Import failed');
+    }
+  };
 
   return (
     <Popover onOpenChange={() => setConfirming(false)}>
@@ -33,6 +60,45 @@ export function DemoModeControl() {
           your own Supabase project to run it for real — see SELF_HOSTING.md in
           the repository.
         </p>
+
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('seecen-simulate-order'))}
+          className="mt-4 inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-full bg-[#563ed5] px-4 text-xs font-bold text-white transition-colors hover:bg-[#4a35b8]"
+        >
+          <ShoppingBag className="h-3.5 w-3.5" />
+          Simulate incoming order
+        </button>
+
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={downloadBackup}
+            className="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-full bg-[#f4f5f2] px-3 text-xs font-bold text-[#30343a] transition-colors hover:text-[#17191c]"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export backup
+          </button>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-full bg-[#f4f5f2] px-3 text-xs font-bold text-[#30343a] transition-colors hover:text-[#17191c]"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Import backup
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(event) => {
+              handleImportFile(event.target.files?.[0]);
+              event.target.value = '';
+            }}
+          />
+        </div>
+
         <button
           type="button"
           onClick={() => {
@@ -41,8 +107,8 @@ export function DemoModeControl() {
           }}
           className={
             confirming
-              ? 'mt-4 inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-full bg-[#c2352b] px-4 text-xs font-bold text-white transition-colors'
-              : 'mt-4 inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-full bg-[#17191c] px-4 text-xs font-bold text-white transition-colors hover:bg-[#2b2f35]'
+              ? 'mt-2 inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-full bg-[#c2352b] px-4 text-xs font-bold text-white transition-colors'
+              : 'mt-2 inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-full bg-[#17191c] px-4 text-xs font-bold text-white transition-colors hover:bg-[#2b2f35]'
           }
         >
           <RotateCcw className="h-3.5 w-3.5" />

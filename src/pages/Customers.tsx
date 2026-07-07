@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, Plus, RefreshCw, Download, Eye, Edit, Trash2, Phone, Mail, Filter, Gift, Upload, FileText, MapPin, Calendar, ShoppingBag, Ban, CheckSquare, Square, AlertTriangle } from 'lucide-react';
+import { Search, Plus, RefreshCw, Download, Eye, Edit, Trash2, Phone, Mail, Filter, Gift, Upload, FileText, MapPin, Calendar, ShoppingBag, Ban, CheckSquare, Square, AlertTriangle, MessageCircle } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -32,7 +32,7 @@ interface Customer {
 interface CustomerWithStats extends Customer {
   orderCount: number;
   totalSpent: number;
-  status: 'vip' | 'regular' | 'new' | 'inactive';
+  status: 'vip' | 'regular' | 'new' | 'at_risk' | 'inactive';
   storeName: string | null;
 }
 
@@ -119,7 +119,7 @@ export default function Customers() {
     // For sales users, fetch only orders they created to determine which customers to show
     // For admin/operations, fetch all orders
     const isSales = role === 'sales';
-    let ordersQuery = supabase.from('orders').select('customer_id, total, created_by');
+    let ordersQuery = supabase.from('orders').select('customer_id, total, created_by, created_at');
     
     const { data: ordersData } = await ordersQuery;
     
@@ -131,7 +131,7 @@ export default function Customers() {
     
     // Build set of customer IDs that this sales user has orders for
     const myCustomerIds = new Set<string>();
-    const customerStats = new Map<string, { count: number; total: number }>();
+    const customerStats = new Map<string, { count: number; total: number; lastOrderAt: number }>();
     
     ordersData?.forEach(order => {
       if (order.customer_id) {
@@ -140,10 +140,11 @@ export default function Customers() {
           myCustomerIds.add(order.customer_id);
         }
         
-        const existing = customerStats.get(order.customer_id) || { count: 0, total: 0 };
+        const existing = customerStats.get(order.customer_id) || { count: 0, total: 0, lastOrderAt: 0 };
         customerStats.set(order.customer_id, {
           count: existing.count + 1,
-          total: existing.total + Number(order.total)
+          total: existing.total + Number(order.total),
+          lastOrderAt: Math.max(existing.lastOrderAt, new Date(order.created_at || 0).getTime())
         });
       }
     });
@@ -159,22 +160,27 @@ export default function Customers() {
     }
     
     const enrichedCustomers: CustomerWithStats[] = filteredCustomers.map(customer => {
-      const stats = customerStats.get(customer.id) || { count: 0, total: 0 };
+      const stats = customerStats.get(customer.id) || { count: 0, total: 0, lastOrderAt: 0 };
       const importedOrderCount = (customer as any).imported_order_count || 0;
       const importedTotalSpent = Number((customer as any).imported_total_spent) || 0;
-      
+
       const totalOrderCount = stats.count + importedOrderCount;
       const totalSpent = stats.total + importedTotalSpent;
-      
+
       const daysSinceCreation = Math.floor((Date.now() - new Date(customer.created_at).getTime()) / (1000 * 60 * 60 * 24));
-      
-      let status: 'vip' | 'regular' | 'new' | 'inactive' = 'regular';
-      if (totalSpent >= 500000) status = 'vip';
+      const daysSinceLastOrder = stats.lastOrderAt > 0
+        ? Math.floor((Date.now() - stats.lastOrderAt) / (1000 * 60 * 60 * 24))
+        : null;
+
+      let status: 'vip' | 'regular' | 'new' | 'at_risk' | 'inactive' = 'regular';
+      if (totalSpent >= 100000) status = 'vip';
       else if (daysSinceCreation < 30) status = 'new';
       else if (totalOrderCount === 0 && daysSinceCreation > 60) status = 'inactive';
-      
+      else if (daysSinceLastOrder != null && daysSinceLastOrder > 45) status = 'at_risk';
+
       return {
         ...customer,
+        last_order_date: customer.last_order_date || (stats.lastOrderAt > 0 ? new Date(stats.lastOrderAt).toISOString() : null),
         orderCount: totalOrderCount,
         totalSpent: totalSpent,
         status,
@@ -713,6 +719,7 @@ export default function Customers() {
     vip: customers.filter(c => c.status === 'vip').length,
     regular: customers.filter(c => c.status === 'regular').length,
     new: customers.filter(c => c.status === 'new').length,
+    atRisk: customers.filter(c => c.status === 'at_risk').length,
     inactive: customers.filter(c => c.status === 'inactive').length,
   };
 
@@ -736,6 +743,7 @@ export default function Customers() {
     vip: 'status-vip',
     regular: 'status-regular',
     new: 'status-new',
+    at_risk: 'status-at-risk',
     inactive: 'status-inactive'
   };
 
@@ -847,7 +855,7 @@ export default function Customers() {
         )}
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="stat-card-highlight text-center">
             <p className="text-3xl font-bold text-primary">{stats.total}</p>
             <p className="text-sm text-muted-foreground">Total Customers</p>
@@ -863,6 +871,10 @@ export default function Customers() {
           <div className="stat-card text-center">
             <p className="text-3xl font-bold text-info">{stats.new}</p>
             <p className="text-sm text-muted-foreground">New</p>
+          </div>
+          <div className="stat-card text-center">
+            <p className="text-3xl font-bold text-warning">{stats.atRisk}</p>
+            <p className="text-sm text-muted-foreground">At Risk</p>
           </div>
           <div className="stat-card text-center">
             <p className="text-3xl font-bold text-muted-foreground">{stats.inactive}</p>
@@ -900,6 +912,7 @@ export default function Customers() {
                   <SelectItem value="vip">VIP</SelectItem>
                   <SelectItem value="regular">Regular</SelectItem>
                   <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="at_risk">At Risk</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
@@ -1072,9 +1085,28 @@ export default function Customers() {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center justify-center gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                          {customer.phone && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-[#25D366] hover:text-[#1da851]"
+                              title="Follow up on WhatsApp"
+                              onClick={() => {
+                                const digits = customer.phone!.replace(/\D/g, '');
+                                const firstName = (customer.name || '').split(' ')[0];
+                                const message =
+                                  customer.status === 'at_risk' || customer.status === 'inactive'
+                                    ? `Hi ${firstName}! It's been a while since your last order with us. We have some new arrivals we think you'll love — can I share a few picks?`
+                                    : `Hi ${firstName}! Thank you for shopping with us. Let me know if I can help you with anything.`;
+                                window.open(`https://wa.me/${digits}?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
+                              }}
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-8 w-8"
                             onClick={() => navigate(`/customers/${customer.id}`)}
                           >

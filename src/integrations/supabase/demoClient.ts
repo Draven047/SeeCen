@@ -97,6 +97,35 @@ export function resetDemoDatabase() {
   save(db);
 }
 
+export function exportDemoDatabase(): string {
+  return JSON.stringify(
+    { app: 'seecen', version: DEMO_SEED_VERSION, exportedAt: new Date().toISOString(), seededAt, tables: db },
+    null,
+    2
+  );
+}
+
+export function importDemoDatabase(json: string): { ok: boolean; error?: string } {
+  let parsed: any;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    return { ok: false, error: 'Could not parse the file — is it a SeeCen backup?' };
+  }
+  if (!parsed || typeof parsed !== 'object' || parsed.app !== 'seecen' || typeof parsed.tables !== 'object') {
+    return { ok: false, error: 'This file is not a SeeCen backup.' };
+  }
+  if (!Array.isArray(parsed.tables.orders) || !Array.isArray(parsed.tables.stores)) {
+    return { ok: false, error: 'The backup is missing core tables.' };
+  }
+  db = parsed.tables as DemoTables;
+  seededAt = parsed.seededAt || new Date().toISOString();
+  // Imported data is user data — never auto-reseed over it.
+  modified = true;
+  save(db);
+  return { ok: true };
+}
+
 function buildAiContext() {
   const orders = db.orders || [];
   const customers = db.customers || [];

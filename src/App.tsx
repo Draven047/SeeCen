@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { StoreProvider } from "@/contexts/StoreContext";
 import { AICoachChatBubble } from "./components/ai-coach/AICoachChatBubble";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageLoading } from "@/components/ui/page-loading";
 
 const queryClient = new QueryClient();
@@ -170,11 +171,13 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <BrowserRouter>
-        <AuthProvider>
-          <StoreProvider>
-            <AppRoutes />
-          </StoreProvider>
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <StoreProvider>
+              <AppRoutes />
+            </StoreProvider>
+          </AuthProvider>
+        </ErrorBoundary>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

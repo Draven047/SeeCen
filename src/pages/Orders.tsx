@@ -11,7 +11,7 @@ import {
   MessageCircle, ShoppingCart, FileSpreadsheet, Package, AlertTriangle,
   Clock, CreditCard, Plus, X, ArrowUpDown, ExternalLink,
   CheckCircle2, XCircle, PackageCheck, Truck, Timer, ChevronRight,
-  User, MapPin, FileText, Hash
+  User, MapPin, FileText, Hash, Printer
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,8 @@ import {
   parseCSVOrders, type ChannelOrder, getSlaStatus,
 } from '@/lib/channelConnectors';
 import { PageLoading } from '@/components/ui/page-loading';
+import { Checkbox } from '@/components/ui/checkbox';
+import { generatePackSlip } from '@/lib/packSlip';
 
 interface OrderRow {
   id: string;
@@ -153,6 +155,7 @@ export default function Orders() {
 
   const [activeTab, setActiveTab] = useState('new_orders');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [bulkIds, setBulkIds] = useState<Set<string>>(new Set());
   const [sortMode, setSortMode] = useState<SortMode>('urgency');
   const [posMode, setPosMode] = useState(false);
 
@@ -260,6 +263,33 @@ export default function Orders() {
 
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v);
+
+  // ─── Bulk selection ───
+  const toggleBulk = (orderId: string) => {
+    setBulkIds(prev => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+  };
+
+  const bulkAdvance = async () => {
+    const nextAction = NEXT_STATUS[activeTab];
+    if (!nextAction || bulkIds.size === 0) return;
+    const ids = [...bulkIds];
+    const { error } = await supabase
+      .from('orders')
+      .update({ fulfillment_status: nextAction.status })
+      .in('id', ids);
+    if (error) {
+      toast.error('Failed to update selected orders');
+    } else {
+      toast.success(`${ids.length} order${ids.length > 1 ? 's' : ''} moved to ${nextAction.status.replace(/_/g, ' ')}`);
+      setBulkIds(new Set());
+      fetchOrders();
+    }
+  };
 
   // ─── Actions ───
   const updateStatus = async (orderId: string, newStatus: string) => {
@@ -528,6 +558,37 @@ export default function Orders() {
             </Button>
           )}
 
+          {/* Pack slip */}
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            size="sm"
+            disabled={loadingItems}
+            onClick={() =>
+              generatePackSlip(
+                {
+                  orderNumber: selectedOrder.order_number,
+                  createdAt: selectedOrder.created_at,
+                  customerName: selectedOrder.customers?.name || 'Walk-in',
+                  phone: selectedOrder.customers?.phone,
+                  shippingAddress: selectedOrder.shipping_address,
+                  storeName: selectedOrder.store?.name,
+                  channel: selectedOrder.channel,
+                  paymentType: selectedOrder.payment_type,
+                  total: Number(selectedOrder.total),
+                  notes: selectedOrder.notes,
+                },
+                detailItems.map(item => ({
+                  name: item.cigar?.name || item.product?.name || 'Item',
+                  quantity: item.quantity,
+                }))
+              )
+            }
+          >
+            <Printer className="w-4 h-4" />
+            Print Pack Slip
+          </Button>
+
           {/* Full details link */}
           <Button
             variant="ghost"
@@ -697,7 +758,7 @@ export default function Orders() {
             return (
               <button
                 key={tab.key}
-                onClick={() => { setActiveTab(tab.key); setSelectedId(null); }}
+                onClick={() => { setActiveTab(tab.key); setSelectedId(null); setBulkIds(new Set()); }}
                 className={cn(
                   'inline-flex min-h-[40px] items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors shrink-0',
                   isActive
@@ -724,11 +785,38 @@ export default function Orders() {
         {/* ─── Queue Summary Bar ─── */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
+            {queue.length > 0 && NEXT_STATUS[activeTab] && (
+              <Checkbox
+                aria-label="Select all orders in queue"
+                checked={bulkIds.size > 0 && bulkIds.size === queue.length}
+                onCheckedChange={(checked) =>
+                  setBulkIds(checked ? new Set(queue.map(o => o.id)) : new Set())
+                }
+              />
+            )}
             <p className="text-xs font-medium text-foreground">
               {queue.length === 0
                 ? 'Queue clear'
-                : `${queue.length} waiting`}
+                : bulkIds.size > 0
+                  ? `${bulkIds.size} of ${queue.length} selected`
+                  : `${queue.length} waiting`}
             </p>
+            {bulkIds.size > 0 && NEXT_STATUS[activeTab] && (
+              <>
+                <Button size="sm" className="h-7 px-3 text-[11px] font-bold gap-1" onClick={bulkAdvance}>
+                  <CheckCircle2 className="w-3 h-3" />
+                  {NEXT_STATUS[activeTab].label} ({bulkIds.size})
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-[11px]"
+                  onClick={() => setBulkIds(new Set())}
+                >
+                  Clear
+                </Button>
+              </>
+            )}
             {queue.length > 0 && (() => {
               const urgentCount = queue.filter(o => getUrgencyScore(o) <= 1).length;
               return urgentCount > 0 ? (
@@ -801,6 +889,16 @@ export default function Orders() {
                           urgency === 1 && !isSelected && 'border-l-warning bg-warning/[0.03]',
                         )}
                       >
+                        {/* Bulk select */}
+                        {nextAction && (
+                          <div onClick={e => e.stopPropagation()} className="shrink-0">
+                            <Checkbox
+                              aria-label={`Select order ${order.order_number}`}
+                              checked={bulkIds.has(order.id)}
+                              onCheckedChange={() => toggleBulk(order.id)}
+                            />
+                          </div>
+                        )}
                         {/* Urgency / SLA indicator - FIRST visual element */}
                         <div className="shrink-0 w-12 text-center">
                           {sla.label !== '-' ? (

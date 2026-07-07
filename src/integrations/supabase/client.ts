@@ -7,7 +7,7 @@
 //   See SELF_HOSTING.md for the full walkthrough.
 
 import { createClient } from '@supabase/supabase-js';
-import { demoSupabase, resetDemoDatabase } from './demoClient';
+import { demoSupabase, resetDemoDatabase, exportDemoDatabase, importDemoDatabase } from './demoClient';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -24,4 +24,15 @@ export function resetDemoData() {
   if (!isDemoMode) return;
   resetDemoDatabase();
   window.location.reload();
+}
+
+/** Serialize the demo database for download. Returns null against a real backend. */
+export function exportDemoData(): string | null {
+  return isDemoMode ? exportDemoDatabase() : null;
+}
+
+/** Replace the demo database with a backup file's contents. Caller reloads on success. */
+export function importDemoData(json: string): { ok: boolean; error?: string } {
+  if (!isDemoMode) return { ok: false, error: 'Import is only available in demo mode.' };
+  return importDemoDatabase(json);
 }
