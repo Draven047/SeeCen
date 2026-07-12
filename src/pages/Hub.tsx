@@ -209,8 +209,10 @@ export default function Hub() {
       o.sla_deadline && new Date(o.sla_deadline).getTime() < now
     ).length;
     const readyToShip = data.orders.filter((o) => o.fulfillment_status === 'packed').length;
+    const failedDeliveries = data.orders.filter((o) => o.fulfillment_status === 'failed_delivery').length;
     const items = [
       { key: 'sla', icon: AlertTriangle, label: 'Orders past SLA', count: overdueSla, path: '/demo/orders', urgent: true, detail: 'Dispatch these first' },
+      { key: 'ndr', icon: AlertTriangle, label: 'Failed deliveries', count: failedDeliveries, path: '/demo/ndr', urgent: true, detail: 'Reattempt or confirm with customer' },
       { key: 'ship', icon: Truck, label: 'Packed, ready to ship', count: readyToShip, path: '/demo/shipping', urgent: false, detail: 'Book pickups' },
       { key: 'returns', icon: RotateCcw, label: 'Returns to review', count: data.pendingReturns, path: '/demo/returns', urgent: false, detail: 'Approve or decline' },
       { key: 'stock', icon: Boxes, label: 'Low-stock SKUs', count: data.lowStockCount, path: '/demo/inventory', urgent: false, detail: 'Replenish soon' },

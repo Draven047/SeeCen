@@ -3,7 +3,7 @@ import {
   ShoppingCart, Boxes, LayoutGrid, MessageSquareWarning, IndianRupee,
   TrendingUp, Link2, UserCog, Store, Settings, ShoppingBag,
   ChevronLeft, BarChart3, Bot, UserCheck, Package, Truck, Users,
-  RotateCcw, PackageCheck,
+  RotateCcw, PackageCheck, AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -41,6 +41,7 @@ const secondaryGroups: NavGroup[] = [
       { icon: Package, label: 'Catalogue', path: '/demo/catalogue' },
       { icon: Truck, label: 'Fulfillment', path: '/demo/fulfillment' },
       { icon: PackageCheck, label: 'Shipping', path: '/demo/shipping' },
+      { icon: AlertTriangle, label: 'NDR', path: '/demo/ndr' },
       { icon: RotateCcw, label: 'Returns', path: '/demo/returns' },
       { icon: Users, label: 'Customers', path: '/demo/customers' },
       { icon: UserCog, label: 'Employees', path: '/demo/employees' },
@@ -61,9 +62,9 @@ const secondaryGroups: NavGroup[] = [
 
 const roleAccess: Record<string, string[]> = {
   admin: ['*'],
-  manager: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/shipping', '/demo/catalogue', '/demo/inventory', '/demo/returns', '/demo/customers', '/demo/employees', '/demo/analytics', '/demo/ai-coach', '/demo/feedback', '/demo/growth'],
+  manager: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/shipping', '/demo/ndr', '/demo/catalogue', '/demo/inventory', '/demo/returns', '/demo/customers', '/demo/employees', '/demo/analytics', '/demo/ai-coach', '/demo/feedback', '/demo/growth'],
   sales: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/catalogue', '/demo/customers', '/demo/returns', '/demo/ai-coach', '/demo/feedback', '/demo/growth'],
-  operations: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/shipping', '/demo/catalogue', '/demo/inventory', '/demo/returns', '/demo/feedback'],
+  operations: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/shipping', '/demo/ndr', '/demo/catalogue', '/demo/inventory', '/demo/returns', '/demo/feedback'],
   finance: ['/demo/dashboard', '/demo/analytics', '/demo/finance'],
   viewer: ['/demo/dashboard'],
 };

@@ -32,6 +32,7 @@ import {
 import { PageLoading } from '@/components/ui/page-loading';
 import { Checkbox } from '@/components/ui/checkbox';
 import { generatePackSlip } from '@/lib/packSlip';
+import { ORDER_MESSAGE_LABELS, orderMessage, waLink, type OrderMessageKind } from '@/lib/whatsapp';
 
 interface OrderRow {
   id: string;
@@ -556,6 +557,42 @@ export default function Orders() {
               <XCircle className="w-4 h-4" />
               Decline
             </Button>
+          )}
+
+          {/* WhatsApp status update */}
+          {selectedOrder.customers?.phone && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full gap-2 text-[#25D366] hover:text-[#1da851]" size="sm">
+                  <MessageCircle className="w-4 h-4" />
+                  Send WhatsApp Update
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="center" className="w-64 p-1.5">
+                {(Object.keys(ORDER_MESSAGE_LABELS) as OrderMessageKind[]).map(kind => (
+                  <button
+                    key={kind}
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                    onClick={() => {
+                      const link = waLink(
+                        selectedOrder.customers?.phone,
+                        orderMessage(kind, {
+                          customerName: selectedOrder.customers?.name,
+                          orderNumber: selectedOrder.order_number,
+                          total: Number(selectedOrder.total),
+                          storeName: selectedOrder.store?.name,
+                        })
+                      );
+                      if (link) window.open(link, '_blank', 'noopener');
+                    }}
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-[#25D366]" />
+                    {ORDER_MESSAGE_LABELS[kind]}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
           )}
 
           {/* Pack slip */}

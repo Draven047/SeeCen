@@ -24,6 +24,7 @@ const CreateOrder = lazy(() => import("./pages/CreateOrder"));
 const OrderDetail = lazy(() => import("./pages/OrderDetail"));
 const Fulfillment = lazy(() => import("./pages/Fulfillment"));
 const Shipping = lazy(() => import("./pages/Shipping"));
+const Ndr = lazy(() => import("./pages/Ndr"));
 const Inventory = lazy(() => import("./pages/Inventory"));
 const Returns = lazy(() => import("./pages/Returns"));
 const Employees = lazy(() => import("./pages/Employees"));
@@ -105,6 +106,7 @@ function AppRoutes() {
           {/* Operations */}
           <Route path="/demo/fulfillment" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Fulfillment /></ProtectedRoute>} />
           <Route path="/demo/shipping" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><Shipping /></ProtectedRoute>} />
+          <Route path="/demo/ndr" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><Ndr /></ProtectedRoute>} />
           <Route path="/demo/catalogue" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Catalogue /></ProtectedRoute>} />
           <Route path="/demo/catalogue/add" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><AddProduct /></ProtectedRoute>} />
           <Route path="/demo/catalogue/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><ProductDetail /></ProtectedRoute>} />

@@ -11,8 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   IndianRupee, Download, CheckCircle, Clock, AlertTriangle,
   Banknote, CreditCard, FileText, ChevronRight, Calendar,
-  ArrowDownToLine, Settings,
+  ArrowDownToLine, Settings, TrendingUp,
 } from 'lucide-react';
+import { ProfitPanel } from '@/components/finance/ProfitPanel';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { PageLoading } from '@/components/ui/page-loading';
@@ -168,6 +169,9 @@ export default function Finance() {
             <TabsTrigger value="payouts" className="rounded-lg text-xs min-h-[40px]">
               <Banknote className="w-3.5 h-3.5 mr-1.5" /> Payouts
             </TabsTrigger>
+            <TabsTrigger value="profit" className="rounded-lg text-xs min-h-[40px]">
+              <TrendingUp className="w-3.5 h-3.5 mr-1.5" /> Profit
+            </TabsTrigger>
             <TabsTrigger value="cod" className="rounded-lg text-xs min-h-[40px]">
               <IndianRupee className="w-3.5 h-3.5 mr-1.5" /> COD
             </TabsTrigger>
@@ -175,6 +179,11 @@ export default function Finance() {
               <Download className="w-3.5 h-3.5 mr-1.5" /> Reports
             </TabsTrigger>
           </TabsList>
+
+          {/* True P&L */}
+          <TabsContent value="profit" className="space-y-3">
+            {storeId && <ProfitPanel storeId={storeId} />}
+          </TabsContent>
 
           {/* Completed Payouts */}
           <TabsContent value="payouts" className="space-y-3">

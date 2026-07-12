@@ -8,7 +8,7 @@ export type DemoRow = Record<string, any>;
 export type DemoTables = Record<string, DemoRow[]>;
 
 export const DEMO_USER_ID = 'demo-admin';
-export const DEMO_SEED_VERSION = 2;
+export const DEMO_SEED_VERSION = 3;
 
 const DAY = 24 * 60 * 60 * 1000;
 const HOUR = 60 * 60 * 1000;
@@ -79,6 +79,17 @@ export function seedTables(): DemoTables {
     { id: 'prod_crossbody', name: 'City Crossbody Bag', brand: 'CenCarry', category: 'Accessories', description: 'Compact water-resistant crossbody.', base_price: 2090, mrp: 2490, price: 2090, sku: 'CC-XBD-BLK', image_urls: [img('photo-1548036328-c9fa89d128fa')], is_active: true, created_at: iso(60), updated_at: iso(4) },
     { id: 'prod_loafer', name: 'Suede Penny Loafer', brand: 'Stride', category: 'Footwear', description: 'Soft suede loafer with stacked heel.', base_price: 3990, mrp: 4590, price: 3990, sku: 'ST-LFR-TAN', image_urls: [img('photo-1614252369475-531eba835eb1')], is_active: true, created_at: iso(50), updated_at: iso(5) },
   ];
+
+  // Landed unit cost per product — drives the true-P&L and profitability views.
+  const costRatios: Record<string, number> = {
+    prod_linen_blazer: 0.5, prod_cotton_shirt: 0.48, prod_weekend_tote: 0.55,
+    prod_wrap_dress: 0.52, prod_sneaker: 0.62, prod_denim_jacket: 0.56,
+    prod_chino: 0.54, prod_scarf: 0.42, prod_sweater: 0.58,
+    prod_skirt: 0.5, prod_crossbody: 0.57, prod_loafer: 0.6,
+  };
+  products.forEach((p) => {
+    (p as DemoRow).cost_price = Math.round(p.base_price * (costRatios[p.id] ?? 0.55));
+  });
 
   const cigars = products.map((p) => ({ id: p.id, name: p.name, brand: p.brand, price: p.base_price, category: p.category, image_url: p.image_urls[0], is_active: p.is_active, created_at: p.created_at }));
 
@@ -281,6 +292,15 @@ export function seedTables(): DemoTables {
   makeOrder(now.getTime() - 2.2 * DAY, 2, 'accepted', true);
   makeOrder(now.getTime() - 1.4 * DAY, 1, 'packed', true);
 
+  // three parcels bounced at the doorstep — fuel for the NDR workbench
+  makeOrder(now.getTime() - 1.1 * DAY, 1, 'failed_delivery');
+  makeOrder(now.getTime() - 1.8 * DAY, 1, 'failed_delivery');
+  makeOrder(now.getTime() - 2.6 * DAY, 2, 'failed_delivery');
+  // spread the bounced parcels across both stores so each panel has work
+  orders.filter((o) => o.fulfillment_status === 'failed_delivery').forEach((o, i) => {
+    o.store_id = i % 2 === 0 ? 'store_delhi' : 'store_mumbai';
+  });
+
   orders.sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
 
   // ---- Inventory -------------------------------------------------------------
@@ -408,6 +428,41 @@ export function seedTables(): DemoTables {
       };
     });
 
+  // ---- NDR records for bounced deliveries ---------------------------------------
+  const ndrReasons = ['Customer unavailable at address', 'Address incomplete', 'Customer refused delivery', 'Phone unreachable'];
+  const ndr_records = orders
+    .filter((o) => o.fulfillment_status === 'failed_delivery')
+    .map((o, i) => ({
+      id: `ndr_${o.id}`,
+      order_id: o.id,
+      store_id: o.store_id,
+      reason: ndrReasons[i % ndrReasons.length],
+      attempts: 1 + (i % 2),
+      status: 'action_required',
+      courier_remark: pickOne(['Consignee not available, call attempted', 'Premises locked', 'Refused to accept shipment', 'Contact number not reachable']),
+      last_attempt_at: iso(0, -(3 + i * 5)),
+      created_at: iso(0, -(3 + i * 5)),
+    }));
+
+  // ---- Operating expenses (rent, payroll, ads…) for the true P&L -----------------
+  const expenses: DemoRow[] = [];
+  let expSeq = 1;
+  const addExpense = (storeId: string, category: string, amount: number, note: string, daysAgo: number) => {
+    expenses.push({ id: `exp_${expSeq++}`, store_id: storeId, category, amount, note, incurred_at: iso(daysAgo), created_at: iso(daysAgo) });
+  };
+  for (const store of stores) {
+    const isMumbai = store.id === 'store_mumbai';
+    for (let m = 0; m < 3; m++) {
+      addExpense(store.id, 'Rent', isMumbai ? 38000 : 30000, 'Store rent', 12 + m * 30);
+      addExpense(store.id, 'Salaries', isMumbai ? 52000 : 41000, 'Store staff payroll', 2 + m * 30);
+      addExpense(store.id, 'Software', 1999, 'Tools & subscriptions', 8 + m * 30);
+    }
+    for (let d = 85; d >= 0; d -= 7) {
+      addExpense(store.id, 'Marketing', randInt(2500, 7000), 'Meta & Google ads', d);
+      if (d % 14 === 0) addExpense(store.id, 'Packaging', randInt(1200, 2800), 'Boxes, mailers, tape', d);
+    }
+  }
+
   // ---- Sales target: computed from this month's real orders --------------------
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -506,6 +561,8 @@ export function seedTables(): DemoTables {
     shipment_tracking_events,
     return_requests,
     return_request_items,
+    ndr_records,
+    expenses,
     credit_notes: [],
     settlements,
     cod_reconciliation,
