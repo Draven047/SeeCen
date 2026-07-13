@@ -23,6 +23,68 @@ interface Notification {
   user_id: string | null;
 }
 
+// Live signal notifications are computed from store data, not stored rows.
+// Their read-state lives in localStorage keyed by signal id + current count,
+// so a NEW breach resurfaces even after the old one was marked read.
+const LIVE_READ_KEY = 'seecen-live-notifs-read';
+
+function getLiveReadSet(): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(LIVE_READ_KEY) || '[]')); } catch { return new Set(); }
+}
+
+function markLiveRead(ids: string[]) {
+  try {
+    const set = getLiveReadSet();
+    ids.forEach((id) => set.add(id));
+    localStorage.setItem(LIVE_READ_KEY, JSON.stringify([...set].slice(-100)));
+  } catch { /* storage unavailable */ }
+}
+
+const LIVE_LINKS: Record<string, string> = {
+  sla: '/demo/orders',
+  ndr: '/demo/ndr',
+  low_stock: '/demo/inventory',
+  returns: '/demo/returns',
+};
+
+async function buildLiveNotifications(): Promise<Notification[]> {
+  const nowIso = new Date().toISOString();
+  const [ordersRes, invRes, returnsRes] = await Promise.all([
+    supabase.from('orders').select('fulfillment_status, sla_deadline'),
+    supabase.from('store_inventory').select('quantity, min_stock_level'),
+    supabase.from('return_requests').select('id').eq('status', 'pending'),
+  ]);
+  const orders = (ordersRes.data || []) as { fulfillment_status: string | null; sla_deadline: string | null }[];
+  const preDispatch = ['new', 'unfulfilled', 'pending', 'accepted', 'picking', 'packed', 'ready'];
+  const slaBreached = orders.filter(
+    (o) => preDispatch.includes(o.fulfillment_status || '') && o.sla_deadline && new Date(o.sla_deadline).getTime() < Date.now()
+  ).length;
+  const failedDeliveries = orders.filter((o) => o.fulfillment_status === 'failed_delivery').length;
+  const lowStock = ((invRes.data || []) as { quantity: number; min_stock_level: number | null }[])
+    .filter((r) => Number(r.quantity) <= Number(r.min_stock_level || 0)).length;
+  const pendingReturns = (returnsRes.data || []).length;
+
+  const signals: { key: string; count: number; title: string; message: string }[] = [
+    { key: 'sla', count: slaBreached, title: 'Orders past SLA', message: `${slaBreached} order${slaBreached === 1 ? ' has' : 's have'} crossed the dispatch SLA.` },
+    { key: 'ndr', count: failedDeliveries, title: 'Failed deliveries', message: `${failedDeliveries} parcel${failedDeliveries === 1 ? '' : 's'} bounced — reattempt or confirm with the customer.` },
+    { key: 'low_stock', count: lowStock, title: 'Low stock', message: `${lowStock} SKU${lowStock === 1 ? ' is' : 's are'} at or below the minimum level.` },
+    { key: 'returns', count: pendingReturns, title: 'Returns to review', message: `${pendingReturns} return request${pendingReturns === 1 ? '' : 's'} awaiting a decision.` },
+  ];
+
+  const readSet = getLiveReadSet();
+  return signals
+    .filter((s) => s.count > 0)
+    .map((s) => ({
+      id: `live_${s.key}_${s.count}`,
+      title: s.title,
+      message: s.message,
+      type: s.key,
+      read: readSet.has(`live_${s.key}_${s.count}`),
+      created_at: nowIso,
+      user_id: null,
+    }));
+}
+
 export function NotificationsDropdown() {
   const { user, role } = useAuth();
   const navigate = useNavigate();
@@ -34,14 +96,21 @@ export function NotificationsDropdown() {
     if (!user) return;
     
     setLoading(true);
-    const { data } = await supabase
-      .from('notifications')
-      .select('*')
-      .or(`user_id.eq.${user.id},user_id.is.null`)
-      .order('created_at', { ascending: false })
-      .limit(20);
-    
-    setNotifications((data as Notification[]) || []);
+    const [tableRes, live] = await Promise.all([
+      supabase
+        .from('notifications')
+        .select('*')
+        .or(`user_id.eq.${user.id},user_id.is.null`)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      buildLiveNotifications().catch(() => [] as Notification[]),
+    ]);
+    const tableRows = ((tableRes.data as Notification[]) || []).map(n => ({
+      ...n,
+      // older seeds store the flag as is_read
+      read: n.read ?? (n as Notification & { is_read?: boolean }).is_read ?? false,
+    }));
+    setNotifications([...live, ...tableRows]);
     setLoading(false);
   };
 
@@ -93,28 +162,28 @@ export function NotificationsDropdown() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const markAsRead = async (id: string) => {
-    await supabase
-      .from('notifications')
-      .update({ read: true })
-      .eq('id', id);
-    
-    setNotifications(prev => 
+    if (id.startsWith('live_')) {
+      markLiveRead([id]);
+    } else {
+      await supabase.from('notifications').update({ read: true, is_read: true }).eq('id', id);
+    }
+    setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
   };
 
   const markAllAsRead = async () => {
     if (!user) return;
-    
-    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
-    if (unreadIds.length === 0) return;
-    
-    await supabase
-      .from('notifications')
-      .update({ read: true })
-      .in('id', unreadIds);
-    
-    setNotifications(prev => 
+
+    const unread = notifications.filter(n => !n.read);
+    if (unread.length === 0) return;
+    const liveIds = unread.filter(n => n.id.startsWith('live_')).map(n => n.id);
+    const tableIds = unread.filter(n => !n.id.startsWith('live_')).map(n => n.id);
+    if (liveIds.length > 0) markLiveRead(liveIds);
+    if (tableIds.length > 0) {
+      await supabase.from('notifications').update({ read: true, is_read: true }).in('id', tableIds);
+    }
+    setNotifications(prev =>
       prev.map(n => ({ ...n, read: true }))
     );
   };
@@ -125,6 +194,11 @@ export function NotificationsDropdown() {
     }
     switch (type) {
       case 'stock_request':
+        return <Package className="w-4 h-4 text-primary" />;
+      case 'sla':
+      case 'ndr':
+        return <AlertTriangle className="w-4 h-4 text-destructive" />;
+      case 'returns':
         return <Package className="w-4 h-4 text-primary" />;
       case 'low_stock':
         return <AlertTriangle className="w-4 h-4 text-warning" />;
@@ -137,6 +211,12 @@ export function NotificationsDropdown() {
 
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id);
+    // Live signals deep-link to the screen where the work is
+    if (LIVE_LINKS[notification.type]) {
+      setOpen(false);
+      navigate(LIVE_LINKS[notification.type]);
+      return;
+    }
     // Deep link: approval-related notifications navigate to approvals page
     if (notification.title?.includes('Signup') || notification.title?.includes('Approval')) {
       setOpen(false);

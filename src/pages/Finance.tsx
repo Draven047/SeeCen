@@ -187,6 +187,37 @@ export default function Finance() {
 
           {/* Completed Payouts */}
           <TabsContent value="payouts" className="space-y-3">
+            {/* Upcoming cash calendar */}
+            {(pendingSettlements.length > 0 || codPending > 0) && (
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-bold text-foreground">Cash on the way</h3>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {pendingSettlements.map(s => (
+                    <div key={s.id} className="flex items-center justify-between rounded-xl bg-card px-3 py-2.5 text-sm">
+                      <div>
+                        <p className="font-semibold capitalize text-foreground">{s.channel} payout</p>
+                        <p className="text-xs text-muted-foreground">
+                          expected {format(new Date(new Date(s.settlement_date).getTime() + 7 * 24 * 60 * 60 * 1000), 'dd MMM')} · {s.orders_count} orders
+                        </p>
+                      </div>
+                      <p className="font-bold tabular-nums text-foreground">{fmt(Number(s.net_amount))}</p>
+                    </div>
+                  ))}
+                  {codPending > 0 && (
+                    <div className="flex items-center justify-between rounded-xl bg-card px-3 py-2.5 text-sm">
+                      <div>
+                        <p className="font-semibold text-foreground">COD remittance due</p>
+                        <p className="text-xs text-muted-foreground">pending courier reconciliation</p>
+                      </div>
+                      <p className="font-bold tabular-nums text-warning">{fmt(codPending)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             {completedSettlements.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">

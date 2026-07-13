@@ -8,7 +8,7 @@ export type DemoRow = Record<string, any>;
 export type DemoTables = Record<string, DemoRow[]>;
 
 export const DEMO_USER_ID = 'demo-admin';
-export const DEMO_SEED_VERSION = 3;
+export const DEMO_SEED_VERSION = 4;
 
 const DAY = 24 * 60 * 60 * 1000;
 const HOUR = 60 * 60 * 1000;
@@ -157,7 +157,14 @@ export function seedTables(): DemoTables {
     const id = `order_${orderSeq}`;
     const createdAt = new Date(createdAtMs).toISOString();
     const storeId = rand() < 0.55 ? 'store_mumbai' : 'store_delhi';
-    const customerId = weighted(customerWeights);
+    // Only customers who already existed at order time can buy — keeps
+    // new-vs-returning analytics honest.
+    let customerId = weighted(customerWeights);
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const candidate = customers.find((c) => c.id === customerId);
+      if (candidate && new Date(candidate.created_at).getTime() <= createdAtMs) break;
+      customerId = weighted(customerWeights);
+    }
     const channel = weighted(channels);
     const paymentType = rand() < 0.3 ? 'cod' : 'prepaid';
 
@@ -234,8 +241,14 @@ export function seedTables(): DemoTables {
       if (cust) cust.fume_points_balance += pointsEarned;
     }
 
+    // A slice of online orders convert through an active offer (drives Growth attribution).
+    const offerId = rand() < 0.14 && ['website', 'instagram'].includes(channel)
+      ? (storeId === 'store_mumbai' ? 'offer_1' : 'offer_2')
+      : null;
+
     orders.push({
       id, order_number: `SC-${orderSeq}`,
+      offer_id: offerId,
       invoice_number: invoiceNumber, invoice_date: finalized ? new Date(deliveredAt!).toISOString() : null,
       status: cancelled ? 'cancelled' : delivered ? 'confirmed' : 'pending',
       channel,
