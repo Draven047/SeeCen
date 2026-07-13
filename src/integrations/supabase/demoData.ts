@@ -24,6 +24,59 @@ function mulberry32(seed: number) {
   };
 }
 
+/**
+ * A clean, structurally valid database for a seller setting up their OWN
+ * store: named store, admin access, sensible settings — and zero fake data.
+ */
+export function seedEmptyStore(storeName: string, city: string): DemoTables {
+  const nowIso = new Date().toISOString();
+  const storeId = 'store_main';
+  const name = storeName.trim() || 'My Store';
+
+  return {
+    stores: [{ id: storeId, name, address: city.trim() || 'India', phone: '', created_at: nowIso }],
+    profiles: [{ id: DEMO_USER_ID, email: 'owner@local', full_name: 'Store Owner', created_at: nowIso, updated_at: nowIso }],
+    user_roles: [{ id: 'role_owner', user_id: DEMO_USER_ID, role: 'admin', is_approved: true, created_at: nowIso }],
+    store_assignments: [{ id: 'assign_owner', user_id: DEMO_USER_ID, store_id: storeId, created_at: nowIso }],
+    products: [],
+    cigars: [],
+    product_variants: [],
+    customers: [],
+    orders: [],
+    order_items: [],
+    store_inventory: [],
+    stock_requests: [],
+    shipments: [],
+    shipment_tracking_events: [],
+    return_requests: [],
+    return_request_items: [],
+    ndr_records: [],
+    courier_disputes: [],
+    expenses: [],
+    credit_notes: [],
+    settlements: [],
+    cod_reconciliation: [],
+    channel_accounts: [],
+    channel_sync_logs: [],
+    sku_mappings: [],
+    offers: [],
+    sales_targets: [],
+    notifications: [{
+      id: 'note_welcome', user_id: null, title: `Welcome to ${name}!`,
+      message: 'Start by adding your first product in Catalogue, then create your first order.',
+      type: 'system', is_read: false, created_at: nowIso,
+    }],
+    store_finance_settings: [{ id: 'finance_main', store_id: storeId, legal_name: name, gstin: '', bank_name: '', account_number: '', ifsc: '' }],
+    store_tax_settings: [{ id: 'tax_main', store_id: storeId, state_code: '', state_name: '', default_cgst_rate: 9, default_sgst_rate: 9, default_igst_rate: 18, default_cess_rate: 0, cess_enabled: false }],
+    invoice_series: [{ id: 'inv_series_main', store_id: storeId, prefix: 'INV-', next_number: 1 }],
+    credit_note_series: [{ id: 'cn_series_main', store_id: storeId, prefix: 'CN-', next_number: 1 }],
+    fume_points_settings: [{ id: 'points_main', earn_rate: 1, redeem_rate: 1, min_redeem_points: 100, is_active: true }],
+    fume_points_ledger: [],
+    ai_coach_daily_recommendations: [],
+    finance_audit_logs: [],
+  };
+}
+
 export function seedTables(): DemoTables {
   const rand = mulberry32(20260616);
   const randInt = (min: number, max: number) => min + Math.floor(rand() * (max - min + 1));

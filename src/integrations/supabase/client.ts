@@ -7,7 +7,10 @@
 //   See SELF_HOSTING.md for the full walkthrough.
 
 import { createClient } from '@supabase/supabase-js';
-import { demoSupabase, resetDemoDatabase, exportDemoDatabase, importDemoDatabase } from './demoClient';
+import { demoSupabase, resetDemoDatabase, exportDemoDatabase, importDemoDatabase, setupMyStoreDatabase } from './demoClient';
+
+/** First-run marker: absent means the onboarding wizard should show. */
+export const SETUP_MARKER_KEY = 'seecen-setup';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -23,7 +26,14 @@ export const supabase: any = isDemoMode
 export function resetDemoData() {
   if (!isDemoMode) return;
   resetDemoDatabase();
+  try { localStorage.removeItem(SETUP_MARKER_KEY); } catch { /* noop */ }
   window.location.reload();
+}
+
+/** Swap the sandbox for the seller's own empty store. Caller reloads. */
+export function setupMyStore(storeName: string, city: string) {
+  if (!isDemoMode) return;
+  setupMyStoreDatabase(storeName, city);
 }
 
 /** Serialize the demo database for download. Returns null against a real backend. */

@@ -2,7 +2,8 @@ import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
+import { FirstRunWizard } from "@/components/onboarding/FirstRunWizard";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { StoreProvider } from "@/contexts/StoreContext";
 import { AICoachChatBubble } from "./components/ai-coach/AICoachChatBubble";
@@ -83,7 +84,9 @@ function LegacyRedirect({ to }: { to: string }) {
 
 function AppRoutes() {
   const { user, isApproved, role } = useAuth();
+  const location = useLocation();
   const showChatBubble = user && isApproved && role === 'sales';
+  const isDemoRoute = location.pathname.startsWith('/demo');
 
   return (
     <>
@@ -164,6 +167,7 @@ function AppRoutes() {
         </Routes>
       </Suspense>
       {showChatBubble && <AICoachChatBubble />}
+      {isDemoRoute && <FirstRunWizard />}
     </>
   );
 }

@@ -906,7 +906,7 @@ function RecentOrdersSection({
           </p>
           <p className="mx-auto mt-1 max-w-xs text-xs font-medium leading-5 text-[#8b9098]">
             {currentStoreName
-              ? 'Create a demo order or wait for channel orders to land here.'
+              ? 'Create your first order and it will show up here right away.'
               : 'Once a store is active, today’s queue and revenue will stay in view.'}
           </p>
           {currentStoreName && (

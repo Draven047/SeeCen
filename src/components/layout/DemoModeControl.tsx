@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
-import { Download, FlaskConical, RotateCcw, ShoppingBag, Upload } from 'lucide-react';
+import { Download, FlaskConical, MonitorDown, RotateCcw, ShoppingBag, Store, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { exportDemoData, importDemoData, isDemoMode, resetDemoData } from '@/integrations/supabase/client';
+import { exportDemoData, importDemoData, isDemoMode, resetDemoData, SETUP_MARKER_KEY } from '@/integrations/supabase/client';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { brand } from '@/config/brand';
 import {
   Popover,
@@ -25,8 +26,14 @@ function downloadBackup() {
 export function DemoModeControl() {
   const [confirming, setConfirming] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { canInstall, install, isStandalone } = usePwaInstall();
 
   if (!isDemoMode) return null;
+
+  const reopenWizard = () => {
+    try { localStorage.removeItem(SETUP_MARKER_KEY); } catch { /* noop */ }
+    window.location.reload();
+  };
 
   const handleImportFile = async (file: File | undefined) => {
     if (!file) return;
@@ -60,6 +67,26 @@ export function DemoModeControl() {
           your own Supabase project to run it for real — see SELF_HOSTING.md in
           the repository.
         </p>
+
+        {canInstall && !isStandalone && (
+          <button
+            type="button"
+            onClick={() => install()}
+            className="mt-4 inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-full border border-[#563ed5]/30 bg-[#563ed5]/5 px-4 text-xs font-bold text-[#563ed5] transition-colors hover:bg-[#563ed5]/10"
+          >
+            <MonitorDown className="h-3.5 w-3.5" />
+            Install {brand.name} as an app
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={reopenWizard}
+          className="mt-2 inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-full bg-[#f4f5f2] px-4 text-xs font-bold text-[#30343a] transition-colors hover:text-[#17191c]"
+        >
+          <Store className="h-3.5 w-3.5" />
+          Set up my own store
+        </button>
 
         <button
           type="button"

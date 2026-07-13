@@ -4,7 +4,7 @@
 // a real app; a pristine (never-edited) database is re-seeded after 24h so
 // the hosted demo always shows fresh, current-dated data.
 
-import { seedTables, DEMO_USER_ID, DEMO_SEED_VERSION, type DemoRow, type DemoTables } from './demoData';
+import { seedTables, seedEmptyStore, DEMO_USER_ID, DEMO_SEED_VERSION, type DemoRow, type DemoTables } from './demoData';
 
 type Filter = { field: string; op: string; value: any };
 
@@ -94,6 +94,14 @@ export function resetDemoDatabase() {
   seededAt = new Date().toISOString();
   modified = false;
   db = seedTables();
+  save(db);
+}
+
+/** Replace the sandbox with an empty, seller-named store. User data — never auto-reseeded. */
+export function setupMyStoreDatabase(storeName: string, city: string) {
+  seededAt = new Date().toISOString();
+  modified = true;
+  db = seedEmptyStore(storeName, city);
   save(db);
 }
 
