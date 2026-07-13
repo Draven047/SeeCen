@@ -33,6 +33,9 @@ import { PageLoading } from '@/components/ui/page-loading';
 import { Checkbox } from '@/components/ui/checkbox';
 import { generatePackSlip } from '@/lib/packSlip';
 import { ORDER_MESSAGE_LABELS, orderMessage, waLink, type OrderMessageKind } from '@/lib/whatsapp';
+import { rtoRisk } from '@/lib/rtoRisk';
+
+const PRE_DISPATCH_TABS = ['new_orders', 'accepted', 'picking', 'packed', 'ready'];
 
 interface OrderRow {
   id: string;
@@ -417,6 +420,32 @@ export default function Orders() {
                 <span className="text-[10px] text-muted-foreground ml-auto">{timeAgo(selectedOrder.created_at)}</span>
               </div>
             </div>
+
+            {/* RTO risk assessment for undispatched orders */}
+            {PRE_DISPATCH_TABS.includes(activeTab) && (() => {
+              const risk = rtoRisk(selectedOrder);
+              if (risk.level === 'low') return null;
+              return (
+                <div className={cn(
+                  'rounded-xl border px-3 py-2.5',
+                  risk.level === 'high' ? 'border-destructive/30 bg-destructive/5' : 'border-warning/30 bg-warning/5',
+                )}>
+                  <p className={cn('text-xs font-bold', risk.level === 'high' ? 'text-destructive' : 'text-warning')}>
+                    {risk.level === 'high' ? 'High' : 'Medium'} RTO risk · {risk.score}/100
+                  </p>
+                  <ul className="mt-1 space-y-0.5">
+                    {risk.reasons.map(reason => (
+                      <li key={reason} className="text-[11px] text-muted-foreground">• {reason}</li>
+                    ))}
+                  </ul>
+                  {selectedOrder.payment_type === 'cod' && selectedOrder.customers?.phone && (
+                    <p className="mt-1.5 text-[11px] font-medium text-foreground">
+                      Tip: confirm on WhatsApp before dispatch to avoid a bounced COD parcel.
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
 
             <Separator />
 
@@ -973,6 +1002,11 @@ export default function Orders() {
                             <Badge variant={order.payment_type === 'cod' ? 'outline' : 'secondary'} className="text-[8px] px-1 py-0 h-3.5 shrink-0">
                               {order.payment_type === 'cod' ? 'COD' : 'Prepaid'}
                             </Badge>
+                            {PRE_DISPATCH_TABS.includes(activeTab) && rtoRisk(order).level === 'high' && (
+                              <span className="shrink-0 rounded-full bg-destructive/10 px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-destructive">
+                                RTO risk
+                              </span>
+                            )}
                           </div>
                         </div>
 

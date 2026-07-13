@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PageLoading } from '@/components/ui/page-loading';
 import {
-  AlertTriangle, CheckCircle2, Clock, MessageCircle,
-  PhoneOff, RefreshCw, RotateCcw, Truck, User,
+  AlertTriangle, CheckCircle2, Clock, MessageCircle, PhoneOff,
+  RefreshCw, RotateCcw, Scale, Truck, User, XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -33,6 +33,23 @@ interface NdrRecord {
   } | null;
 }
 
+interface CourierDispute {
+  id: string;
+  order_number: string;
+  courier: string;
+  type: string;
+  status: string;
+  claimed_amount: number;
+  notes: string | null;
+  opened_at: string;
+}
+
+const DISPUTE_TYPE_LABELS: Record<string, string> = {
+  weight_dispute: 'Weight dispute',
+  damaged: 'Damaged in transit',
+  lost: 'Lost shipment',
+};
+
 const STATUS_META: Record<NdrRecord['status'], { label: string; className: string }> = {
   action_required: { label: 'Action required', className: 'bg-destructive/10 text-destructive' },
   reattempt_scheduled: { label: 'Reattempt scheduled', className: 'bg-warning/10 text-warning' },
@@ -52,19 +69,35 @@ export default function Ndr() {
   const storeId = currentStore?.id;
   const [loading, setLoading] = useState(true);
   const [records, setRecords] = useState<NdrRecord[]>([]);
+  const [disputes, setDisputes] = useState<CourierDispute[]>([]);
   const [showAll, setShowAll] = useState(false);
 
   const fetchRecords = useCallback(async () => {
     if (!storeId) { setLoading(false); return; }
     setLoading(true);
-    const { data } = await supabase
-      .from('ndr_records')
-      .select('*, order:orders(*)')
-      .eq('store_id', storeId)
-      .order('last_attempt_at', { ascending: false });
-    setRecords((data || []) as NdrRecord[]);
+    const [ndrRes, disputeRes] = await Promise.all([
+      supabase
+        .from('ndr_records')
+        .select('*, order:orders(*)')
+        .eq('store_id', storeId)
+        .order('last_attempt_at', { ascending: false }),
+      supabase
+        .from('courier_disputes')
+        .select('*')
+        .eq('store_id', storeId)
+        .order('opened_at', { ascending: false }),
+    ]);
+    setRecords((ndrRes.data || []) as NdrRecord[]);
+    setDisputes((disputeRes.data || []) as CourierDispute[]);
     setLoading(false);
   }, [storeId]);
+
+  const resolveDispute = async (dispute: CourierDispute, outcome: 'won' | 'lost') => {
+    const { error } = await supabase.from('courier_disputes').update({ status: outcome }).eq('id', dispute.id);
+    if (error) { toast.error('Update failed'); return; }
+    toast.success(outcome === 'won' ? `Claim won — ${fmt(Number(dispute.claimed_amount))} recovered` : 'Claim marked lost');
+    fetchRecords();
+  };
 
   useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
@@ -257,6 +290,57 @@ export default function Ndr() {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+
+        {/* Courier disputes */}
+        <div className="rounded-2xl border border-border bg-card">
+          <div className="flex items-center justify-between border-b border-border px-5 py-3">
+            <div className="flex items-center gap-2">
+              <Scale className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-bold text-foreground">Courier disputes</h2>
+            </div>
+            <span className="text-xs font-semibold text-muted-foreground">
+              {disputes.filter(d => d.status === 'open').length} open · {fmt(disputes.filter(d => d.status === 'open').reduce((s, d) => s + Number(d.claimed_amount), 0))} claimed
+            </span>
+          </div>
+          {disputes.length === 0 ? (
+            <p className="px-5 py-8 text-center text-sm text-muted-foreground">No disputes with couriers right now.</p>
+          ) : (
+            <div className="divide-y divide-border">
+              {disputes.map((dispute) => (
+                <div key={dispute.id} className="flex flex-col gap-2 px-5 py-3.5 sm:flex-row sm:items-center">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="font-mono font-bold text-foreground">{dispute.order_number}</span>
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                        {DISPUTE_TYPE_LABELS[dispute.type] || dispute.type}
+                      </span>
+                      <span className={cn(
+                        'rounded-full px-2 py-0.5 text-[10px] font-bold',
+                        dispute.status === 'open' && 'bg-warning/10 text-warning',
+                        dispute.status === 'won' && 'bg-success/10 text-success',
+                        dispute.status === 'lost' && 'bg-destructive/10 text-destructive',
+                      )}>
+                        {dispute.status}
+                      </span>
+                      <span className="text-xs font-semibold text-foreground">{fmt(Number(dispute.claimed_amount))}</span>
+                    </div>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{dispute.courier}{dispute.notes ? ` · ${dispute.notes}` : ''}</p>
+                  </div>
+                  {dispute.status === 'open' && (
+                    <div className="flex shrink-0 gap-2">
+                      <Button size="sm" variant="outline" className="h-8 gap-1 px-3 text-[11px] font-bold text-success hover:text-success" onClick={() => resolveDispute(dispute, 'won')}>
+                        <CheckCircle2 className="h-3 w-3" /> Won
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8 gap-1 px-3 text-[11px] font-bold text-destructive hover:text-destructive" onClick={() => resolveDispute(dispute, 'lost')}>
+                        <XCircle className="h-3 w-3" /> Lost
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>

@@ -138,7 +138,7 @@ export function seedTables(): DemoTables {
 
   // ---- Order generation: ~90 days of history --------------------------------
   const channels: [string, number][] = [
-    ['website', 38], ['in_store', 18], ['amazon', 18], ['instagram', 16], ['walk_in', 10],
+    ['website', 34], ['in_store', 18], ['amazon', 17], ['instagram', 14], ['walk_in', 9], ['ondc', 8],
   ];
   // first few customers are "regulars" and order more often
   const customerWeights: [string, number][] = customers.map((c, i) => [c.id, i < 5 ? 3 : 1]);
@@ -257,7 +257,7 @@ export function seedTables(): DemoTables {
       payment_type: paymentType,
       sla_deadline: new Date(slaDeadline).toISOString(),
       items_count: items.reduce((s, it) => s + it.quantity, 0),
-      external_channel_order_number: channel === 'amazon' ? `AMZ-${40000 + orderSeq}` : channel === 'instagram' ? `IG-${1000 + orderSeq}` : channel === 'website' ? `WEB-${7000 + orderSeq}` : null,
+      external_channel_order_number: channel === 'amazon' ? `AMZ-${40000 + orderSeq}` : channel === 'instagram' ? `IG-${1000 + orderSeq}` : channel === 'website' ? `WEB-${7000 + orderSeq}` : channel === 'ondc' ? `ONDC-${90000 + orderSeq}` : null,
       is_finalized: finalized, is_voided: false, void_reason: null, voided_at: null,
       subtotal, tax, total,
       cgst_rate: finalized ? 9 : 0, sgst_rate: finalized ? 9 : 0, igst_rate: 0, cess_rate: 0,
@@ -457,6 +457,39 @@ export function seedTables(): DemoTables {
       created_at: iso(0, -(3 + i * 5)),
     }));
 
+  // ---- Courier disputes (weight/damage/loss claims) -------------------------------
+  const disputeCandidates = orders.filter(
+    (o) => o.fulfillment_status === 'delivered' && o.fulfillment_type === 'self_ship'
+      && new Date(o.created_at).getTime() < now.getTime() - 7 * DAY
+  );
+  const disputeSpecs: { type: string; status: string; note: string }[] = [
+    { type: 'weight_dispute', status: 'open', note: 'Courier billed 1.8kg, actual packed weight 0.7kg' },
+    { type: 'damaged', status: 'open', note: 'Customer photo shows crushed box; claim filed with courier' },
+    { type: 'weight_dispute', status: 'won', note: 'Weight reconciliation accepted, credit issued' },
+  ];
+  const delhiCandidates = disputeCandidates.filter((o) => o.store_id === 'store_delhi');
+  const mumbaiCandidates = disputeCandidates.filter((o) => o.store_id === 'store_mumbai');
+  const courier_disputes = disputeSpecs
+    .map((spec, i) => {
+      // alternate stores so both panels have dispute work
+      const order = i % 2 === 0 ? delhiCandidates[i] : mumbaiCandidates[i];
+      if (!order) return null;
+      return {
+        id: `dispute_${order.id}`,
+        store_id: order.store_id,
+        order_id: order.id,
+        order_number: order.order_number,
+        courier: providers[i % providers.length],
+        type: spec.type,
+        status: spec.status,
+        claimed_amount: spec.type === 'weight_dispute' ? randInt(60, 220) : Math.round(order.total * 0.8),
+        notes: spec.note,
+        opened_at: iso(randInt(1, 6)),
+        created_at: iso(randInt(1, 6)),
+      };
+    })
+    .filter(Boolean) as DemoRow[];
+
   // ---- Operating expenses (rent, payroll, ads…) for the true P&L -----------------
   const expenses: DemoRow[] = [];
   let expSeq = 1;
@@ -497,6 +530,7 @@ export function seedTables(): DemoTables {
     { id: 'chan_web', channel: 'website', display_name: 'SeeCen Web Store', is_active: true, last_sync_at: iso(0, -2), created_at: iso(125) },
     { id: 'chan_amz', channel: 'amazon', display_name: 'Amazon India', is_active: true, last_sync_at: iso(0, -5), created_at: iso(118) },
     { id: 'chan_ig', channel: 'instagram', display_name: 'Instagram Shop', is_active: true, last_sync_at: iso(0, -3), created_at: iso(90) },
+    { id: 'chan_ondc', channel: 'ondc', display_name: 'ONDC Network', is_active: true, last_sync_at: iso(0, -1), created_at: iso(45) },
   ];
 
   const channel_sync_logs = [
@@ -575,6 +609,7 @@ export function seedTables(): DemoTables {
     return_requests,
     return_request_items,
     ndr_records,
+    courier_disputes,
     expenses,
     credit_notes: [],
     settlements,

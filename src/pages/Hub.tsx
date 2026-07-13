@@ -765,6 +765,7 @@ const CHANNEL_LABELS: Record<string, string> = {
   instagram: 'Instagram',
   in_store: 'In store',
   walk_in: 'Walk-in',
+  ondc: 'ONDC',
 };
 
 function ChannelMixCard({ loading, orders }: { loading: boolean; orders: OrderRow[] }) {
