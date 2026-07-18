@@ -1,8 +1,11 @@
 import type { MouseEvent, ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
 import {
   ArrowRight,
+  Languages,
+  Laptop,
   ArrowUpRight,
   BadgeCheck,
   BarChart3,
@@ -118,9 +121,94 @@ const landingNavItems = [
   { label: 'Home', targetId: 'home' },
   { label: 'Features', targetId: 'features' },
   { label: 'Inside', targetId: 'inside' },
-  { label: 'Run it', targetId: 'run' },
+  { label: 'For sellers', targetId: 'download' },
   { label: 'Open source', targetId: 'open-source' },
 ];
+
+const releasesUrl = 'https://github.com/Draven047/SeeCen/releases/latest';
+
+const SELLER_LANGUAGES = ['English', 'हिन्दी', 'தமிழ்', 'తెలుగు', 'বাংলা', 'मराठी'];
+
+function ForSellersSection() {
+  const { canInstall, install } = usePwaInstall();
+  const isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform);
+
+  return (
+    <section id="download" className="px-3 py-10 md:px-5">
+      <div className="mx-auto max-w-[1280px] rounded-[28px] bg-[#563ed5] p-6 text-white md:p-12">
+        <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-white/70">For sellers — no tech needed</p>
+            <h2 className="mt-4 max-w-xl text-4xl font-semibold leading-[1] tracking-[-0.05em] md:text-5xl">
+              Run your shop on it. No coding, no setup.
+            </h2>
+            <p className="mt-6 max-w-lg text-sm font-semibold leading-6 text-white/80">
+              Download SeeCen like any normal app, open it, and set up your own store in
+              two minutes — in your language. Your data never leaves your computer, and
+              you can take a one-tap backup anytime.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a
+                href={releasesUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-12 items-center gap-2 rounded-full bg-white px-6 text-sm font-black text-[#563ed5] transition-transform hover:scale-[1.03]"
+              >
+                <Laptop className="h-4 w-4" />
+                Download for {isMac ? 'Mac' : 'Windows'}
+              </a>
+              {canInstall ? (
+                <button
+                  type="button"
+                  onClick={() => install()}
+                  className="inline-flex h-12 items-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 text-sm font-black text-white transition-colors hover:bg-white/20"
+                >
+                  Install from browser
+                </button>
+              ) : (
+                <Link
+                  to="/demo/dashboard"
+                  className="inline-flex h-12 items-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 text-sm font-black text-white transition-colors hover:bg-white/20"
+                >
+                  Use in browser
+                </Link>
+              )}
+            </div>
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <Languages className="h-4 w-4 text-white/70" />
+              {SELLER_LANGUAGES.map((lang) => (
+                <span key={lang} className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/90">{lang}</span>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              { step: '1', title: 'Download & open', body: 'Get the app for Windows or Mac, or install straight from this website — no account needed.' },
+              { step: '2', title: 'Set up your store', body: 'Pick your language, type your store name, and your empty store is ready. Or explore with sample data first.' },
+              { step: '3', title: 'Sell', body: 'Add products, take orders, print pack slips, chase failed deliveries, and watch your real profit — all offline-friendly.' },
+            ].map((item) => (
+              <div key={item.step} className="flex items-start gap-4 rounded-[22px] bg-white/10 p-5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-sm font-black text-[#563ed5]">
+                  {item.step}
+                </span>
+                <div>
+                  <p className="text-sm font-bold">{item.title}</p>
+                  <p className="mt-1 text-xs font-medium leading-5 text-white/75">{item.body}</p>
+                </div>
+              </div>
+            ))}
+            <p className="px-2 text-[11px] font-medium leading-5 text-white/60">
+              Windows may show a “Windows protected your PC” notice because the app is new and
+              unsigned — click “More info → Run anyway”. On Mac, right-click the app and choose
+              Open the first time. Full steps in INSTALL.md.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 let landingScrollAnimationFrame = 0;
 
@@ -496,6 +584,9 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* ───────────────────────── For sellers ───────────────────────── */}
+      <ForSellersSection />
 
       {/* ───────────────────────── Open source ───────────────────────── */}
       <section id="open-source" className="px-3 py-10 md:px-5">
