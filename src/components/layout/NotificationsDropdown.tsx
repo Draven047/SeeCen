@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Bell, Check, Trash2, Package, AlertTriangle, Gift, X, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -86,6 +87,7 @@ async function buildLiveNotifications(): Promise<Notification[]> {
 }
 
 export function NotificationsDropdown() {
+  const { t } = useTranslation();
   const { user, role } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -257,7 +259,7 @@ export function NotificationsDropdown() {
       </PopoverTrigger>
       <PopoverContent className="w-80 overflow-hidden rounded-[28px] border-black/[0.06] bg-white p-0 shadow-[0_24px_70px_-36px_rgba(15,23,42,0.45)]" align="end">
         <div className="flex items-center justify-between border-b border-black/[0.06] p-4">
-          <h3 className="font-bold text-[#17191c]">Notifications</h3>
+          <h3 className="font-bold text-[#17191c]">{t('Notifications')}</h3>
           {unreadCount > 0 && (
             <Button 
               variant="ghost" 
@@ -266,7 +268,7 @@ export function NotificationsDropdown() {
               className="text-xs h-7"
             >
               <Check className="w-3 h-3 mr-1" />
-              Mark all read
+              {t('Mark all read')}
             </Button>
           )}
         </div>

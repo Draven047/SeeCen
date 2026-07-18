@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, Download, Languages, Rocket, Sparkles, Store } from 'lucide-react';
 import { isDemoMode, setupMyStore, SETUP_MARKER_KEY } from '@/integrations/supabase/client';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
+import { useTranslation } from 'react-i18next';
+import { setLanguage } from '@/i18n';
 import { brand } from '@/config/brand';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -27,6 +29,7 @@ function writeMarker(mode: 'sample' | 'my-store', lang: string) {
 }
 
 export function FirstRunWizard() {
+  const { t } = useTranslation();
   const [dismissed, setDismissed] = useState(markerExists);
   const [step, setStep] = useState<'language' | 'mode' | 'store' | 'done'>('language');
   const [lang, setLang] = useState('en');
@@ -65,7 +68,7 @@ export function FirstRunWizard() {
           </span>
           <div>
             <p className="text-base font-bold text-[#17191c]">{brand.name}</p>
-            <p className="text-xs font-medium text-[#8b9098]">Your store, on your computer</p>
+            <p className="text-xs font-medium text-[#8b9098]">{t('Your store, on your computer')}</p>
           </div>
         </div>
 
@@ -80,7 +83,7 @@ export function FirstRunWizard() {
                 <button
                   key={l.code}
                   type="button"
-                  onClick={() => setLang(l.code)}
+                  onClick={() => { setLang(l.code); setLanguage(l.code); }}
                   className={cn(
                     'min-h-[48px] rounded-2xl border px-4 text-sm font-bold transition-colors',
                     lang === l.code
@@ -100,14 +103,14 @@ export function FirstRunWizard() {
               onClick={() => setStep('mode')}
               className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-[#17191c] text-sm font-bold text-white transition-colors hover:bg-[#2b2f35]"
             >
-              Continue <ArrowRight className="h-4 w-4" />
+              {t('Continue')} <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         )}
 
         {step === 'mode' && (
           <div>
-            <p className="text-sm font-bold text-[#17191c]">How do you want to start?</p>
+            <p className="text-sm font-bold text-[#17191c]">{t('How do you want to start?')}</p>
             <button
               type="button"
               onClick={() => setStep('store')}
@@ -117,9 +120,9 @@ export function FirstRunWizard() {
                 <Store className="h-5 w-5" />
               </span>
               <span>
-                <span className="block text-sm font-bold text-[#17191c]">Set up my store</span>
+                <span className="block text-sm font-bold text-[#17191c]">{t('Set up my store')}</span>
                 <span className="mt-0.5 block text-xs font-medium leading-5 text-[#777e87]">
-                  Start fresh with your own store name. Add your products and orders — everything stays on this computer.
+                  {t('Start fresh with your own store name. Add your products and orders — everything stays on this computer.')}
                 </span>
               </span>
             </button>
@@ -132,9 +135,9 @@ export function FirstRunWizard() {
                 <Rocket className="h-5 w-5" />
               </span>
               <span>
-                <span className="block text-sm font-bold text-[#17191c]">Explore with sample data</span>
+                <span className="block text-sm font-bold text-[#17191c]">{t('Explore with sample data')}</span>
                 <span className="mt-0.5 block text-xs font-medium leading-5 text-[#777e87]">
-                  Look around a busy example store first. You can switch to your own store anytime from the Demo menu.
+                  {t('Look around a busy example store first. You can switch to your own store anytime from the Demo menu.')}
                 </span>
               </span>
             </button>
@@ -143,17 +146,17 @@ export function FirstRunWizard() {
               onClick={() => setStep('language')}
               className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[#8b9098] hover:text-[#17191c]"
             >
-              <ArrowLeft className="h-3 w-3" /> Back
+              <ArrowLeft className="h-3 w-3" /> {t('Back')}
             </button>
           </div>
         )}
 
         {step === 'store' && (
           <div>
-            <p className="text-sm font-bold text-[#17191c]">Tell us about your store</p>
+            <p className="text-sm font-bold text-[#17191c]">{t('Tell us about your store')}</p>
             <div className="mt-4 space-y-3">
               <div>
-                <label className="text-xs font-bold text-[#5e656f]">Store name</label>
+                <label className="text-xs font-bold text-[#5e656f]">{t('Store name')}</label>
                 <Input
                   autoFocus
                   placeholder="e.g. Sharma Fashion House"
@@ -163,7 +166,7 @@ export function FirstRunWizard() {
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#5e656f]">City</label>
+                <label className="text-xs font-bold text-[#5e656f]">{t('City')}</label>
                 <Input
                   placeholder="e.g. Jaipur"
                   value={city}
@@ -178,14 +181,14 @@ export function FirstRunWizard() {
               onClick={finishMyStore}
               className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-[#563ed5] text-sm font-bold text-white transition-colors hover:bg-[#4a35b8] disabled:opacity-40"
             >
-              Create my store <ArrowRight className="h-4 w-4" />
+              {t('Create my store')} <ArrowRight className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => setStep('mode')}
               className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#8b9098] hover:text-[#17191c]"
             >
-              <ArrowLeft className="h-3 w-3" /> Back
+              <ArrowLeft className="h-3 w-3" /> {t('Back')}
             </button>
           </div>
         )}
@@ -196,7 +199,7 @@ export function FirstRunWizard() {
               <Check className="h-7 w-7" />
             </span>
             <p className="mt-4 text-lg font-bold text-[#17191c]">
-              {chosenMode === 'my-store' ? `${storeName.trim()} is ready!` : "You're all set!"}
+              {chosenMode === 'my-store' ? `${storeName.trim()} ✓` : t("You're all set!")}
             </p>
             <p className="mx-auto mt-1 max-w-xs text-xs font-medium leading-5 text-[#777e87]">
               {chosenMode === 'my-store'
@@ -209,7 +212,7 @@ export function FirstRunWizard() {
                 onClick={() => install()}
                 className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border border-[#563ed5]/30 bg-[#563ed5]/5 text-sm font-bold text-[#563ed5] transition-colors hover:bg-[#563ed5]/10"
               >
-                <Download className="h-4 w-4" /> Install {brand.name} as an app
+                <Download className="h-4 w-4" /> {t('Install SeeCen as an app')}
               </button>
             )}
             {isIos && !isStandalone && (
@@ -222,7 +225,7 @@ export function FirstRunWizard() {
               onClick={close}
               className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-[#17191c] text-sm font-bold text-white transition-colors hover:bg-[#2b2f35]"
             >
-              Open my dashboard <ArrowRight className="h-4 w-4" />
+              {t('Open my dashboard')} <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         )}

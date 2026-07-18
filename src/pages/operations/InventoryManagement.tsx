@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SearchInput } from '@/components/ui/input';
@@ -41,6 +42,7 @@ interface InventoryItem {
 }
 
 export default function InventoryManagement() {
+  const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [stores, setStores] = useState<Store[]>([]);
   const [selectedStore, setSelectedStore] = useState('');
@@ -242,17 +244,17 @@ export default function InventoryManagement() {
   const totalLow = inventory.filter(i => i.quantity > 0 && i.quantity < (i.min_stock_level || 10)).length;
 
   const stockFilterOptions = [
-    { key: 'all' as const, label: 'All', count: inventory.length },
-    { key: 'low' as const, label: 'Low Stock', count: totalLow },
-    { key: 'out' as const, label: 'Out of Stock', count: totalOut },
+    { key: 'all' as const, label: t('All'), count: inventory.length },
+    { key: 'low' as const, label: t('Low Stock'), count: totalLow },
+    { key: 'out' as const, label: t('Out of Stock'), count: totalOut },
   ];
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-heading">Inventory</h2>
-          <p className="text-muted-foreground text-sm mt-0.5">Manage stock levels · Live sync</p>
+          <h2 className="text-heading">{t('Inventory')}</h2>
+          <p className="text-muted-foreground text-sm mt-0.5">{t('Manage stock levels · Live sync')}</p>
         </div>
       </div>
 
@@ -271,15 +273,15 @@ export default function InventoryManagement() {
           <div className="flex gap-2">
             <div className="flex-1 glass-card rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-emerald-500">{totalAvailable}</p>
-              <p className="text-[11px] text-muted-foreground">Available</p>
+              <p className="text-[11px] text-muted-foreground">{t('Available')}</p>
             </div>
             <div className="flex-1 glass-card rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-orange-500">{totalLow}</p>
-              <p className="text-[11px] text-muted-foreground">Low Stock</p>
+              <p className="text-[11px] text-muted-foreground">{t('Low Stock')}</p>
             </div>
             <div className="flex-1 glass-card rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-destructive">{totalOut}</p>
-              <p className="text-[11px] text-muted-foreground">Out</p>
+              <p className="text-[11px] text-muted-foreground">{t('Out of Stock')}</p>
             </div>
           </div>
 
@@ -344,7 +346,7 @@ export default function InventoryManagement() {
                       <p className="text-xs text-muted-foreground">{request.quantity_requested} units requested</p>
                     </div>
                     <Button size="sm" className="h-8 gap-1 px-3 text-xs" onClick={() => receiveStockRequest(request)}>
-                      <Check className="w-3.5 h-3.5" /> Mark received
+                      <Check className="w-3.5 h-3.5" /> {t('Mark received')}
                     </Button>
                     <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground" onClick={() => cancelStockRequest(request)} aria-label="Cancel request">
                       <X className="w-3.5 h-3.5" />
@@ -495,7 +497,7 @@ export default function InventoryManagement() {
                                 onClick={() => requestStock(item)}
                               >
                                 <PackagePlus className="w-3.5 h-3.5" />
-                                {hasPendingRequest(item) ? 'Requested' : 'Request'}
+                                {hasPendingRequest(item) ? t('Requested') : t('Request')}
                               </Button>
                             )}
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(item)}>

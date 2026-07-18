@@ -8,5 +8,7 @@ import App from "./App.tsx";
 import "./index.css";
 // side effect: capture beforeinstallprompt before React mounts
 import "@/hooks/usePwaInstall";
+// side effect: initialize i18n before first render
+import "@/i18n";
 
 createRoot(document.getElementById("root")!).render(<App />);

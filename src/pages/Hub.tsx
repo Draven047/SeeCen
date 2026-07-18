@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { SellerOSLayout } from '@/components/layout/SellerOSLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useStore } from '@/contexts/StoreContext';
@@ -102,6 +103,7 @@ function orderRevenue(order: OrderRow) {
 }
 
 export default function Hub() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { currentStore } = useStore();
   const { user } = useAuth();
@@ -211,19 +213,19 @@ export default function Hub() {
     const readyToShip = data.orders.filter((o) => o.fulfillment_status === 'packed').length;
     const failedDeliveries = data.orders.filter((o) => o.fulfillment_status === 'failed_delivery').length;
     const items = [
-      { key: 'sla', icon: AlertTriangle, label: 'Orders past SLA', count: overdueSla, path: '/demo/orders', urgent: true, detail: 'Dispatch these first' },
-      { key: 'ndr', icon: AlertTriangle, label: 'Failed deliveries', count: failedDeliveries, path: '/demo/ndr', urgent: true, detail: 'Reattempt or confirm with customer' },
-      { key: 'ship', icon: Truck, label: 'Packed, ready to ship', count: readyToShip, path: '/demo/shipping', urgent: false, detail: 'Book pickups' },
-      { key: 'returns', icon: RotateCcw, label: 'Returns to review', count: data.pendingReturns, path: '/demo/returns', urgent: false, detail: 'Approve or decline' },
-      { key: 'stock', icon: Boxes, label: 'Low-stock SKUs', count: data.lowStockCount, path: '/demo/inventory', urgent: false, detail: 'Replenish soon' },
+      { key: 'sla', icon: AlertTriangle, label: t('Orders past SLA'), count: overdueSla, path: '/demo/orders', urgent: true, detail: t('Dispatch these first') },
+      { key: 'ndr', icon: AlertTriangle, label: t('Failed deliveries'), count: failedDeliveries, path: '/demo/ndr', urgent: true, detail: t('Reattempt or confirm with customer') },
+      { key: 'ship', icon: Truck, label: t('Packed, ready to ship'), count: readyToShip, path: '/demo/shipping', urgent: false, detail: t('Book pickups') },
+      { key: 'returns', icon: RotateCcw, label: t('Returns to review'), count: data.pendingReturns, path: '/demo/returns', urgent: false, detail: t('Approve or decline') },
+      { key: 'stock', icon: Boxes, label: t('Low-stock SKUs'), count: data.lowStockCount, path: '/demo/inventory', urgent: false, detail: t('Replenish soon') },
       {
-        key: 'cod', icon: IndianRupee, label: 'COD to reconcile', count: data.codPendingAmount > 0 ? 1 : 0,
+        key: 'cod', icon: IndianRupee, label: t('COD to reconcile'), count: data.codPendingAmount > 0 ? 1 : 0,
         displayValue: data.codPendingAmount > 0 ? formatCurrency(data.codPendingAmount) : undefined,
-        path: '/demo/finance', urgent: false, detail: 'Match collections',
+        path: '/demo/finance', urgent: false, detail: t('Match collections'),
       },
     ];
     return items.filter((i) => i.count > 0);
-  }, [data]);
+  }, [data, t]);
 
   const fulfilmentScore = useMemo(() => {
     const now = Date.now();
@@ -255,18 +257,18 @@ export default function Hub() {
                 <Sparkles className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[#1b1d21]">{getGreeting()}, {currentStore?.name || brand.name}</p>
-                <p className="text-xs font-medium text-[#8b9098]">Seller command center · {dateStr}</p>
+                <p className="text-sm font-semibold text-[#1b1d21]">{t(getGreeting())}, {currentStore?.name || brand.name}</p>
+                <p className="text-xs font-medium text-[#8b9098]">{t('Seller command center')} · {dateStr}</p>
               </div>
             </div>
             <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
               <div>
-                <p className="text-[12px] font-semibold uppercase tracking-[0.24em] text-[#a7adb5]">{rangeLabel}</p>
+                <p className="text-[12px] font-semibold uppercase tracking-[0.24em] text-[#a7adb5]">{t(rangeLabel)}</p>
                 <h1 className="mt-1 text-[3.1rem] font-semibold leading-none tracking-[-0.04em] text-[#111315] sm:text-[4.6rem]">
                   {loading ? '—' : formatCurrency(metrics.revenue)}
                 </h1>
               </div>
-              <DeltaPill loading={loading} delta={metrics.revenueDelta} fallback={`${metrics.orderCount} orders`} />
+              <DeltaPill loading={loading} delta={metrics.revenueDelta} fallback={`${metrics.orderCount} ${t('orders')}`} />
             </div>
           </div>
 
@@ -283,7 +285,7 @@ export default function Hub() {
                     range === r.key ? 'bg-[#17191c] text-white' : 'text-[#7f858d] hover:text-[#17191c]',
                   )}
                 >
-                  {r.label}
+                  {t(r.label)}
                 </button>
               ))}
             </div>
@@ -292,7 +294,7 @@ export default function Hub() {
               onClick={() => navigate('/demo/orders/new')}
               className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#17191c] px-5 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(0,0,0,0.8)] transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#563ed5]"
             >
-              New order
+              {t('New order')}
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>
@@ -334,6 +336,7 @@ export default function Hub() {
 }
 
 function DeltaPill({ loading, delta, fallback }: { loading: boolean; delta: number | null; fallback: string }) {
+  const { t } = useTranslation();
   if (loading) {
     return (
       <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-[#f4f5f2] px-3 py-1.5 text-xs font-bold text-[#8b9098]">
@@ -356,7 +359,7 @@ function DeltaPill({ loading, delta, fallback }: { loading: boolean; delta: numb
       positive ? 'bg-[#563ed5] text-white' : 'bg-[#fdecec] text-[#c2352b]',
     )}>
       {positive ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
-      {positive ? '+' : ''}{delta.toFixed(0)}% vs previous
+      {positive ? '+' : ''}{delta.toFixed(0)}% {t('vs previous')}
     </span>
   );
 }
@@ -366,12 +369,13 @@ function MetricStack({ loading, metrics, range }: {
   metrics: { revenue: number; orderCount: number; liveQueue: number };
   range: RangeKey;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-[26px] border border-black/[0.04] bg-[#fbfcf8] p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.6)]">
       <div className="flex items-center justify-between">
-        <PanelTitle dot="bg-[#563ed5]" title="Sales pulse" />
+        <PanelTitle dot="bg-[#563ed5]" title={t('Sales pulse')} />
         <span className="rounded-full bg-[#17191c] px-2.5 py-1 text-[11px] font-semibold text-white">
-          {range === 'today' ? 'Now' : range === '7d' ? '7d' : '30d'}
+          {range === 'today' ? t('Now') : range === '7d' ? '7d' : '30d'}
         </span>
       </div>
       <div className="mt-9">
@@ -379,12 +383,12 @@ function MetricStack({ loading, metrics, range }: {
           {loading ? '—' : formatCurrency(metrics.revenue)}
         </p>
         <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8f959d]">
-          {range === 'today' ? 'Sales today' : `Sales · last ${range === '7d' ? '7' : '30'} days`}
+          {range === 'today' ? t('Sales today') : `${t('Revenue')} · ${range === '7d' ? t('7 days') : t('30 days')}`}
         </p>
       </div>
       <div className="mt-12 grid grid-cols-2 divide-x divide-black/[0.06] border-t border-black/[0.06] pt-5">
-        <SmallMetric label="Orders" value={loading ? '—' : metrics.orderCount.toString()} />
-        <SmallMetric label="Live queue" value={loading ? '—' : metrics.liveQueue.toString()} align="right" />
+        <SmallMetric label={t('Orders')} value={loading ? '—' : metrics.orderCount.toString()} />
+        <SmallMetric label={t('Live queue')} value={loading ? '—' : metrics.liveQueue.toString()} align="right" />
       </div>
     </div>
   );
@@ -445,27 +449,28 @@ function ActivityPanel({ loading, orders, range, chartTab, setChartTab, metrics,
   metrics: { orderCount: number; liveQueue: number; avgOrder: number };
   navigate: (path: string) => void;
 }) {
+  const { t } = useTranslation();
   const chart = useMemo(() => buildChart(orders, range, chartTab), [orders, range, chartTab]);
   const max = Math.max(1, ...chart.map((b) => b.value));
   const maxIndex = chart.findIndex((b) => b.value === max);
 
   const headline = [
-    { label: 'Orders', value: loading ? '—' : metrics.orderCount.toString(), helper: range === 'today' ? 'today' : 'in range', icon: ShoppingCart },
-    { label: 'Live', value: loading ? '—' : metrics.liveQueue.toString(), helper: 'needs action', icon: Zap, highlight: metrics.liveQueue > 0 },
-    { label: 'Avg order', value: loading ? '—' : formatCurrency(metrics.avgOrder), helper: 'basket value', icon: IndianRupee },
+    { label: t('Orders'), value: loading ? '—' : metrics.orderCount.toString(), helper: range === 'today' ? t('today') : t('in range'), icon: ShoppingCart },
+    { label: t('Live'), value: loading ? '—' : metrics.liveQueue.toString(), helper: t('needs action'), icon: Zap, highlight: metrics.liveQueue > 0 },
+    { label: t('Avg order'), value: loading ? '—' : formatCurrency(metrics.avgOrder), helper: t('basket value'), icon: IndianRupee },
   ];
 
   const tabs: { key: ChartTab; label: string }[] = [
-    { key: 'revenue', label: 'Revenue' },
-    { key: 'orders', label: 'Orders' },
-    { key: 'customers', label: 'Customers' },
+    { key: 'revenue', label: t('Revenue') },
+    { key: 'orders', label: t('Orders') },
+    { key: 'customers', label: t('Customers') },
   ];
 
   return (
     <div className="rounded-[28px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_55px_-42px_rgba(15,23,42,0.55)] md:p-6">
       <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
         <div>
-          <PanelTitle dot="bg-[#563ed5]" title="Analytics" />
+          <PanelTitle dot="bg-[#563ed5]" title={t('Analytics')} />
           <div className="mt-6 flex flex-wrap gap-6 md:gap-10">
             {headline.map((metric) => (
               <div key={metric.label} className="min-w-[88px]">
@@ -484,7 +489,7 @@ function ActivityPanel({ loading, orders, range, chartTab, setChartTab, metrics,
           onClick={() => navigate('/demo/analytics')}
           className="inline-flex items-center gap-1 self-start rounded-full bg-[#f4f5f2] px-3 py-2 text-xs font-bold text-[#737a83] transition-colors hover:text-[#17191c]"
         >
-          Full analytics <ArrowRight className="h-3.5 w-3.5" />
+          {t('Full analytics')} <ArrowRight className="h-3.5 w-3.5" />
         </button>
       </div>
 
@@ -534,19 +539,20 @@ function ProgressPanel({ navigate, loading, fulfilmentScore, data, orders }: {
   data: HubData;
   orders: OrderRow[];
 }) {
+  const { t } = useTranslation();
   const toPack = orders.filter((o) => ['new', 'unfulfilled', 'pending', 'accepted', 'picking'].includes(o.fulfillment_status || '')).length;
   const toShip = orders.filter((o) => o.fulfillment_status === 'packed').length;
 
   const progressRows = [
-    { label: 'Packing', value: loading ? '—' : `${toPack} open`, path: '/demo/fulfillment', active: toPack > 0 },
-    { label: 'Shipping', value: loading ? '—' : `${toShip} ready`, path: '/demo/shipping', active: toPack === 0 && toShip > 0 },
-    { label: 'Returns', value: loading ? '—' : `${data.pendingReturns} review`, path: '/demo/returns', active: false },
+    { label: t('Packing'), value: loading ? '—' : `${toPack} ${t('open')}`, path: '/demo/fulfillment', active: toPack > 0 },
+    { label: t('Shipping'), value: loading ? '—' : `${toShip} ${t('ready')}`, path: '/demo/shipping', active: toPack === 0 && toShip > 0 },
+    { label: t('Returns'), value: loading ? '—' : `${data.pendingReturns} ${t('review')}`, path: '/demo/returns', active: false },
   ];
 
   return (
     <div className="rounded-[26px] border border-black/[0.04] bg-[#f0f2f0] p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.55)]">
       <div className="flex items-center justify-between">
-        <PanelTitle dot="bg-[#563ed5]" title="Progress" />
+        <PanelTitle dot="bg-[#563ed5]" title={t('Progress')} />
         <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-[#5e656f]">30d</span>
       </div>
       <button
@@ -558,7 +564,7 @@ function ProgressPanel({ navigate, loading, fulfilmentScore, data, orders }: {
           <PackageCheck className="h-9 w-9" />
         </span>
         <span className="min-w-0">
-          <span className="block text-xs font-semibold text-[#777e87]">On-time dispatch</span>
+          <span className="block text-xs font-semibold text-[#777e87]">{t('On-time dispatch')}</span>
           <span className="mt-1 block text-5xl font-semibold leading-none tracking-[-0.06em] text-[#111315]">
             {loading || fulfilmentScore == null ? '—' : `${fulfilmentScore}%`}
           </span>
@@ -592,10 +598,11 @@ function ActionQueue({ items, loading, navigate }: {
   loading: boolean;
   navigate: (path: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-[28px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)] md:p-6">
       <div className="flex items-center justify-between">
-        <PanelTitle dot="bg-[#c2352b]" title="Needs attention" />
+        <PanelTitle dot="bg-[#c2352b]" title={t('Needs attention')} />
         {!loading && items.length > 0 && (
           <span className="rounded-full bg-[#fdecec] px-2.5 py-1 text-[11px] font-bold text-[#c2352b]">
             {items.length} queue{items.length > 1 ? 's' : ''}
@@ -608,9 +615,9 @@ function ActionQueue({ items, loading, navigate }: {
       ) : items.length === 0 ? (
         <div className="mt-5 rounded-[24px] border border-dashed border-black/[0.08] bg-[#fbfcf8] px-5 py-10 text-center">
           <PackageCheck className="mx-auto mb-3 h-9 w-9 text-[#43a047]" />
-          <p className="text-sm font-bold text-[#17191c]">All clear</p>
+          <p className="text-sm font-bold text-[#17191c]">{t('All clear')}</p>
           <p className="mx-auto mt-1 max-w-xs text-xs font-medium leading-5 text-[#8b9098]">
-            No overdue orders, returns, or stock alerts right now.
+            {t('No overdue orders, returns, or stock alerts right now.')}
           </p>
         </div>
       ) : (
@@ -648,10 +655,11 @@ function ActionQueue({ items, loading, navigate }: {
 }
 
 function ActionsPanel({ navigate, aiSummary }: { navigate: (path: string) => void; aiSummary: string | null }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div className="rounded-[26px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.5)]">
-        <PanelTitle dot="bg-[#563ed5]" title="Actions" />
+        <PanelTitle dot="bg-[#563ed5]" title={t('Actions')} />
         <div className="mt-5 grid grid-cols-2 gap-2">
           {primaryActions.map((action) => (
             <button
@@ -661,7 +669,7 @@ function ActionsPanel({ navigate, aiSummary }: { navigate: (path: string) => voi
               className="flex min-h-[86px] flex-col justify-between rounded-[20px] border border-black/[0.04] bg-[#fbfcf8] p-3 text-left transition-transform hover:scale-[1.02]"
             >
               <action.icon className="h-5 w-5 text-[#17191c]" />
-              <span className="text-sm font-bold text-[#17191c]">{action.label}</span>
+              <span className="text-sm font-bold text-[#17191c]">{t(action.label)}</span>
             </button>
           ))}
         </div>
@@ -673,14 +681,14 @@ function ActionsPanel({ navigate, aiSummary }: { navigate: (path: string) => voi
         className="block w-full rounded-[26px] bg-[#563ed5] p-5 text-left text-white shadow-[0_18px_45px_-34px_rgba(86,62,213,0.45)] transition-transform hover:scale-[1.01]"
       >
         <div className="flex items-center justify-between">
-          <p className="text-sm font-bold">AI Coach · today</p>
+          <p className="text-sm font-bold">{t('AI Coach · today')}</p>
           <Bot className="h-5 w-5" />
         </div>
         <p className="mt-4 text-sm font-medium leading-6 text-white/90">
-          {aiSummary || 'Open the AI Coach for today’s prioritized follow-ups, stock priorities, and pitch ideas.'}
+          {aiSummary || t('Open the AI Coach for today’s prioritized follow-ups, stock priorities, and pitch ideas.')}
         </p>
         <span className="mt-4 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-[0.14em] text-white/80">
-          Open coach <ArrowRight className="h-3.5 w-3.5" />
+          {t('Open coach')} <ArrowRight className="h-3.5 w-3.5" />
         </span>
       </button>
     </div>
@@ -688,6 +696,7 @@ function ActionsPanel({ navigate, aiSummary }: { navigate: (path: string) => voi
 }
 
 function MoreActionsPopover({ navigate }: { navigate: (path: string) => void }) {
+  const { t } = useTranslation();
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -696,7 +705,7 @@ function MoreActionsPopover({ navigate }: { navigate: (path: string) => void }) 
           className="mt-3 inline-flex min-h-[42px] w-full items-center justify-center gap-2 rounded-full bg-[#f4f5f2] px-4 text-sm font-bold text-[#5e656f] transition-colors hover:text-[#17191c]"
         >
           <MoreHorizontal className="h-4 w-4" />
-          More controls
+          {t('More controls')}
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-56 rounded-3xl border-black/[0.06] bg-white p-2 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.45)]">
@@ -708,7 +717,7 @@ function MoreActionsPopover({ navigate }: { navigate: (path: string) => void }) 
             className="flex min-h-[42px] w-full items-center gap-3 rounded-2xl px-3 text-sm font-semibold text-[#30343a] transition-colors hover:bg-[#f4f5f2]"
           >
             <a.icon className="h-4 w-4 text-[#7d838c]" />
-            {a.label}
+            {t(a.label)}
           </button>
         ))}
       </PopoverContent>
@@ -721,6 +730,7 @@ function TargetCard({ loading, target, orders }: {
   target: { target_amount: number; start_date: string } | null;
   orders: OrderRow[];
 }) {
+  const { t } = useTranslation();
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
   const achieved = orders
@@ -733,7 +743,7 @@ function TargetCard({ loading, target, orders }: {
   return (
     <div className="rounded-[26px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.5)]">
       <div className="flex items-center justify-between">
-        <PanelTitle dot="bg-[#563ed5]" title="Monthly target" />
+        <PanelTitle dot="bg-[#563ed5]" title={t('Monthly target')} />
         <Target className="h-4 w-4 text-[#9aa0a8]" />
       </div>
       <p className="mt-6 text-4xl font-semibold leading-none tracking-[-0.05em] text-[#111315]">
@@ -741,8 +751,8 @@ function TargetCard({ loading, target, orders }: {
       </p>
       <p className="mt-2 text-xs font-semibold text-[#8b9098]">
         {loading || pct == null
-          ? 'No target configured yet'
-          : `${formatCurrency(achieved)} of ${formatCurrency(targetAmount)} · ${daysLeft} days left`}
+          ? t('No target configured yet')
+          : `${formatCurrency(achieved)} / ${formatCurrency(targetAmount)} · ${daysLeft} ${t('days left')}`}
       </p>
       <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#f0f2f0]">
         <div
@@ -769,6 +779,7 @@ const CHANNEL_LABELS: Record<string, string> = {
 };
 
 function ChannelMixCard({ loading, orders }: { loading: boolean; orders: OrderRow[] }) {
+  const { t } = useTranslation();
   const mix = useMemo(() => {
     const byChannel: Record<string, number> = {};
     for (const o of orders) {
@@ -789,11 +800,11 @@ function ChannelMixCard({ loading, orders }: { loading: boolean; orders: OrderRo
 
   return (
     <div className="rounded-[26px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.5)]">
-      <PanelTitle dot="bg-[#563ed5]" title="Channel mix" />
+      <PanelTitle dot="bg-[#563ed5]" title={t('Channel mix')} />
       {loading ? (
         <p className="mt-6 text-sm font-semibold text-[#8b9098]">Loading…</p>
       ) : mix.length === 0 ? (
-        <p className="mt-6 text-sm font-semibold text-[#8b9098]">No orders in this range yet.</p>
+        <p className="mt-6 text-sm font-semibold text-[#8b9098]">{t('No orders in this range yet.')}</p>
       ) : (
         <div className="mt-6 space-y-4">
           {mix.map((row) => (
@@ -820,6 +831,7 @@ function TopProductsCard({ loading, orders, productNames }: {
   orders: OrderRow[];
   productNames: Record<string, string>;
 }) {
+  const { t } = useTranslation();
   const top = useMemo(() => {
     const byProduct: Record<string, { revenue: number; units: number }> = {};
     for (const o of orders) {
@@ -838,11 +850,11 @@ function TopProductsCard({ loading, orders, productNames }: {
 
   return (
     <div className="rounded-[26px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.5)] md:col-span-2 xl:col-span-1">
-      <PanelTitle dot="bg-[#563ed5]" title="Top products" />
+      <PanelTitle dot="bg-[#563ed5]" title={t('Top products')} />
       {loading ? (
         <p className="mt-6 text-sm font-semibold text-[#8b9098]">Loading…</p>
       ) : top.length === 0 ? (
-        <p className="mt-6 text-sm font-semibold text-[#8b9098]">No sales in this range yet.</p>
+        <p className="mt-6 text-sm font-semibold text-[#8b9098]">{t('No sales in this range yet.')}</p>
       ) : (
         <div className="mt-5 space-y-2">
           {top.map((row, index) => (
@@ -881,16 +893,17 @@ function RecentOrdersSection({
   orders: OrderRow[];
   navigate: (path: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-[28px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)] md:p-6">
       <div className="flex items-center justify-between gap-4">
-        <PanelTitle dot="bg-[#563ed5]" title="Recent orders" />
+        <PanelTitle dot="bg-[#563ed5]" title={t('Recent orders')} />
         <button
           type="button"
           onClick={() => navigate('/demo/orders')}
           className="inline-flex items-center gap-1 rounded-full bg-[#f4f5f2] px-3 py-2 text-xs font-bold text-[#737a83] transition-colors hover:text-[#17191c]"
         >
-          View all <ArrowRight className="h-3.5 w-3.5" />
+          {t('View all')} <ArrowRight className="h-3.5 w-3.5" />
         </button>
       </div>
 
@@ -902,11 +915,11 @@ function RecentOrdersSection({
         <div className="mt-5 rounded-[24px] border border-dashed border-black/[0.08] bg-[#fbfcf8] px-5 py-10 text-center">
           <ShoppingCart className="mx-auto mb-3 h-9 w-9 text-[#b7bdc5]" />
           <p className="text-sm font-bold text-[#17191c]">
-            {currentStoreName ? 'No recent orders yet' : 'Choose a store to see live orders'}
+            {currentStoreName ? t('No recent orders yet') : 'Choose a store to see live orders'}
           </p>
           <p className="mx-auto mt-1 max-w-xs text-xs font-medium leading-5 text-[#8b9098]">
             {currentStoreName
-              ? 'Create your first order and it will show up here right away.'
+              ? t('Create your first order and it will show up here right away.')
               : 'Once a store is active, today’s queue and revenue will stay in view.'}
           </p>
           {currentStoreName && (
@@ -915,7 +928,7 @@ function RecentOrdersSection({
               onClick={() => navigate('/demo/orders/new')}
               className="mt-5 inline-flex min-h-[40px] items-center justify-center rounded-full bg-[#17191c] px-5 text-xs font-bold text-white"
             >
-              Create order
+              {t('Create order')}
             </button>
           )}
         </div>

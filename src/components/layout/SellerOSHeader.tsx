@@ -1,4 +1,5 @@
 import { useStore } from '@/contexts/StoreContext';
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { NotificationsDropdown } from './NotificationsDropdown';
@@ -33,6 +34,7 @@ const pageTitles: Record<string, string> = {
 };
 
 export function SellerOSHeader() {
+  const { t } = useTranslation();
   const { currentStore } = useStore();
   const isMobile = useIsMobile();
   const location = useLocation();
@@ -95,12 +97,12 @@ export function SellerOSHeader() {
                   ? 'bg-[#563ed5] text-white'
                   : 'bg-[#f0f2f0] text-[#777e87]'
               )}>
-                {isOnline ? 'Online' : 'Offline'}
+                {isOnline ? t('Online') : t('Offline')}
               </span>
             </button>
             {pageTitle && (
               <span className="text-sm font-bold text-[#a1a7b0]">
-                / {pageTitle}
+                / {t(pageTitle)}
               </span>
             )}
           </div>

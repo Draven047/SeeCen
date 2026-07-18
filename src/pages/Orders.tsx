@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -144,6 +145,7 @@ function getTimelineIndex(status: string): number {
 }
 
 export default function Orders() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { currentStore } = useStore();
   const navigate = useNavigate();
@@ -376,8 +378,8 @@ export default function Orders() {
       return (
         <div className="flex flex-col items-center justify-center h-full py-20 text-center">
           <Package className="w-10 h-10 text-muted-foreground/40 mb-3" />
-          <p className="text-sm font-medium text-muted-foreground">Select an order to view details</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">Click any order from the queue</p>
+          <p className="text-sm font-medium text-muted-foreground">{t('Select an order to view details')}</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">{t('Click any order from the queue')}</p>
         </div>
       );
     }
@@ -452,7 +454,7 @@ export default function Orders() {
             {/* Customer */}
             <div className="space-y-1.5">
               <h4 className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                <User className="w-3 h-3" /> Customer
+                <User className="w-3 h-3" /> {t('Customer')}
               </h4>
               <p className="text-sm font-medium">{selectedOrder.customers?.name || 'Walk-in'}</p>
               {selectedOrder.customers?.phone && (
@@ -552,7 +554,7 @@ export default function Orders() {
                 <Separator />
                 <div className="space-y-1">
                   <h4 className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                    <FileText className="w-3 h-3" /> Notes
+                    <FileText className="w-3 h-3" /> {t('Notes')}
                   </h4>
                   <p className="text-xs text-muted-foreground">{selectedOrder.notes}</p>
                 </div>
@@ -571,7 +573,7 @@ export default function Orders() {
               onClick={() => updateStatus(selectedOrder.id, nextAction.status)}
             >
               <nextAction.icon className="w-4 h-4" />
-              {nextAction.label}
+              {t(nextAction.label)}
             </Button>
           )}
 
@@ -584,7 +586,7 @@ export default function Orders() {
               onClick={() => setDeclineDialogOpen(true)}
             >
               <XCircle className="w-4 h-4" />
-              Decline
+              {t('Decline')}
             </Button>
           )}
 
@@ -594,7 +596,7 @@ export default function Orders() {
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full gap-2 text-[#25D366] hover:text-[#1da851]" size="sm">
                   <MessageCircle className="w-4 h-4" />
-                  Send WhatsApp Update
+                  {t('Send WhatsApp Update')}
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="center" className="w-64 p-1.5">
@@ -652,7 +654,7 @@ export default function Orders() {
             }
           >
             <Printer className="w-4 h-4" />
-            Print Pack Slip
+            {t('Print Pack Slip')}
           </Button>
 
           {/* Full details link */}
@@ -662,7 +664,7 @@ export default function Orders() {
             size="sm"
             onClick={() => navigate(`/demo/orders/${selectedOrder.id}`)}
           >
-            Open Full Details <ExternalLink className="w-3 h-3" />
+            {t('Open Full Details')} <ExternalLink className="w-3 h-3" />
           </Button>
         </div>
       </div>
@@ -694,7 +696,7 @@ export default function Orders() {
             <div className="relative hidden sm:block">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search orders..."
+                placeholder={t('Search orders...')}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="pl-8 min-h-[44px] text-sm w-56 rounded-full"
@@ -833,7 +835,7 @@ export default function Orders() {
                   !isActive && hasUrgent && count > 0 && 'ring-1 ring-destructive/40 text-destructive'
                 )}
               >
-                {tab.label}
+                {t(tab.label)}
                 {count > 0 && (
                   <span className={cn(
                     'text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1',
@@ -862,10 +864,10 @@ export default function Orders() {
             )}
             <p className="text-xs font-medium text-foreground">
               {queue.length === 0
-                ? 'Queue clear'
+                ? t('Queue clear')
                 : bulkIds.size > 0
-                  ? `${bulkIds.size} of ${queue.length} selected`
-                  : `${queue.length} waiting`}
+                  ? `${bulkIds.size}/${queue.length} ${t('selected')}`
+                  : `${queue.length} ${t('waiting')}`}
             </p>
             {bulkIds.size > 0 && NEXT_STATUS[activeTab] && (
               <>
@@ -879,7 +881,7 @@ export default function Orders() {
                   className="h-7 px-2 text-[11px]"
                   onClick={() => setBulkIds(new Set())}
                 >
-                  Clear
+                  {t('Clear')}
                 </Button>
               </>
             )}
@@ -888,7 +890,7 @@ export default function Orders() {
               return urgentCount > 0 ? (
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-full">
                   <AlertTriangle className="w-2.5 h-2.5" />
-                  {urgentCount} urgent
+                  {urgentCount} {t('urgent')}
                 </span>
               ) : null;
             })()}
@@ -924,9 +926,9 @@ export default function Orders() {
                 <p className="text-sm font-medium text-muted-foreground">
                   No {STATUS_TABS.find(t => t.key === activeTab)?.label.toLowerCase()} orders
                 </p>
-                <p className="text-xs text-muted-foreground/60 mt-1">Orders will appear here when available</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">{t('Orders will appear here when available')}</p>
                 <Button variant="outline" size="sm" className="mt-4 text-xs gap-1.5" onClick={fetchOrders}>
-                  <RefreshCw className="w-3 h-3" /> Refresh
+                  <RefreshCw className="w-3 h-3" /> {t('Refresh')}
                 </Button>
               </div>
             ) : (
@@ -1004,7 +1006,7 @@ export default function Orders() {
                             </Badge>
                             {PRE_DISPATCH_TABS.includes(activeTab) && rtoRisk(order).level === 'high' && (
                               <span className="shrink-0 rounded-full bg-destructive/10 px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-destructive">
-                                RTO risk
+                                {t('RTO risk')}
                               </span>
                             )}
                           </div>
@@ -1022,7 +1024,7 @@ export default function Orders() {
                             )}
                             onClick={e => { e.stopPropagation(); updateStatus(order.id, nextAction.status); }}
                           >
-                            {nextAction.label}
+                            {t(nextAction.label)}
                           </Button>
                         )}
                         {!nextAction && (

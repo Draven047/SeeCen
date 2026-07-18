@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,7 @@ interface CsvPreviewData {
 }
 
 export default function Customers() {
+  const { t } = useTranslation();
   const { user, role } = useAuth();
   const navigate = useNavigate();
   const isAdmin = role === 'admin';
@@ -753,7 +755,7 @@ export default function Customers() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-display">Customer Management</h1>
+            <h1 className="text-display">{t('Customer Management')}</h1>
             <p className="text-muted-foreground text-sm mt-1">Manage your customer relationships and data</p>
           </div>
           <div className="flex items-center gap-3">
@@ -858,27 +860,27 @@ export default function Customers() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="stat-card-highlight text-center">
             <p className="text-3xl font-bold text-primary">{stats.total}</p>
-            <p className="text-sm text-muted-foreground">Total Customers</p>
+            <p className="text-sm text-muted-foreground">{t('Total Customers')}</p>
           </div>
           <div className="stat-card text-center">
             <p className="text-3xl font-bold text-primary">{stats.vip}</p>
-            <p className="text-sm text-muted-foreground">VIP Customers</p>
+            <p className="text-sm text-muted-foreground">{t('VIP Customers')}</p>
           </div>
           <div className="stat-card text-center">
             <p className="text-3xl font-bold text-success">{stats.regular}</p>
-            <p className="text-sm text-muted-foreground">Regular</p>
+            <p className="text-sm text-muted-foreground">{t('Regular')}</p>
           </div>
           <div className="stat-card text-center">
             <p className="text-3xl font-bold text-info">{stats.new}</p>
-            <p className="text-sm text-muted-foreground">New</p>
+            <p className="text-sm text-muted-foreground">{t('New')}</p>
           </div>
           <div className="stat-card text-center">
             <p className="text-3xl font-bold text-warning">{stats.atRisk}</p>
-            <p className="text-sm text-muted-foreground">At Risk</p>
+            <p className="text-sm text-muted-foreground">{t('At Risk')}</p>
           </div>
           <div className="stat-card text-center">
             <p className="text-3xl font-bold text-muted-foreground">{stats.inactive}</p>
-            <p className="text-sm text-muted-foreground">Inactive</p>
+            <p className="text-sm text-muted-foreground">{t('Inactive')}</p>
           </div>
         </div>
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SellerOSLayout } from '@/components/layout/SellerOSLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useStore } from '@/contexts/StoreContext';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PageLoading } from '@/components/ui/page-loading';
@@ -65,6 +66,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function Ndr() {
+  const { t } = useTranslation();
   const { currentStore } = useStore();
   const storeId = currentStore?.id;
   const [loading, setLoading] = useState(true);
@@ -170,14 +172,14 @@ export default function Ndr() {
         <div className="rounded-[28px] border border-black/[0.04] bg-white p-6 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)]">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Delivery exceptions</p>
-              <h1 className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-[#17191c]">NDR Workbench</h1>
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">{t('Delivery exceptions')}</p>
+              <h1 className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-[#17191c]">{t('NDR Workbench')}</h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 Failed deliveries for {currentStore?.name || 'your store'} — act before they turn into returns.
               </p>
             </div>
             <Button variant="outline" size="sm" className="min-h-[44px] gap-1.5" onClick={fetchRecords}>
-              <RefreshCw className="h-3.5 w-3.5" /> Refresh
+              <RefreshCw className="h-3.5 w-3.5" /> {t('Refresh')}
             </Button>
           </div>
         </div>
@@ -185,19 +187,19 @@ export default function Ndr() {
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4">
-            <p className="text-xs font-semibold text-muted-foreground">Action required</p>
+            <p className="text-xs font-semibold text-muted-foreground">{t('Action required')}</p>
             <p className="mt-1 text-2xl font-bold text-destructive">{stats.actionRequired}</p>
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <p className="text-xs font-semibold text-muted-foreground">Reattempts in progress</p>
+            <p className="text-xs font-semibold text-muted-foreground">{t('Reattempts in progress')}</p>
             <p className="mt-1 text-2xl font-bold text-foreground">{stats.reattempts}</p>
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <p className="text-xs font-semibold text-muted-foreground">RTO initiated</p>
+            <p className="text-xs font-semibold text-muted-foreground">{t('RTO initiated')}</p>
             <p className="mt-1 text-2xl font-bold text-foreground">{stats.rto}</p>
           </div>
           <div className="rounded-2xl border border-warning/30 bg-warning/5 p-4">
-            <p className="text-xs font-semibold text-muted-foreground">COD value at risk</p>
+            <p className="text-xs font-semibold text-muted-foreground">{t('COD value at risk')}</p>
             <p className="mt-1 text-2xl font-bold text-warning">{fmt(stats.codAtRisk)}</p>
           </div>
         </div>
@@ -213,7 +215,7 @@ export default function Ndr() {
               onClick={() => setShowAll(!showAll)}
               className="text-xs font-semibold text-primary hover:underline"
             >
-              {showAll ? 'Show active only' : 'Show all'}
+              {showAll ? t('Show active only') : t('Show all')}
             </button>
           </div>
 
@@ -264,7 +266,7 @@ export default function Ndr() {
                     {isActive && (
                       <div className="flex shrink-0 flex-wrap items-center gap-2">
                         <Button size="sm" className="h-8 gap-1 px-3 text-[11px] font-bold" onClick={() => handleReattempt(record)}>
-                          <Truck className="h-3 w-3" /> Reattempt
+                          <Truck className="h-3 w-3" /> {t('Reattempt')}
                         </Button>
                         <Button
                           size="sm"
@@ -272,10 +274,10 @@ export default function Ndr() {
                           className="h-8 gap-1 px-3 text-[11px] font-bold text-[#25D366] hover:text-[#1da851]"
                           onClick={() => openWhatsApp(record)}
                         >
-                          <MessageCircle className="h-3 w-3" /> Ask customer
+                          <MessageCircle className="h-3 w-3" /> {t('Ask customer')}
                         </Button>
                         <Button size="sm" variant="outline" className="h-8 gap-1 px-3 text-[11px] font-bold" onClick={() => handleDelivered(record)}>
-                          <CheckCircle2 className="h-3 w-3" /> Delivered
+                          <CheckCircle2 className="h-3 w-3" /> {t('Delivered')}
                         </Button>
                         <Button
                           size="sm"
@@ -283,7 +285,7 @@ export default function Ndr() {
                           className="h-8 gap-1 px-3 text-[11px] font-bold text-destructive hover:text-destructive"
                           onClick={() => handleRto(record)}
                         >
-                          <RotateCcw className="h-3 w-3" /> RTO
+                          <RotateCcw className="h-3 w-3" /> {t('RTO')}
                         </Button>
                       </div>
                     )}
@@ -299,7 +301,7 @@ export default function Ndr() {
           <div className="flex items-center justify-between border-b border-border px-5 py-3">
             <div className="flex items-center gap-2">
               <Scale className="h-4 w-4 text-primary" />
-              <h2 className="text-sm font-bold text-foreground">Courier disputes</h2>
+              <h2 className="text-sm font-bold text-foreground">{t('Courier disputes')}</h2>
             </div>
             <span className="text-xs font-semibold text-muted-foreground">
               {disputes.filter(d => d.status === 'open').length} open · {fmt(disputes.filter(d => d.status === 'open').reduce((s, d) => s + Number(d.claimed_amount), 0))} claimed

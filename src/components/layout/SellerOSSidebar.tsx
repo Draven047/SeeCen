@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   ShoppingCart, Boxes, LayoutGrid, MessageSquareWarning, IndianRupee,
   TrendingUp, Link2, UserCog, Store, Settings, ShoppingBag,
@@ -78,6 +79,7 @@ function canAccess(role: string | null, path: string): boolean {
 }
 
 export function SellerOSSidebar() {
+  const { t } = useTranslation();
   const location = useLocation();
   const { role } = useAuth();
   const { collapsed, toggle } = useSidebar();
@@ -120,7 +122,7 @@ export function SellerOSSidebar() {
         )}
       >
         <item.icon className="h-[20px] w-[20px] shrink-0" strokeWidth={active ? 2.3 : 1.9} />
-        {!collapsed && <span className="truncate">{item.label}</span>}
+        {!collapsed && <span className="truncate">{t(item.label)}</span>}
         {showBadge && (
           <span className={cn(
             'inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold',
@@ -135,7 +137,7 @@ export function SellerOSSidebar() {
     return (
       <Tooltip key={item.path} delayDuration={0}>
         <TooltipTrigger asChild><div className="relative">{link}</div></TooltipTrigger>
-        <TooltipContent side="right" className="font-medium">{item.label}</TooltipContent>
+        <TooltipContent side="right" className="font-medium">{t(item.label)}</TooltipContent>
       </Tooltip>
     );
   };
