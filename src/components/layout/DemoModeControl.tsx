@@ -3,7 +3,8 @@ import { Download, FlaskConical, MonitorDown, RotateCcw, ShoppingBag, Store, Upl
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGE_OPTIONS, setLanguage } from '@/i18n';
-import { exportDemoData, importDemoData, isDemoMode, resetDemoData, SETUP_MARKER_KEY } from '@/integrations/supabase/client';
+import { importDemoData, isDemoMode, resetDemoData, SETUP_MARKER_KEY } from '@/integrations/supabase/client';
+import { downloadBackup } from '@/lib/backup';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { brand } from '@/config/brand';
 import {
@@ -11,19 +12,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-
-function downloadBackup() {
-  const json = exportDemoData();
-  if (!json) return;
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = `seecen-backup-${new Date().toISOString().slice(0, 10)}.json`;
-  anchor.click();
-  URL.revokeObjectURL(url);
-  toast.success('Backup downloaded');
-}
 
 export function DemoModeControl() {
   const { t, i18n } = useTranslation();
@@ -123,7 +111,7 @@ export function DemoModeControl() {
         <div className="mt-2 grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={downloadBackup}
+            onClick={() => downloadBackup()}
             className="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-full bg-[#f4f5f2] px-3 text-xs font-bold text-[#30343a] transition-colors hover:text-[#17191c]"
           >
             <Download className="h-3.5 w-3.5" />

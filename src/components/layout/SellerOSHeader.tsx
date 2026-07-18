@@ -5,6 +5,7 @@ import { useLocation } from 'react-router-dom';
 import { NotificationsDropdown } from './NotificationsDropdown';
 import { DemoModeControl } from './DemoModeControl';
 import { CommandPalette } from './CommandPalette';
+import { HelpSheet } from './HelpSheet';
 import { brand } from '@/config/brand';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -121,6 +122,7 @@ export function SellerOSHeader() {
           </div>
         )}
         <CommandPalette />
+        <HelpSheet />
         <DemoModeControl />
         <NotificationsDropdown />
 

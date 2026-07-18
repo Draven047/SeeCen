@@ -84,9 +84,23 @@ let db: DemoTables = (() => {
   return fresh;
 })();
 
+const BACKUP_COUNTER_KEY = 'seecen-mutations-since-backup';
+
+function bumpBackupCounter() {
+  try {
+    const count = Number(localStorage.getItem(BACKUP_COUNTER_KEY) || '0') + 1;
+    localStorage.setItem(BACKUP_COUNTER_KEY, String(count));
+    // nudge at 25 changes, then every 50 after that
+    if (count === 25 || (count > 25 && (count - 25) % 50 === 0)) {
+      window.dispatchEvent(new CustomEvent('seecen-backup-nudge', { detail: count }));
+    }
+  } catch { /* storage unavailable */ }
+}
+
 function markModified() {
   modified = true;
   save(db);
+  bumpBackupCounter();
 }
 
 export function resetDemoDatabase() {
