@@ -17,8 +17,8 @@ export interface ChannelConnectorV2 {
 }
 
 // ---- SeeCen Website Mock ----
-const clozzetMock: ChannelConnectorV2 = {
-  id: 'clozzet_website',
+const seecenMock: ChannelConnectorV2 = {
+  id: 'seecen_website',
   name: 'SeeCen',
   icon: 'Globe',
   color: 'bg-blue-500/10 text-blue-600',
@@ -218,7 +218,7 @@ const csvImportConnector: ChannelConnectorV2 = {
 
 // Registry
 export const channelConnectors: ChannelConnectorV2[] = [
-  clozzetMock,
+  seecenMock,
   amazonMock,
   flipkartMock,
   myntraMock,

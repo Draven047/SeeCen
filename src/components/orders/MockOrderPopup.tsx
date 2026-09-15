@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { ShoppingBag, Clock, User, CreditCard, X, Check } from 'lucide-react';
 
-const MOCK_ORDER_KEY = 'clozzet_mock_order_enabled';
+const MOCK_ORDER_KEY = 'seecen_mock_order_enabled';
 const INTERVAL_MS = 60_000;
 const COUNTDOWN_SECS = 120;
 

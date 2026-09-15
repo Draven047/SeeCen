@@ -31,7 +31,8 @@ export default function Employees() {
     const userIds = roles.map(r => r.user_id);
     const { data: profiles } = await supabase.from('profiles').select('id, email, full_name').in('id', userIds);
 
-    const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+    type ProfileRow = { id: string; email: string | null; full_name: string | null };
+    const profileMap = new Map<string, ProfileRow>(((profiles || []) as ProfileRow[]).map(p => [p.id, p]));
     const emps: Employee[] = roles.map(r => {
       const p = profileMap.get(r.user_id);
       return {

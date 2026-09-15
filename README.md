@@ -1,12 +1,18 @@
 # SeeCen
 
+[![CI](https://github.com/Draven047/SeeCen/actions/workflows/ci.yml/badge.svg)](https://github.com/Draven047/SeeCen/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-563ed5.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 SeeCen is an open-source seller command center for managing orders, inventory, customers, shipping, returns, finance, analytics, and AI-assisted sales coaching.
 
-The app is designed to be easy to try, fork, and self-host. It runs out of the box with a resettable in-browser demo, so you do not need Supabase, a database, or paid API keys to explore the product.
+The app is designed to be easy to try, fork, and self-host. It runs out of the box with a persistent in-browser demo, so you do not need Supabase, a database, or paid API keys to explore the product. It also installs as a PWA.
 
-Live demo: https://seecen.seekerscentral.com
+**Live demo: https://seecen.seekerscentral.com**
 
-Repository: https://github.com/Draven047/SeeCen
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FDraven047%2FSeeCen)
+
+![SeeCen dashboard](public/landing-hub.png)
 
 ## What SeeCen Includes
 
@@ -20,19 +26,22 @@ Repository: https://github.com/Draven047/SeeCen
 - Finance, settlements, COD reconciliation, invoices, and credit notes
 - Analytics dashboards for sales and operations
 - Local deterministic AI Coach for demo insights
+- Bulk order actions, printable pack slips, and GST invoices
+- Customer segments (VIP / new / at-risk) with one-tap WhatsApp follow-ups
+- ⌘K command palette, keyboard shortcuts, and installable PWA
+- Demo data backup/restore (export and import your sandbox as JSON)
 
 ## Demo Mode
 
-SeeCen currently ships as a demo-first open-source app.
+SeeCen ships demo-first: it runs out of the box with zero setup.
 
-- No Supabase project is required.
-- No `.env` file is required.
-- Demo data is seeded in the browser at app load.
-- Changes persist while you navigate inside the app.
-- Refreshing the browser resets the demo to the original seeded state.
-- The AI Coach uses local deterministic insights from demo data.
+- No Supabase project or `.env` file is required.
+- ~90 days of realistic demo data (orders, customers, inventory, returns, settlements) is seeded in the browser on first load, dated relative to today.
+- Your changes are saved to localStorage and survive refreshes.
+- An untouched sandbox re-seeds itself daily so the data stays current; once you modify anything, your data is kept until you press **Demo → Reset demo data** in the header.
+- The AI Coach uses local deterministic insights from the demo data.
 
-This makes the project simple for anyone to download, run, inspect, and improve without paying for hosted services.
+Want a real backend? SeeCen also runs against your own Supabase project — see [SELF_HOSTING.md](SELF_HOSTING.md).
 
 ## Tech Stack
 
@@ -132,23 +141,24 @@ Demo:
 /demo/ai-coach
 ```
 
-## Optional AI Provider Setup
+## Run It With Your Own Backend
 
-The current open-source demo does not call an external AI provider. The AI Coach generates local deterministic recommendations from seeded demo data.
-
-If you want to extend SeeCen with your own AI provider later, start from `.env.example`:
-
-```sh
-cp .env.example .env
-```
-
-Then add your own provider values:
+Set two environment variables and SeeCen switches from the in-browser demo to your own Supabase project (real Postgres, real auth, multi-user):
 
 ```txt
-AI_PROVIDER_API_KEY=
-AI_PROVIDER_CHAT_URL=
-AI_PROVIDER_MODEL=
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
 ```
+
+The full walkthrough — creating the project, applying `supabase/migrations`, bootstrapping the first admin, deploying — is in [SELF_HOSTING.md](SELF_HOSTING.md).
+
+## White-labeling
+
+App name, tagline, currency, and locale live in `src/config/brand.ts`. Change them there and the shell and dashboard follow.
+
+## Optional AI Provider Setup
+
+The open-source demo does not call an external AI provider. The AI Coach generates local deterministic recommendations from demo data. To wire your own provider, start from `.env.example` (`AI_PROVIDER_*` values) and the edge functions in `supabase/functions/`.
 
 ## Deployment
 
@@ -180,4 +190,4 @@ SeeCen is built to become a practical, open-source seller operating system. The 
 
 ## License
 
-This project is open source. Add your preferred license in `LICENSE` before distributing modified versions publicly.
+MIT — see [LICENSE](LICENSE). Fork it, rebrand it, run your store on it.

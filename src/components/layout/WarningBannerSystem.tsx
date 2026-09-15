@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import i18n from '@/i18n';
 import { AlertTriangle, X, ChevronRight, RefreshCw, IndianRupee } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,9 +56,9 @@ export function WarningBannerSystem() {
       newWarnings.push({
         id: 'cod-gap',
         type: 'warning',
-        message: `₹${totalCodGap.toLocaleString('en-IN')} COD pending reconciliation`,
+        message: `₹${totalCodGap.toLocaleString('en-IN')} ${i18n.t('COD pending reconciliation')}`,
         icon: IndianRupee,
-        cta: 'Review',
+        cta: i18n.t('Review'),
         ctaPath: '/demo/finance',
       });
     }
@@ -73,9 +74,9 @@ export function WarningBannerSystem() {
       newWarnings.push({
         id: 'low-stock',
         type: 'info',
-        message: 'Some items are running low on stock',
+        message: i18n.t('Some items are running low on stock'),
         icon: AlertTriangle,
-        cta: 'View Inventory',
+        cta: i18n.t('View Inventory'),
         ctaPath: '/demo/inventory',
       });
     }

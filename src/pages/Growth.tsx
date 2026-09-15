@@ -60,6 +60,7 @@ export default function Growth() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [orderCount, setOrderCount] = useState(0);
+  const [offerStats, setOfferStats] = useState<Record<string, { orders: number; revenue: number }>>({});
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -84,7 +85,7 @@ export default function Growth() {
 
     const productsQuery = supabase.from('products').select('id, name, base_price, mrp, category, is_active').eq('is_active', true).limit(20);
 
-    const ordersQuery = supabase.from('orders').select('id, total', { count: 'exact' });
+    const ordersQuery = supabase.from('orders').select('id, total, offer_id', { count: 'exact' });
     if (currentStore) ordersQuery.eq('store_id', currentStore.id);
 
     const [offersRes, productsRes, ordersRes] = await Promise.all([offersQuery, productsQuery, ordersQuery]);
@@ -94,6 +95,14 @@ export default function Growth() {
     if (ordersRes.data) {
       setOrderCount(ordersRes.count ?? ordersRes.data.length);
       setTotalRevenue(ordersRes.data.reduce((s: number, o: any) => s + (Number(o.total) || 0), 0));
+      const stats: Record<string, { orders: number; revenue: number }> = {};
+      for (const o of ordersRes.data as { total: number; offer_id?: string | null }[]) {
+        if (!o.offer_id) continue;
+        stats[o.offer_id] ??= { orders: 0, revenue: 0 };
+        stats[o.offer_id].orders += 1;
+        stats[o.offer_id].revenue += Number(o.total) || 0;
+      }
+      setOfferStats(stats);
     }
     setLoading(false);
   }, [currentStore]);
@@ -309,7 +318,7 @@ export default function Growth() {
                 ) : (
                   <div className="space-y-2">
                     {activeOffers.slice(0, 3).map(offer => (
-                      <OfferRow key={offer.id} offer={offer} onEdit={openEdit} onToggle={toggleOfferStatus} onDelete={deleteOffer} formatExpiry={formatExpiry} typeIcon={offerTypeIcon} statusBadge={statusBadge} />
+                      <OfferRow key={offer.id} offer={offer} stats={offerStats[offer.id]} onEdit={openEdit} onToggle={toggleOfferStatus} onDelete={deleteOffer} formatExpiry={formatExpiry} typeIcon={offerTypeIcon} statusBadge={statusBadge} />
                     ))}
                   </div>
                 )}
@@ -356,7 +365,7 @@ export default function Growth() {
               ) : (
                 <div className="space-y-2">
                   {filteredOffers.map(offer => (
-                    <OfferRow key={offer.id} offer={offer} onEdit={openEdit} onToggle={toggleOfferStatus} onDelete={deleteOffer} formatExpiry={formatExpiry} typeIcon={offerTypeIcon} statusBadge={statusBadge} />
+                    <OfferRow key={offer.id} offer={offer} stats={offerStats[offer.id]} onEdit={openEdit} onToggle={toggleOfferStatus} onDelete={deleteOffer} formatExpiry={formatExpiry} typeIcon={offerTypeIcon} statusBadge={statusBadge} />
                   ))}
                 </div>
               )}
@@ -514,9 +523,10 @@ export default function Growth() {
 
 // ─── Offer Row Component ───
 function OfferRow({
-  offer, onEdit, onToggle, onDelete, formatExpiry, typeIcon, statusBadge,
+  offer, stats, onEdit, onToggle, onDelete, formatExpiry, typeIcon, statusBadge,
 }: {
   offer: Offer;
+  stats?: { orders: number; revenue: number };
   onEdit: (o: Offer) => void;
   onToggle: (o: Offer) => void;
   onDelete: (id: string) => void;
@@ -540,6 +550,11 @@ function OfferRow({
           {offer.value}
           {offer.expires_at && ` · Ends ${formatExpiry(offer.expires_at)}`}
         </p>
+        {stats && stats.orders > 0 && (
+          <p className="text-xs font-semibold text-success mt-0.5">
+            Drove ₹{stats.revenue.toLocaleString('en-IN')} across {stats.orders} order{stats.orders === 1 ? '' : 's'}
+          </p>
+        )}
       </div>
       <div className="flex items-center gap-1 shrink-0">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onToggle(offer)} title={offer.status === 'active' ? 'Pause' : 'Resume'}>

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,7 +12,7 @@ import {
   MessageCircle, ShoppingCart, FileSpreadsheet, Package, AlertTriangle,
   Clock, Plus, X, ArrowUpDown, ExternalLink, Loader2,
   CheckCircle2, XCircle, PackageCheck, Truck, Timer, ChevronRight,
-  User, MapPin, FileText
+  User, MapPin, FileText, Printer
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,12 @@ import {
   parseCSVOrders, type ChannelOrder, getSlaStatus,
 } from '@/lib/channelConnectors';
 import { PageLoading } from '@/components/ui/page-loading';
+import { Checkbox } from '@/components/ui/checkbox';
+import { generatePackSlip } from '@/lib/packSlip';
+import { ORDER_MESSAGE_LABELS, orderMessage, waLink, type OrderMessageKind } from '@/lib/whatsapp';
+import { rtoRisk } from '@/lib/rtoRisk';
+
+const PRE_DISPATCH_STATUSES = ['new', 'unfulfilled', 'accepted', 'picking', 'packed', 'ready'];
 
 interface OrderRow {
   id: string;
@@ -145,6 +152,7 @@ function getTimelineIndex(status: string): number {
 }
 
 export default function Orders() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { currentStore } = useStore();
   const navigate = useNavigate();
@@ -163,6 +171,7 @@ export default function Orders() {
 
   const [activeTab, setActiveTab] = useState('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [bulkIds, setBulkIds] = useState<Set<string>>(new Set());
   const [sortMode, setSortMode] = useState<SortMode>('urgency');
   const [posMode, setPosMode] = useState(false);
 
@@ -294,6 +303,11 @@ export default function Orders() {
   }, [filtered, activeTab, sortMode]);
 
   const selectedOrder = selectedId ? orders.find(o => o.id === selectedId) : null;
+  const bulkAction = NEXT_STATUS[activeTab];
+  const bulkEligible = queue.filter(order => bulkAction && getNextAction(order)?.status === bulkAction.status);
+  const selectedBulkOrders = bulkEligible.filter(order => bulkIds.has(order.id));
+
+  useEffect(() => { setBulkIds(new Set()); }, [activeTab, search, channelFilter, statusFilter, paymentFilter, fulfillmentTypeFilter, storeId]);
 
   const activeFilterCount = [channelFilter, statusFilter, paymentFilter, fulfillmentTypeFilter]
     .filter(f => f !== 'all').length;
@@ -306,6 +320,39 @@ export default function Orders() {
 
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v);
+
+  // ─── Bulk selection ───
+  const toggleBulk = (orderId: string) => {
+    setBulkIds(prev => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+  };
+
+  const bulkAdvance = async () => {
+    if (!bulkAction || selectedBulkOrders.length === 0 || updatingRef.current) return;
+    const ids = selectedBulkOrders.map(order => order.id);
+    const sequence = fetchSequence.current;
+    updatingRef.current = true;
+    setUpdatingId('bulk');
+    try {
+      const { error } = await supabase.from('orders')
+        .update({ fulfillment_status: bulkAction.status })
+        .in('id', ids)
+        .in('fulfillment_status', STATUS_TABS.find(tab => tab.key === activeTab)!.statuses);
+      if (error) throw error;
+      toast.success(`${ids.length} ${t('orders')} ${t('moved to')} ${t(bulkAction.status.replace(/_/g, ' '))}`);
+      setBulkIds(new Set());
+      if (sequence === fetchSequence.current) await fetchOrders();
+    } catch {
+      toast.error('Failed to update selected orders');
+    } finally {
+      updatingRef.current = false;
+      setUpdatingId(null);
+    }
+  };
 
   // ─── Actions ───
   const updateStatus = async (orderId: string, newStatus: string, declinedReason?: string) => {
@@ -392,8 +439,8 @@ export default function Orders() {
       return (
         <div className="flex flex-col items-center justify-center h-full py-20 text-center">
           <Package className="w-10 h-10 text-muted-foreground/40 mb-3" />
-          <p className="text-sm font-medium text-muted-foreground">Select an order to view details</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">Click any order from the queue</p>
+          <p className="text-sm font-medium text-muted-foreground">{t('Select an order to view details')}</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">{t('Click any order from the queue')}</p>
         </div>
       );
     }
@@ -436,12 +483,38 @@ export default function Orders() {
               </div>
             </div>
 
+            {/* RTO risk assessment for undispatched orders */}
+            {!selectedOrder.is_voided && PRE_DISPATCH_STATUSES.includes(selectedOrder.fulfillment_status) && (() => {
+              const risk = rtoRisk(selectedOrder);
+              if (risk.level === 'low') return null;
+              return (
+                <div className={cn(
+                  'rounded-xl border px-3 py-2.5',
+                  risk.level === 'high' ? 'border-destructive/30 bg-destructive/5' : 'border-warning/30 bg-warning/5',
+                )}>
+                  <p className={cn('text-xs font-bold', risk.level === 'high' ? 'text-destructive' : 'text-warning')}>
+                    {risk.level === 'high' ? 'High' : 'Medium'} RTO risk · {risk.score}/100
+                  </p>
+                  <ul className="mt-1 space-y-0.5">
+                    {risk.reasons.map(reason => (
+                      <li key={reason} className="text-[11px] text-muted-foreground">• {reason}</li>
+                    ))}
+                  </ul>
+                  {selectedOrder.payment_type === 'cod' && selectedOrder.customers?.phone && (
+                    <p className="mt-1.5 text-[11px] font-medium text-foreground">
+                      Tip: confirm on WhatsApp before dispatch to avoid a bounced COD parcel.
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
             <Separator />
 
             {/* Customer */}
             <div className="space-y-1.5">
               <h4 className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                <User className="w-3 h-3" /> Customer
+                <User className="w-3 h-3" /> {t('Customer')}
               </h4>
               <p className="text-sm font-medium">{selectedOrder.customers?.name || 'Walk-in'}</p>
               {selectedOrder.customers?.phone && (
@@ -531,7 +604,7 @@ export default function Orders() {
                 <Separator />
                 <div className="space-y-1">
                   <h4 className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                    <FileText className="w-3 h-3" /> Notes
+                    <FileText className="w-3 h-3" /> {t('Notes')}
                   </h4>
                   <p className="text-xs text-muted-foreground">{selectedOrder.notes}</p>
                 </div>
@@ -551,7 +624,7 @@ export default function Orders() {
               onClick={() => updateStatus(selectedOrder.id, nextAction.status)}
             >
               {updatingId === selectedOrder.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <nextAction.icon className="w-4 h-4" />}
-              {updatingId === selectedOrder.id ? 'Updating...' : nextAction.label}
+              {updatingId === selectedOrder.id ? t('Updating...') : t(nextAction.label)}
             </Button>
           )}
 
@@ -565,9 +638,76 @@ export default function Orders() {
               onClick={() => setDeclineDialogOpen(true)}
             >
               <XCircle className="w-4 h-4" />
-              Decline
+              {t('Decline')}
             </Button>
           )}
+
+          {/* WhatsApp status update */}
+          {selectedOrder.customers?.phone && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="min-h-11 w-full gap-2 text-[#187c40] hover:text-[#126b35]" size="sm">
+                  <MessageCircle className="w-4 h-4" />
+                  {t('Send WhatsApp Update')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="center" className="w-64 p-1.5">
+                {(Object.keys(ORDER_MESSAGE_LABELS) as OrderMessageKind[]).map(kind => (
+                  <button
+                    key={kind}
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                    onClick={() => {
+                      const link = waLink(
+                        selectedOrder.customers?.phone,
+                        orderMessage(kind, {
+                          customerName: selectedOrder.customers?.name,
+                          orderNumber: selectedOrder.order_number,
+                          total: Number(selectedOrder.total),
+                          storeName: selectedOrder.store?.name,
+                        })
+                      );
+                      if (link) window.open(link, '_blank', 'noopener');
+                    }}
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-[#25D366]" />
+                    {ORDER_MESSAGE_LABELS[kind]}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+          )}
+
+          {/* Pack slip */}
+          <Button
+            variant="outline"
+            className="min-h-11 w-full gap-2"
+            size="sm"
+            disabled={loadingItems || itemsError}
+            onClick={() =>
+              generatePackSlip(
+                {
+                  orderNumber: selectedOrder.order_number,
+                  createdAt: selectedOrder.created_at,
+                  customerName: selectedOrder.customers?.name || 'Walk-in',
+                  phone: selectedOrder.customers?.phone,
+                  shippingAddress: selectedOrder.shipping_address,
+                  storeName: selectedOrder.store?.name,
+                  channel: selectedOrder.channel,
+                  paymentType: selectedOrder.payment_type,
+                  total: Number(selectedOrder.total),
+                  notes: selectedOrder.notes,
+                },
+                detailItems.map(item => ({
+                  name: item.cigar?.name || item.product?.name || 'Item',
+                  quantity: item.quantity,
+                }))
+              )
+            }
+          >
+            <Printer className="w-4 h-4" />
+            {t('Print Pack Slip')}
+          </Button>
 
           {/* Full details link */}
           <Button
@@ -576,7 +716,7 @@ export default function Orders() {
             size="sm"
             onClick={() => navigate(`/demo/orders/${selectedOrder.id}`)}
           >
-            Open Full Details <ExternalLink className="w-3 h-3" />
+            {t('Open Full Details')} <ExternalLink className="w-3 h-3" />
           </Button>
         </div>
       </div>
@@ -590,11 +730,11 @@ export default function Orders() {
         <div className="mb-3 shrink-0 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-2xl font-semibold text-[#17191c] md:text-3xl">Orders</h1>
+              <h1 className="text-2xl font-semibold text-[#17191c] md:text-3xl">{t('Orders')}</h1>
               <p className="mt-1 text-xs text-muted-foreground">{orders.length} orders{currentStore ? ` · ${currentStore.name}` : ''}</p>
             </div>
             <Button className="min-h-11 shrink-0 gap-1.5" onClick={() => navigate('/demo/orders/new')}>
-              <Plus className="h-4 w-4" /> New order
+              <Plus className="h-4 w-4" /> {t('New order')}
             </Button>
           </div>
           <div className="flex min-w-0 items-center gap-2">
@@ -602,7 +742,7 @@ export default function Orders() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 aria-label="Search orders"
-                placeholder="Order number or customer"
+                placeholder={t('Search orders...')}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="h-11 rounded-full bg-white pl-9 pr-11 text-base md:text-sm"
@@ -714,7 +854,7 @@ export default function Orders() {
           <Select value={activeTab} onValueChange={value => { setActiveTab(value); setSelectedId(null); }}>
             <SelectTrigger aria-label="Order status" className="h-11 bg-white font-semibold"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {STATUS_TABS.map(stage => <SelectItem key={stage.key} value={stage.key} className="min-h-11">{stage.label} ({tabCounts[stage.key] || 0})</SelectItem>)}
+              {STATUS_TABS.map(stage => <SelectItem key={stage.key} value={stage.key} className="min-h-11">{t(stage.label)} ({tabCounts[stage.key] || 0})</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -737,7 +877,7 @@ export default function Orders() {
                   !isActive && hasUrgent && count > 0 && 'ring-1 ring-destructive/40 text-destructive'
                 )}
               >
-                {tab.label}
+                {t(tab.label)}
                 {count > 0 && (
                   <span className={cn(
                     'text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1',
@@ -754,18 +894,38 @@ export default function Orders() {
 
         {/* ─── Queue Summary Bar ─── */}
         <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {bulkEligible.length > 0 && <label className="flex min-h-11 cursor-pointer items-center gap-2 text-xs">
+              <Checkbox aria-label="Select all orders in queue" disabled={updatingId !== null} checked={selectedBulkOrders.length === bulkEligible.length ? true : selectedBulkOrders.length > 0 ? 'indeterminate' : false} onCheckedChange={checked => setBulkIds(checked === true ? new Set(bulkEligible.map(order => order.id)) : new Set())} />
+              {t('Select all')}
+            </label>}
             <p role="status" className="text-sm font-medium text-foreground">
               {queue.length === 0
-                ? 'No orders in view'
-                : `${queue.length} order${queue.length === 1 ? '' : 's'}`}
+                ? t('No orders in view')
+                : selectedBulkOrders.length > 0 ? `${selectedBulkOrders.length}/${queue.length} ${t('selected')}` : `${queue.length} ${t(queue.length === 1 ? 'order' : 'orders')}`}
             </p>
+            {selectedBulkOrders.length > 0 && bulkAction && (
+              <>
+                <Button size="sm" className="min-h-11 px-3 text-xs font-bold gap-1" disabled={updatingId !== null} onClick={bulkAdvance}>
+                  <CheckCircle2 className="w-3 h-3" />
+                  {t(bulkAction.label)} ({selectedBulkOrders.length})
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="min-h-11 px-2 text-xs"
+                  onClick={() => setBulkIds(new Set())}
+                >
+                  {t('Clear')}
+                </Button>
+              </>
+            )}
             {queue.length > 0 && (() => {
               const urgentCount = queue.filter(o => getUrgencyScore(o) <= 1).length;
               return urgentCount > 0 ? (
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-full">
                   <AlertTriangle className="w-2.5 h-2.5" />
-                  {urgentCount} urgent
+                  {urgentCount} {t('urgent')}
                 </span>
               ) : null;
             })()}
@@ -838,6 +998,10 @@ export default function Orders() {
                           urgency === 1 && !isSelected && 'border-l-warning bg-warning/[0.03]',
                         )}
                       >
+                        {bulkAction && nextAction?.status === bulkAction.status && <label className="flex min-h-11 cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                          <Checkbox aria-label={`Select order ${order.order_number}`} disabled={updatingId !== null} checked={bulkIds.has(order.id)} onCheckedChange={() => toggleBulk(order.id)} />
+                          {t('Select order')}
+                        </label>}
                         <button type="button" aria-label={`View order ${orderNumber}`} aria-pressed={isSelected} onClick={() => selectOrder(order.id)} className="block w-full min-w-0 space-y-2 rounded-md text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-4">
                           <div className="flex items-start justify-between gap-3">
                             <span className="min-w-0 break-words font-mono text-sm font-semibold">{orderNumber}</span>
@@ -851,6 +1015,7 @@ export default function Orders() {
                             <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-1', chCfg.color)}><ChIcon className="h-3 w-3" />{chCfg.label}</span>
                             <span className={cn('rounded-full px-2 py-1', ffCfg?.color || 'bg-muted text-muted-foreground')}>{order.is_voided ? 'Voided' : ffCfg?.label || order.fulfillment_status?.replace(/_/g, ' ') || 'Unfulfilled'}</span>
                             <span className="text-muted-foreground">{order.payment_type === 'cod' ? 'COD' : 'Prepaid'}</span>
+                            {!order.is_voided && PRE_DISPATCH_STATUSES.includes(order.fulfillment_status) && rtoRisk(order).level === 'high' && <span className="rounded-full bg-destructive/10 px-2 py-1 font-semibold text-destructive">{t('RTO risk')}</span>}
                           </div>
                         </button>
                         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/[0.04] pt-2">
@@ -865,7 +1030,7 @@ export default function Orders() {
                             onClick={() => updateStatus(order.id, nextAction.status)}
                           >
                             {updatingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <nextAction.icon className="h-4 w-4" />}
-                            {updatingId === order.id ? 'Updating...' : nextAction.label}
+                            {updatingId === order.id ? t('Updating...') : t(nextAction.label)}
                           </Button>
                           ) : <Button variant="outline" className="min-h-11 text-xs" onClick={() => selectOrder(order.id)}>View details <ChevronRight className="h-4 w-4" /></Button>}
                         </div>

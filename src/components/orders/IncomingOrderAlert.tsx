@@ -12,8 +12,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── Config ──────────────────────────────────────────────
-const MOCK_ORDER_KEY = 'clozzet_mock_order_enabled';
-const MUTE_KEY = 'clozzet_order_muted';
+const MOCK_ORDER_KEY = 'seecen_mock_order_enabled';
+const MUTE_KEY = 'seecen_order_muted';
 const INTERVAL_MS = 60_000;
 const COUNTDOWN_SECS = 120;
 const PACKING_MIN = 5;
@@ -206,24 +206,37 @@ export function IncomingOrderAlert() {
     }
   }, [order, presentOrder]);
 
+  // One-shot trigger from the demo controls
+  useEffect(() => {
+    const handler = () => enqueueOrder();
+    window.addEventListener('seecen-simulate-order', handler);
+    return () => window.removeEventListener('seecen-simulate-order', handler);
+  }, [enqueueOrder]);
+
   // Broadcast pending order count for header badge
   useEffect(() => {
     const count = (order ? 1 : 0) + orderQueue.length;
-    window.dispatchEvent(new CustomEvent('clozzet-pending-orders', { detail: count }));
+    window.dispatchEvent(new CustomEvent('seecen-pending-orders', { detail: count }));
   }, [order, orderQueue]);
 
   // Main interval
   useEffect(() => {
-    if (enabled) {
-      const timeout = setTimeout(enqueueOrder, 5000);
-      intervalRef.current = setInterval(enqueueOrder, INTERVAL_MS);
-      return () => { clearTimeout(timeout); if (intervalRef.current) clearInterval(intervalRef.current); };
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+    if (!enabled) return;
+    const timeout = setTimeout(enqueueOrder, 5000);
+    intervalRef.current = setInterval(enqueueOrder, INTERVAL_MS);
+    return () => { clearTimeout(timeout); if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [enabled, enqueueOrder]);
+
+  // Clear the queue only when auto-orders are switched off (manual
+  // simulations must survive this effect re-running).
+  const prevEnabledRef = useRef(enabled);
+  useEffect(() => {
+    if (prevEnabledRef.current && !enabled) {
       setOrder(null);
       setOrderQueue([]);
     }
-  }, [enabled, enqueueOrder]);
+    prevEnabledRef.current = enabled;
+  }, [enabled]);
 
   // Countdown
   useEffect(() => {

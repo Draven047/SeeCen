@@ -2,10 +2,12 @@ import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
+import { FirstRunWizard } from "@/components/onboarding/FirstRunWizard";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { StoreProvider } from "@/contexts/StoreContext";
 import { AICoachChatBubble } from "./components/ai-coach/AICoachChatBubble";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageLoading } from "@/components/ui/page-loading";
 
 const queryClient = new QueryClient();
@@ -23,6 +25,7 @@ const CreateOrder = lazy(() => import("./pages/CreateOrder"));
 const OrderDetail = lazy(() => import("./pages/OrderDetail"));
 const Fulfillment = lazy(() => import("./pages/Fulfillment"));
 const Shipping = lazy(() => import("./pages/Shipping"));
+const Ndr = lazy(() => import("./pages/Ndr"));
 const Inventory = lazy(() => import("./pages/Inventory"));
 const Returns = lazy(() => import("./pages/Returns"));
 const Employees = lazy(() => import("./pages/Employees"));
@@ -81,7 +84,9 @@ function LegacyRedirect({ to }: { to: string }) {
 
 function AppRoutes() {
   const { user, isApproved, role } = useAuth();
+  const location = useLocation();
   const showChatBubble = user && isApproved && role === 'sales';
+  const isDemoRoute = location.pathname.startsWith('/demo');
 
   return (
     <>
@@ -104,6 +109,7 @@ function AppRoutes() {
           {/* Operations */}
           <Route path="/demo/fulfillment" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Fulfillment /></ProtectedRoute>} />
           <Route path="/demo/shipping" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><Shipping /></ProtectedRoute>} />
+          <Route path="/demo/ndr" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><Ndr /></ProtectedRoute>} />
           <Route path="/demo/catalogue" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><Catalogue /></ProtectedRoute>} />
           <Route path="/demo/catalogue/add" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'operations']}><AddProduct /></ProtectedRoute>} />
           <Route path="/demo/catalogue/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'sales', 'operations']}><ProductDetail /></ProtectedRoute>} />
@@ -161,6 +167,7 @@ function AppRoutes() {
         </Routes>
       </Suspense>
       {showChatBubble && <AICoachChatBubble />}
+      {isDemoRoute && <FirstRunWizard />}
     </>
   );
 }
@@ -170,11 +177,13 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <BrowserRouter>
-        <AuthProvider>
-          <StoreProvider>
-            <AppRoutes />
-          </StoreProvider>
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <StoreProvider>
+              <AppRoutes />
+            </StoreProvider>
+          </AuthProvider>
+        </ErrorBoundary>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

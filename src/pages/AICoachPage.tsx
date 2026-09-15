@@ -441,12 +441,12 @@ export default function AICoachPage() {
 
               {/* Top Actions Grid */}
               <div className="grid gap-6 md:grid-cols-2">
-                {/* Top Cigars to Sell */}
+                {/* Top Products to Sell */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <TrendingUp className="w-5 h-5 text-success" />
-                      Top Cigars to Sell Today
+                      Top Products to Sell Today
                     </CardTitle>
                     <CardDescription>Prioritized by demand, stock, and margin</CardDescription>
                   </CardHeader>

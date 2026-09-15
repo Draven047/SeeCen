@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { getHubMetrics, type HubOrder } from '../src/lib/hubMetrics';
+import { getHubMetrics, getHubOperations, getHubBreakdown, type HubOrder } from '../src/lib/hubMetrics';
 
 const now = new Date(2026, 8, 15, 14, 30);
 function order(overrides: Partial<HubOrder> = {}): HubOrder {
@@ -68,5 +68,44 @@ describe('Hub metrics', () => {
     assert.equal(result.average, 0);
     assert.equal(result.trend.length, 30);
     assert.ok(result.trend.every(bucket => bucket.value === 0 && bucket.orders === 0));
+  });
+
+  it('counts distinct known customers, not anonymous orders or matching names', () => {
+    const result = getHubMetrics([
+      order({ customer_id: 'a' }), order({ customer_id: 'a' }),
+      order({ customer_id: 'b' }), order(),
+      order({ customer_id: 'c', is_voided: true }),
+    ], 'today', now);
+    assert.equal(result.customers, 2);
+    assert.equal(result.trend.find(bucket => bucket.orders === 4)?.customers, 2);
+  });
+
+  it('preserves operational signals independently of sales reporting dates', () => {
+    const result = getHubOperations([
+      order({ fulfillment_status: 'failed_delivery', created_at: new Date(2026, 5, 1).toISOString() }),
+      order({ fulfillment_status: 'packed' }), order({ fulfillment_status: 'ready' }),
+      order({ fulfillment_status: 'packed', is_voided: true }),
+      order({ fulfillment_status: 'in_transit' }),
+      order({ fulfillment_status: 'delivered', shipped_at: new Date(2026, 8, 15, 10).toISOString(), sla_deadline: new Date(2026, 8, 15, 11).toISOString() }),
+      order({ fulfillment_status: 'accepted', sla_deadline: new Date(2026, 8, 15, 11).toISOString() }),
+    ], now);
+    assert.equal(result.failed, 1);
+    assert.equal(result.packed, 2);
+    assert.equal(result.dispatchScore, 50);
+    assert.equal(result.inTransit, 1);
+    assert.equal(result.delivered, 1);
+    assert.equal(getHubOperations([], now).dispatchScore, null);
+  });
+
+  it('keeps channel mix and product totals consistent with valid period orders', () => {
+    const items = [{ product_id: 'shoe', quantity: 2, total_price: 100 }];
+    const result = getHubBreakdown([
+      order({ channel: 'ondc', order_items: items }),
+      order({ channel: 'website', order_items: items }),
+      order({ channel: 'website', order_items: items, is_voided: true }),
+    ]);
+    assert.deepEqual(result.products, [{ id: 'shoe', value: 200, units: 4 }]);
+    assert.equal(result.channels.length, 2);
+    assert.ok(result.channels.every(channel => channel.share === 50));
   });
 });

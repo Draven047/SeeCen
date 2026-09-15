@@ -19,9 +19,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        display: ["Inter", "system-ui", "sans-serif"],
-        body: ["Inter", "system-ui", "sans-serif"],
+        sans: ["Inter", "Nirmala UI", "Noto Sans", "system-ui", "sans-serif"],
+        display: ["Inter", "Nirmala UI", "Noto Sans", "system-ui", "sans-serif"],
+        body: ["Inter", "Nirmala UI", "Noto Sans", "system-ui", "sans-serif"],
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       fontSize: {

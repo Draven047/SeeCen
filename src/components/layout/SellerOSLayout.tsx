@@ -5,6 +5,7 @@ import { SellerOSBottomNav } from './SellerOSBottomNav';
 import { WarningBannerSystem } from './WarningBannerSystem';
 import { PageTransition } from './PageTransition';
 import { IncomingOrderAlert } from '@/components/orders/IncomingOrderAlert';
+import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
 import { NewOrderFAB } from './NewOrderFAB';
 import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -39,6 +40,7 @@ function SellerOSContent({ children }: { children: ReactNode }) {
       {/* Mock order popup for testing */}
       <IncomingOrderAlert />
       <NewOrderFAB />
+      <KeyboardShortcutsDialog />
     </div>
   );
 }

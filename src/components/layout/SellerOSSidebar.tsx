@@ -1,9 +1,10 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   ShoppingCart, Boxes, LayoutGrid, MessageSquareWarning, IndianRupee,
   TrendingUp, Link2, UserCog, Store, Settings, ShoppingBag,
   ChevronLeft, BarChart3, Bot, UserCheck, Package, Truck, Users,
-  RotateCcw, PackageCheck,
+  RotateCcw, PackageCheck, AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { brand } from '@/config/brand';
 
 interface NavItem {
   icon: React.ElementType;
@@ -40,6 +42,7 @@ const secondaryGroups: NavGroup[] = [
       { icon: Package, label: 'Catalogue', path: '/demo/catalogue' },
       { icon: Truck, label: 'Fulfillment', path: '/demo/fulfillment' },
       { icon: PackageCheck, label: 'Shipping', path: '/demo/shipping' },
+      { icon: AlertTriangle, label: 'NDR', path: '/demo/ndr' },
       { icon: RotateCcw, label: 'Returns', path: '/demo/returns' },
       { icon: Users, label: 'Customers', path: '/demo/customers' },
       { icon: UserCog, label: 'Employees', path: '/demo/employees' },
@@ -60,9 +63,9 @@ const secondaryGroups: NavGroup[] = [
 
 const roleAccess: Record<string, string[]> = {
   admin: ['*'],
-  manager: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/shipping', '/demo/catalogue', '/demo/inventory', '/demo/returns', '/demo/customers', '/demo/employees', '/demo/analytics', '/demo/ai-coach', '/demo/feedback', '/demo/growth'],
+  manager: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/shipping', '/demo/ndr', '/demo/catalogue', '/demo/inventory', '/demo/returns', '/demo/customers', '/demo/employees', '/demo/analytics', '/demo/ai-coach', '/demo/feedback', '/demo/growth'],
   sales: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/catalogue', '/demo/customers', '/demo/returns', '/demo/ai-coach', '/demo/feedback', '/demo/growth'],
-  operations: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/shipping', '/demo/catalogue', '/demo/inventory', '/demo/returns', '/demo/feedback'],
+  operations: ['/demo/dashboard', '/demo/orders', '/demo/fulfillment', '/demo/shipping', '/demo/ndr', '/demo/catalogue', '/demo/inventory', '/demo/returns', '/demo/feedback'],
   finance: ['/demo/dashboard', '/demo/analytics', '/demo/finance'],
   viewer: ['/demo/dashboard'],
 };
@@ -76,6 +79,7 @@ function canAccess(role: string | null, path: string): boolean {
 }
 
 export function SellerOSSidebar() {
+  const { t } = useTranslation();
   const location = useLocation();
   const { role } = useAuth();
   const { collapsed, toggle } = useSidebar();
@@ -118,7 +122,7 @@ export function SellerOSSidebar() {
         )}
       >
         <item.icon className="h-[20px] w-[20px] shrink-0" strokeWidth={active ? 2.3 : 1.9} />
-        {!collapsed && <span className="truncate">{item.label}</span>}
+        {!collapsed && <span className="truncate">{t(item.label)}</span>}
         {showBadge && (
           <span className={cn(
             'inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold',
@@ -133,7 +137,7 @@ export function SellerOSSidebar() {
     return (
       <Tooltip key={item.path} delayDuration={0}>
         <TooltipTrigger asChild><div className="relative">{link}</div></TooltipTrigger>
-        <TooltipContent side="right" className="font-medium">{item.label}</TooltipContent>
+        <TooltipContent side="right" className="font-medium">{t(item.label)}</TooltipContent>
       </Tooltip>
     );
   };
@@ -169,8 +173,8 @@ export function SellerOSSidebar() {
               <ShoppingBag className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-[15px] font-black leading-5 tracking-[-0.03em] text-[#17191c]">SeeCen</p>
-                <p className="truncate text-[10px] font-bold uppercase tracking-[0.18em] text-[#9aa0a8]">Seller OS</p>
+                <p className="truncate text-[15px] font-black leading-5 tracking-[-0.03em] text-[#17191c]">{brand.name}</p>
+                <p className="truncate text-[10px] font-bold uppercase tracking-[0.18em] text-[#9aa0a8]">{brand.tagline}</p>
               </div>
             </div>
             <button

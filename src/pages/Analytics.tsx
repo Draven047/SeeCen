@@ -112,6 +112,34 @@ export default function Analytics() {
   const orderCount = filteredOrders.length;
   const aov = orderCount > 0 ? totalRevenue / orderCount : 0;
 
+  // Repeat purchase behaviour: customers seen before the period vs first-timers in it.
+  const repeatStats = useMemo(() => {
+    const firstOrderAt = new Map<string, number>();
+    for (const o of orders) {
+      if (!o.customer_id) continue;
+      const t = new Date(o.created_at).getTime();
+      const prev = firstOrderAt.get(o.customer_id);
+      if (prev == null || t < prev) firstOrderAt.set(o.customer_id, t);
+    }
+    let returningRevenue = 0;
+    let newRevenue = 0;
+    const buyers = new Set<string>();
+    const returningBuyers = new Set<string>();
+    for (const o of filteredOrders) {
+      if (!o.customer_id) { newRevenue += Number(o.total); continue; }
+      buyers.add(o.customer_id);
+      const isReturning = (firstOrderAt.get(o.customer_id) ?? 0) < cutoffDate.getTime();
+      if (isReturning) { returningRevenue += Number(o.total); returningBuyers.add(o.customer_id); }
+      else newRevenue += Number(o.total);
+    }
+    return {
+      repeatRate: buyers.size > 0 ? (returningBuyers.size / buyers.size) * 100 : 0,
+      returningRevenue,
+      newRevenue,
+      returningShare: totalRevenue > 0 ? (returningRevenue / totalRevenue) * 100 : 0,
+    };
+  }, [orders, filteredOrders, cutoffDate, totalRevenue]);
+
   const salesTrend = useMemo(() => {
     const buckets: Record<string, { date: string; revenue: number; orders: number }> = {};
     const isLong = period === '90d' || period === '12m';
@@ -227,12 +255,14 @@ export default function Analytics() {
 
           {/* ── SALES TAB ── */}
           <TabsContent value="sales" className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {[
                 { label: 'Revenue', value: fmt(totalRevenue), change: revenueChange, icon: DollarSign },
                 { label: 'Orders', value: orderCount, change: 0, icon: ShoppingBag },
                 { label: 'AOV', value: fmt(aov), change: 0, icon: TrendingUp },
                 { label: 'Customers', value: customers.filter(c => new Date(c.created_at) >= cutoffDate).length, change: 0, icon: Users },
+                { label: 'Repeat rate', value: `${repeatStats.repeatRate.toFixed(0)}%`, change: 0, icon: Users },
+                { label: 'Returning revenue', value: `${fmt(repeatStats.returningRevenue)} · ${repeatStats.returningShare.toFixed(0)}%`, change: 0, icon: TrendingUp },
               ].map((kpi, i) => (
                 <div key={i} className="stat-card">
                   <p className="text-xs text-muted-foreground">{kpi.label}</p>

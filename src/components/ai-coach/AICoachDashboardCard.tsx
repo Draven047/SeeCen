@@ -151,7 +151,7 @@ export function AICoachDashboardCard() {
           <div className="p-4 rounded-xl bg-background/50 border">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="w-4 h-4 text-green-500" />
-              <span className="text-xs font-medium text-muted-foreground">Top Cigars to Sell</span>
+              <span className="text-xs font-medium text-muted-foreground">Top Products to Sell</span>
             </div>
             <div className="space-y-1">
               {cigarsToSell.slice(0, 2).map((c, i) => (

@@ -1,6 +1,6 @@
 // Channel Connector Interface & Mock Implementations
 
-export type SalesChannel = 'in_store' | 'website' | 'instagram' | 'whatsapp' | 'marketplace' | 'csv_import';
+export type SalesChannel = 'in_store' | 'website' | 'instagram' | 'whatsapp' | 'marketplace' | 'amazon' | 'ondc' | 'csv_import';
 
 export type FulfillmentStatus = 
   | 'new' | 'accepted' | 'picking' | 'packed' | 'ready' 
@@ -53,6 +53,8 @@ export const CHANNEL_CONFIG: Record<SalesChannel, { label: string; icon: string;
   instagram: { label: 'Instagram', icon: 'Instagram', color: 'bg-pink-500/10 text-pink-600' },
   whatsapp: { label: 'WhatsApp', icon: 'MessageCircle', color: 'bg-green-500/10 text-green-600' },
   marketplace: { label: 'Marketplace', icon: 'ShoppingCart', color: 'bg-orange-500/10 text-orange-600' },
+  amazon: { label: 'Amazon', icon: 'ShoppingCart', color: 'bg-amber-500/10 text-amber-700' },
+  ondc: { label: 'ONDC', icon: 'Globe', color: 'bg-teal-500/10 text-teal-700' },
   csv_import: { label: 'CSV Import', icon: 'FileSpreadsheet', color: 'bg-violet-500/10 text-violet-600' },
 };
 

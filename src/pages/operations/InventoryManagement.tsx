@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SearchInput } from '@/components/ui/input';
@@ -9,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Package, Edit2, Plus, ChevronDown, Minus, ToggleLeft, ToggleRight, Search, Image as ImageIcon } from 'lucide-react';
+import { Package, Edit2, Plus, ChevronDown, Minus, ToggleLeft, ToggleRight, Search, Image as ImageIcon, PackagePlus, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -17,6 +18,16 @@ import { useStore } from '@/contexts/StoreContext';
 
 interface Store { id: string; name: string; }
 interface ProductOption { id: string; name: string; base_price: number; category: string; brand: string | null; }
+
+interface StockRequest {
+  id: string;
+  product_id: string | null;
+  cigar_id: string | null;
+  quantity_requested: number;
+  status: string;
+  created_at: string;
+  product?: { name: string } | null;
+}
 
 interface InventoryItem {
   id: string;
@@ -32,6 +43,7 @@ interface InventoryItem {
 }
 
 export default function InventoryManagement() {
+  const { t } = useTranslation();
   const isMobile = useIsMobile();
   const { currentStore } = useStore();
   const [stores, setStores] = useState<Store[]>([]);
@@ -48,9 +60,10 @@ export default function InventoryManagement() {
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState<string | null>(null);
   const [addProductId, setAddProductId] = useState('');
+  const [stockRequests, setStockRequests] = useState<StockRequest[]>([]);
 
   useEffect(() => { fetchStores(); fetchProducts(); }, []);
-  useEffect(() => { if (selectedStore) fetchInventory(); }, [selectedStore]);
+  useEffect(() => { if (selectedStore) { fetchInventory(); fetchStockRequests(); } }, [selectedStore]);
 
   useEffect(() => {
     if (!selectedStore) return;
@@ -84,6 +97,52 @@ export default function InventoryManagement() {
     setInventory((data as unknown as InventoryItem[]) || []);
     setLoading(false);
   }, [selectedStore]);
+
+  const fetchStockRequests = useCallback(async () => {
+    const { data } = await supabase
+      .from('stock_requests')
+      .select('*, product:products(name)')
+      .eq('store_id', selectedStore)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    setStockRequests((data as unknown as StockRequest[]) || []);
+  }, [selectedStore]);
+
+  const requestStock = async (item: InventoryItem) => {
+    const productId = item.product_id || item.cigar_id;
+    const min = item.min_stock_level || 10;
+    const quantity = Math.max(min * 2 - item.quantity, min);
+    const { error } = await supabase.from('stock_requests').insert({
+      store_id: selectedStore,
+      product_id: productId,
+      cigar_id: productId,
+      quantity_requested: quantity,
+      status: 'pending',
+    });
+    if (error) toast.error('Failed to raise stock request');
+    else { toast.success(`Requested ${quantity} × ${getItemName(item)}`); fetchStockRequests(); }
+  };
+
+  const receiveStockRequest = async (request: StockRequest) => {
+    const productId = request.product_id || request.cigar_id;
+    const row = inventory.find(i => (i.product_id || i.cigar_id) === productId);
+    if (!row) { toast.error('No inventory row for this product'); return; }
+    const [invRes, reqRes] = await Promise.all([
+      supabase.from('store_inventory').update({ quantity: row.quantity + request.quantity_requested }).eq('id', row.id),
+      supabase.from('stock_requests').update({ status: 'received' }).eq('id', request.id),
+    ]);
+    if (invRes.error || reqRes.error) toast.error('Failed to receive stock');
+    else { toast.success(`Received ${request.quantity_requested} units into stock`); fetchInventory(); fetchStockRequests(); }
+  };
+
+  const cancelStockRequest = async (request: StockRequest) => {
+    const { error } = await supabase.from('stock_requests').update({ status: 'cancelled' }).eq('id', request.id);
+    if (error) toast.error('Failed to cancel request');
+    else { toast.success('Request cancelled'); fetchStockRequests(); }
+  };
+
+  const hasPendingRequest = (item: InventoryItem) =>
+    stockRequests.some(r => (r.product_id || r.cigar_id) === (item.product_id || item.cigar_id));
 
   const addProductToInventory = async (productId: string) => {
     if (!productId) return;
@@ -189,17 +248,17 @@ export default function InventoryManagement() {
   const totalLow = inventory.filter(i => i.quantity > 0 && i.quantity < (i.min_stock_level || 10)).length;
 
   const stockFilterOptions = [
-    { key: 'all' as const, label: 'All', count: inventory.length },
-    { key: 'low' as const, label: 'Low Stock', count: totalLow },
-    { key: 'out' as const, label: 'Out of Stock', count: totalOut },
+    { key: 'all' as const, label: t('All'), count: inventory.length },
+    { key: 'low' as const, label: t('Low Stock'), count: totalLow },
+    { key: 'out' as const, label: t('Out of Stock'), count: totalOut },
   ];
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-heading">Inventory</h2>
-          <p className="text-muted-foreground text-sm mt-0.5">Manage stock levels · Live sync</p>
+          <h2 className="text-heading">{t('Inventory')}</h2>
+          <p className="text-muted-foreground text-sm mt-0.5">{t('Manage stock levels · Live sync')}</p>
         </div>
       </div>
 
@@ -218,15 +277,15 @@ export default function InventoryManagement() {
           <div className="flex gap-2">
             <div className="flex-1 glass-card rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-emerald-500">{totalAvailable}</p>
-              <p className="text-[11px] text-muted-foreground">Available</p>
+              <p className="text-[11px] text-muted-foreground">{t('Available')}</p>
             </div>
             <div className="flex-1 glass-card rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-orange-500">{totalLow}</p>
-              <p className="text-[11px] text-muted-foreground">Low Stock</p>
+              <p className="text-[11px] text-muted-foreground">{t('Low Stock')}</p>
             </div>
             <div className="flex-1 glass-card rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-destructive">{totalOut}</p>
-              <p className="text-[11px] text-muted-foreground">Out</p>
+              <p className="text-[11px] text-muted-foreground">{t('Out of Stock')}</p>
             </div>
           </div>
 
@@ -273,6 +332,32 @@ export default function InventoryManagement() {
               <Button size="sm" className="h-10 shrink-0" disabled={!addProductId} onClick={() => addProductToInventory(addProductId)}>
                 <Plus className="w-4 h-4 mr-1" /> Add
               </Button>
+            </div>
+          )}
+
+          {/* Pending stock requests */}
+          {stockRequests.length > 0 && (
+            <div className="glass-card rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <PackagePlus className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-semibold">Incoming stock requests ({stockRequests.length})</h3>
+              </div>
+              <div className="space-y-2">
+                {stockRequests.map(request => (
+                  <div key={request.id} className="flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{request.product?.name || 'Product'}</p>
+                      <p className="text-xs text-muted-foreground">{request.quantity_requested} units requested</p>
+                    </div>
+                    <Button size="sm" className="h-8 gap-1 px-3 text-xs" onClick={() => receiveStockRequest(request)}>
+                      <Check className="w-3.5 h-3.5" /> {t('Mark received')}
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground" onClick={() => cancelStockRequest(request)} aria-label="Cancel request">
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -333,6 +418,18 @@ export default function InventoryManagement() {
                                 <p className="text-xs text-muted-foreground">₹{getItemPrice(item).toLocaleString('en-IN')}</p>
                               </div>
                               <span className={cn('text-xs font-semibold px-2 py-1 rounded-full shrink-0', badge.class)}>{badge.label}</span>
+                              {item.quantity < (item.min_stock_level || 10) && (
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-10 w-10 shrink-0 text-primary"
+                                  disabled={hasPendingRequest(item)}
+                                  onClick={() => requestStock(item)}
+                                  aria-label="Request stock"
+                                >
+                                  <PackagePlus className="w-4 h-4" />
+                                </Button>
+                              )}
                               <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={() => openEditDialog(item)}>
                                 <Edit2 className="w-4 h-4" />
                               </Button>
@@ -395,6 +492,18 @@ export default function InventoryManagement() {
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
                             <Switch checked={isAvailable} onCheckedChange={() => quickToggle(item)} className="shrink-0" />
+                            {item.quantity < (item.min_stock_level || 10) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 gap-1 px-2 text-xs text-primary"
+                                disabled={hasPendingRequest(item)}
+                                onClick={() => requestStock(item)}
+                              >
+                                <PackagePlus className="w-3.5 h-3.5" />
+                                {hasPendingRequest(item) ? t('Requested') : t('Request')}
+                              </Button>
+                            )}
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(item)}>
                               <Edit2 className="w-3.5 h-3.5" />
                             </Button>

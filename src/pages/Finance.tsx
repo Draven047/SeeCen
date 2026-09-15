@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { SellerOSLayout } from '@/components/layout/SellerOSLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,8 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   IndianRupee, Download, CheckCircle, Clock, AlertTriangle,
   Banknote, CreditCard, FileText, ChevronRight, Calendar,
-  ArrowDownToLine, Settings,
+  ArrowDownToLine, Settings, TrendingUp,
 } from 'lucide-react';
+import { ProfitPanel } from '@/components/finance/ProfitPanel';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { PageLoading } from '@/components/ui/page-loading';
@@ -42,6 +44,7 @@ interface CodEntry {
 }
 
 export default function Finance() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, role } = useAuth();
   const { currentStore } = useStore();
@@ -98,8 +101,8 @@ export default function Finance() {
         <div className="rounded-[28px] border border-black/[0.04] bg-white p-6 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)]">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Finance control</p>
-            <h1 className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-[#17191c]">Payouts</h1>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">{t('Finance control')}</p>
+            <h1 className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-[#17191c]">{t('Payouts')}</h1>
             <p className="text-sm text-muted-foreground mt-2">{currentStore?.name || 'Select a store'}</p>
           </div>
           <Button variant="ghost" size="sm" onClick={() => navigate('/demo/settings')} className="min-h-[44px]">
@@ -166,18 +169,57 @@ export default function Finance() {
         <Tabs defaultValue="payouts" className="space-y-4">
           <TabsList className="w-full justify-start bg-muted/50 p-1 rounded-xl">
             <TabsTrigger value="payouts" className="rounded-lg text-xs min-h-[40px]">
-              <Banknote className="w-3.5 h-3.5 mr-1.5" /> Payouts
+              <Banknote className="w-3.5 h-3.5 mr-1.5" /> {t('Payouts')}
+            </TabsTrigger>
+            <TabsTrigger value="profit" className="rounded-lg text-xs min-h-[40px]">
+              <TrendingUp className="w-3.5 h-3.5 mr-1.5" /> {t('Profit')}
             </TabsTrigger>
             <TabsTrigger value="cod" className="rounded-lg text-xs min-h-[40px]">
               <IndianRupee className="w-3.5 h-3.5 mr-1.5" /> COD
             </TabsTrigger>
             <TabsTrigger value="reports" className="rounded-lg text-xs min-h-[40px]">
-              <Download className="w-3.5 h-3.5 mr-1.5" /> Reports
+              <Download className="w-3.5 h-3.5 mr-1.5" /> {t('Reports')}
             </TabsTrigger>
           </TabsList>
 
+          {/* True P&L */}
+          <TabsContent value="profit" className="space-y-3">
+            {storeId && <ProfitPanel storeId={storeId} />}
+          </TabsContent>
+
           {/* Completed Payouts */}
           <TabsContent value="payouts" className="space-y-3">
+            {/* Upcoming cash calendar */}
+            {(pendingSettlements.length > 0 || codPending > 0) && (
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-bold text-foreground">{t('Cash on the way')}</h3>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {pendingSettlements.map(s => (
+                    <div key={s.id} className="flex items-center justify-between rounded-xl bg-card px-3 py-2.5 text-sm">
+                      <div>
+                        <p className="font-semibold capitalize text-foreground">{s.channel} payout</p>
+                        <p className="text-xs text-muted-foreground">
+                          expected {format(new Date(new Date(s.settlement_date).getTime() + 7 * 24 * 60 * 60 * 1000), 'dd MMM')} · {s.orders_count} orders
+                        </p>
+                      </div>
+                      <p className="font-bold tabular-nums text-foreground">{fmt(Number(s.net_amount))}</p>
+                    </div>
+                  ))}
+                  {codPending > 0 && (
+                    <div className="flex items-center justify-between rounded-xl bg-card px-3 py-2.5 text-sm">
+                      <div>
+                        <p className="font-semibold text-foreground">COD remittance due</p>
+                        <p className="text-xs text-muted-foreground">pending courier reconciliation</p>
+                      </div>
+                      <p className="font-bold tabular-nums text-warning">{fmt(codPending)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             {completedSettlements.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">

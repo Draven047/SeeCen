@@ -1,7 +1,12 @@
 import { useStore } from '@/contexts/StoreContext';
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { NotificationsDropdown } from './NotificationsDropdown';
+import { DemoModeControl } from './DemoModeControl';
+import { CommandPalette } from './CommandPalette';
+import { HelpSheet } from './HelpSheet';
+import { brand } from '@/config/brand';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { Menu, ShoppingBag } from 'lucide-react';
@@ -24,11 +29,13 @@ const pageTitles: Record<string, string> = {
   '/settings': 'Settings',
   '/admin': 'Admin',
   '/shipping': 'Shipping',
+  '/ndr': 'NDR',
   '/fulfillment': 'Fulfillment',
   '/returns': 'Returns',
 };
 
 export function SellerOSHeader() {
+  const { t } = useTranslation();
   const { currentStore } = useStore();
   const isMobile = useIsMobile();
   const location = useLocation();
@@ -42,8 +49,8 @@ export function SellerOSHeader() {
     const handler = (e: Event) => {
       setPendingOrders((e as CustomEvent).detail as number);
     };
-    window.addEventListener('clozzet-pending-orders', handler);
-    return () => window.removeEventListener('clozzet-pending-orders', handler);
+    window.addEventListener('seecen-pending-orders', handler);
+    return () => window.removeEventListener('seecen-pending-orders', handler);
   }, []);
 
   const pagePath = location.pathname.replace(/^\/demo/, '') || '/dashboard';
@@ -66,7 +73,7 @@ export function SellerOSHeader() {
                 isOnline ? 'bg-[#563ed5]' : 'bg-[#9aa0a8]'
               )} />
               <span className="max-w-[140px] truncate text-sm font-bold text-[#17191c]">
-                {currentStore?.name || 'SeeCen'}
+                {currentStore?.name || brand.name}
               </span>
             </div>
           </button>
@@ -83,7 +90,7 @@ export function SellerOSHeader() {
                 isOnline ? 'bg-[#563ed5]' : 'bg-[#9aa0a8]'
               )} />
               <span className="text-sm font-bold text-[#17191c]">
-                {currentStore?.name || 'SeeCen'}
+                {currentStore?.name || brand.name}
               </span>
               <span className={cn(
                 'rounded-full px-2 py-1 text-[10px] font-bold',
@@ -91,12 +98,12 @@ export function SellerOSHeader() {
                   ? 'bg-[#563ed5] text-white'
                   : 'bg-[#f0f2f0] text-[#777e87]'
               )}>
-                {isOnline ? 'Online' : 'Offline'}
+                {isOnline ? t('Online') : t('Offline')}
               </span>
             </button>
             {pageTitle && (
               <span className="text-sm font-bold text-[#a1a7b0]">
-                / {pageTitle}
+                / {t(pageTitle)}
               </span>
             )}
           </div>
@@ -114,8 +121,11 @@ export function SellerOSHeader() {
             </span>
           </div>
         )}
+        <CommandPalette />
+        <HelpSheet />
+        <DemoModeControl />
         <NotificationsDropdown />
-        
+
         {/* More menu — mobile only */}
         {isMobile && (
           <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
