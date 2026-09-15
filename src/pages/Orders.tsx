@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,20 +9,19 @@ import { cn } from '@/lib/utils';
 import {
   Inbox, Search, Filter, RefreshCw, Upload, Store, Globe, Instagram,
   MessageCircle, ShoppingCart, FileSpreadsheet, Package, AlertTriangle,
-  Clock, CreditCard, Plus, X, ArrowUpDown, ExternalLink,
+  Clock, Plus, X, ArrowUpDown, ExternalLink, Loader2,
   CheckCircle2, XCircle, PackageCheck, Truck, Timer, ChevronRight,
-  User, MapPin, FileText, Hash
+  User, MapPin, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
   type SalesChannel,
@@ -74,6 +73,7 @@ const CHANNEL_ICONS: Record<string, React.ElementType> = {
 
 // ─── Status Tabs ───
 const STATUS_TABS = [
+  { key: 'all', label: 'All orders', statuses: [] },
   { key: 'new_orders', label: 'New', statuses: ['new', 'unfulfilled'] },
   { key: 'accepted', label: 'Accepted', statuses: ['accepted'] },
   { key: 'picking', label: 'Picking', statuses: ['picking'] },
@@ -97,7 +97,14 @@ const NEXT_STATUS: Record<string, { label: string; status: string; icon: React.E
 
 type SortMode = 'urgency' | 'newest' | 'oldest' | 'highest';
 
+function getNextAction(order: OrderRow) {
+  if (order.is_voided) return undefined;
+  const stage = STATUS_TABS.find(tab => tab.statuses.includes(order.fulfillment_status));
+  return stage ? NEXT_STATUS[stage.key] : undefined;
+}
+
 function getUrgencyScore(order: OrderRow): number {
+  if (!getNextAction(order)) return 3;
   if (!order.sla_deadline) return 3;
   const diff = new Date(order.sla_deadline).getTime() - Date.now();
   if (diff < 0) return 0; // breached
@@ -145,13 +152,16 @@ export default function Orders() {
 
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const updatingRef = useRef(false);
   const [search, setSearch] = useState('');
   const [channelFilter, setChannelFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [fulfillmentTypeFilter, setFulfillmentTypeFilter] = useState<string>('all');
 
-  const [activeTab, setActiveTab] = useState('new_orders');
+  const [activeTab, setActiveTab] = useState('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('urgency');
   const [posMode, setPosMode] = useState(false);
@@ -159,6 +169,7 @@ export default function Orders() {
   // Detail panel
   const [detailItems, setDetailItems] = useState<OrderItem[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
+  const [itemsError, setItemsError] = useState(false);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
   // Action dialogs
@@ -172,42 +183,76 @@ export default function Orders() {
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { fetchOrders(); }, [currentStore]);
-
-  const fetchOrders = async () => {
+  const storeId = currentStore?.id;
+  const fetchSequence = useRef(0);
+  const fetchOrders = useCallback(async () => {
+    const sequence = ++fetchSequence.current;
     setLoading(true);
-    let query = supabase
-      .from('orders')
-      .select('id, order_number, invoice_number, status, channel, fulfillment_status, external_channel_order_number, is_finalized, is_voided, total, subtotal, tax, items_count, payment_type, payment_status, fulfillment_type, sla_deadline, created_at, created_by, store_id, notes, shipping_address, customers(name, phone), store:stores(name)')
-      .order('created_at', { ascending: false })
-      .limit(500);
-    if (currentStore) query = query.eq('store_id', currentStore.id);
-    const { data } = await query;
-    setOrders((data as unknown as OrderRow[]) || []);
-    setLoading(false);
-  };
+    setLoadError(null);
+    try {
+      let query = supabase
+        .from('orders')
+        .select('id, order_number, invoice_number, status, channel, fulfillment_status, external_channel_order_number, is_finalized, is_voided, total, subtotal, tax, items_count, payment_type, payment_status, fulfillment_type, sla_deadline, created_at, created_by, store_id, notes, shipping_address, customers(name, phone), store:stores(name)')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (storeId) query = query.eq('store_id', storeId);
+      const { data, error } = await query;
+      if (error) throw error;
+      if (sequence === fetchSequence.current) {
+        // Older demo rows use aliases that are not present in the channel/status filters.
+        setOrders(((data as unknown as OrderRow[]) || []).map(order => ({
+          ...order,
+          channel: (order.channel as string) === 'walk_in' ? 'in_store' : order.channel,
+          fulfillment_status: order.fulfillment_status === 'pending' ? 'new' : order.fulfillment_status,
+        })));
+      }
+    } catch {
+      if (sequence === fetchSequence.current) setLoadError('Orders could not be loaded. Please try again.');
+    } finally {
+      if (sequence === fetchSequence.current) setLoading(false);
+    }
+  }, [storeId]);
+
+  useEffect(() => {
+    setOrders([]);
+    setSelectedId(null);
+    setMobileDetailOpen(false);
+    void fetchOrders();
+    return () => { fetchSequence.current += 1; };
+  }, [fetchOrders]);
 
   // Fetch items when selection changes
   useEffect(() => {
-    if (!selectedId) { setDetailItems([]); return; }
+    let cancelled = false;
+    setDetailItems([]);
+    setItemsError(false);
+    if (!selectedId) return;
     (async () => {
       setLoadingItems(true);
-      const { data } = await supabase
-        .from('order_items')
-        .select('id, quantity, unit_price, total_price, cigar:cigars(name), product:products(name)')
-        .eq('order_id', selectedId);
-      setDetailItems((data as unknown as OrderItem[]) || []);
-      setLoadingItems(false);
+      try {
+        const { data, error } = await supabase
+          .from('order_items')
+          .select('id, quantity, unit_price, total_price, cigar:cigars(name), product:products(name)')
+          .eq('order_id', selectedId);
+        if (error) throw error;
+        if (!cancelled) setDetailItems((data as unknown as OrderItem[]) || []);
+      } catch {
+        if (!cancelled) setItemsError(true);
+      } finally {
+        if (!cancelled) setLoadingItems(false);
+      }
     })();
+    return () => { cancelled = true; };
   }, [selectedId]);
 
   // ─── Filtering ───
   const filtered = useMemo(() => {
     return orders.filter(o => {
-      const matchSearch = !search ||
-        o.order_number.toLowerCase().includes(search.toLowerCase()) ||
-        o.customers?.name?.toLowerCase().includes(search.toLowerCase()) ||
-        o.external_channel_order_number?.toLowerCase().includes(search.toLowerCase());
+      const term = search.trim().toLowerCase();
+      const matchSearch = !term ||
+        o.order_number.toLowerCase().includes(term) ||
+        o.customers?.name?.toLowerCase().includes(term) ||
+        o.external_channel_order_number?.toLowerCase().includes(term);
       const matchChannel = channelFilter === 'all' || o.channel === channelFilter;
       const matchStatus = statusFilter === 'all' || o.status === statusFilter;
       const matchPayment = paymentFilter === 'all' || o.payment_type === paymentFilter;
@@ -220,7 +265,7 @@ export default function Orders() {
   const tabCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     STATUS_TABS.forEach(tab => {
-      counts[tab.key] = filtered.filter(o => tab.statuses.includes(o.fulfillment_status)).length;
+      counts[tab.key] = tab.key === 'all' ? filtered.length : filtered.filter(o => tab.statuses.includes(o.fulfillment_status)).length;
     });
     return counts;
   }, [filtered]);
@@ -229,7 +274,7 @@ export default function Orders() {
   const queue = useMemo(() => {
     const tab = STATUS_TABS.find(t => t.key === activeTab);
     if (!tab) return [];
-    let items = filtered.filter(o => tab.statuses.includes(o.fulfillment_status));
+    const items = filtered.filter(o => tab.key === 'all' || tab.statuses.includes(o.fulfillment_status));
 
     // Sort
     if (sortMode === 'urgency') {
@@ -251,7 +296,8 @@ export default function Orders() {
   const selectedOrder = selectedId ? orders.find(o => o.id === selectedId) : null;
 
   const activeFilterCount = [channelFilter, statusFilter, paymentFilter, fulfillmentTypeFilter]
-    .filter(f => f !== 'all').length + (search ? 1 : 0);
+    .filter(f => f !== 'all').length;
+  const hasSearchOrFilters = activeFilterCount > 0 || search.trim().length > 0;
 
   const clearAllFilters = () => {
     setSearch(''); setChannelFilter('all'); setStatusFilter('all');
@@ -262,27 +308,31 @@ export default function Orders() {
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v);
 
   // ─── Actions ───
-  const updateStatus = async (orderId: string, newStatus: string) => {
-    const { error } = await supabase
-      .from('orders')
-      .update({ fulfillment_status: newStatus })
-      .eq('id', orderId);
-    if (error) {
-      toast.error('Failed to update order status');
-    } else {
+  const updateStatus = async (orderId: string, newStatus: string, declinedReason?: string) => {
+    if (updatingRef.current) return false;
+    updatingRef.current = true;
+    setUpdatingId(orderId);
+    try {
+      const { error } = await supabase.from('orders').update({ fulfillment_status: newStatus, ...(declinedReason !== undefined ? { declined_reason: declinedReason } : {}) }).eq('id', orderId);
+      if (error) throw error;
+      setOrders(current => current.map(order => order.id === orderId ? { ...order, fulfillment_status: newStatus } : order));
       toast.success(`Order moved to ${newStatus.replace(/_/g, ' ')}`);
-      fetchOrders();
+      return true;
+    } catch {
+      toast.error('Failed to update order status');
+      return false;
+    } finally {
+      updatingRef.current = false;
+      setUpdatingId(null);
     }
   };
 
   const handleDecline = async () => {
     if (!selectedId) return;
-    const { error } = await supabase
-      .from('orders')
-      .update({ fulfillment_status: 'declined', declined_reason: declineReason })
-      .eq('id', selectedId);
-    if (error) toast.error('Failed to decline order');
-    else { toast.success('Order declined'); setDeclineDialogOpen(false); setDeclineReason(''); fetchOrders(); }
+    if (await updateStatus(selectedId, 'declined', declineReason)) {
+      setDeclineDialogOpen(false);
+      setDeclineReason('');
+    }
   };
 
   const selectOrder = (id: string) => {
@@ -331,13 +381,13 @@ export default function Orders() {
       toast.success(`Imported ${csvPreview.length} orders`);
       setShowCSVDialog(false); setCSVPreview([]); setCsvErrors([]);
       fetchOrders();
-    } catch (err: any) {
-      toast.error('Import failed: ' + (err.message || 'Unknown error'));
+    } catch (err: unknown) {
+      toast.error('Import failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally { setImporting(false); }
   };
 
   // ─── Detail Panel Content (shared desktop/mobile) ───
-  const DetailPanelContent = () => {
+  const renderDetailPanel = () => {
     if (!selectedOrder) {
       return (
         <div className="flex flex-col items-center justify-center h-full py-20 text-center">
@@ -351,22 +401,21 @@ export default function Orders() {
     const chCfg = CHANNEL_CONFIG[selectedOrder.channel] || CHANNEL_CONFIG.in_store;
     const ffCfg = FULFILLMENT_CONFIG[selectedOrder.fulfillment_status] || FULFILLMENT_CONFIG.new;
     const ChIcon = CHANNEL_ICONS[selectedOrder.channel] || Package;
-    const sla = getSlaStatus(selectedOrder.sla_deadline);
+    const sla = getSlaStatus(getNextAction(selectedOrder) ? selectedOrder.sla_deadline : null);
     const timelineIdx = getTimelineIndex(selectedOrder.fulfillment_status);
-    const nextAction = NEXT_STATUS[activeTab];
-    const isIssue = activeTab === 'issues';
+    const nextAction = getNextAction(selectedOrder);
 
     return (
-      <div className="flex flex-col h-full">
-        <ScrollArea className="flex-1">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="p-4 space-y-4">
             {/* Header */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-base">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="min-w-0 break-words font-bold text-base">
                   {selectedOrder.external_channel_order_number || selectedOrder.order_number}
                 </h3>
-                <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium', ffCfg.color)}>
+                <span className={cn('inline-flex shrink-0 items-center px-2 py-0.5 rounded-full text-xs font-medium', ffCfg.color)}>
                   {ffCfg.label}
                 </span>
               </div>
@@ -377,7 +426,7 @@ export default function Orders() {
                 <Badge variant={selectedOrder.payment_type === 'cod' ? 'outline' : 'secondary'} className="text-[10px] px-1.5">
                   {selectedOrder.payment_type === 'cod' ? 'COD' : 'Prepaid'}
                 </Badge>
-                {sla.label !== '-' && (
+                {getNextAction(selectedOrder) && selectedOrder.sla_deadline && (
                   <span className={cn('text-[10px] font-medium flex items-center gap-0.5', sla.color)}>
                     {sla.urgent && <AlertTriangle className="w-2.5 h-2.5" />}
                     {sla.label}
@@ -414,15 +463,15 @@ export default function Orders() {
                 <Package className="w-3 h-3" /> Items ({selectedOrder.items_count})
               </h4>
               {loadingItems ? (
-                <div className="py-4 flex justify-center">
-                  <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                </div>
+                <div role="status" aria-label="Loading order items" className="h-16 rounded-lg animate-shimmer" />
+              ) : itemsError ? (
+                <p role="alert" className="text-sm text-destructive">Items could not be loaded. Reopen this order to retry.</p>
               ) : detailItems.length > 0 ? (
                 <div className="space-y-1.5">
                   {detailItems.map(item => (
                     <div key={item.id} className="flex items-center justify-between text-sm py-1">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm truncate">{item.product?.name || item.cigar?.name || 'Unknown'}</p>
+                        <p className="text-sm break-words">{item.product?.name || item.cigar?.name || 'Unknown'}</p>
                         <p className="text-[11px] text-muted-foreground">Qty: {item.quantity} × {formatCurrency(item.unit_price)}</p>
                       </div>
                       <span className="font-medium text-sm shrink-0 ml-2">{formatCurrency(item.total_price)}</span>
@@ -459,32 +508,22 @@ export default function Orders() {
               <h4 className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
                 <Timer className="w-3 h-3" /> Progress
               </h4>
-              <div className="flex items-center gap-0.5">
+              <ol aria-label="Fulfillment progress" className="grid grid-cols-4 gap-x-2 gap-y-3">
                 {TIMELINE_STEPS.map((step, i) => {
                   const done = i <= timelineIdx;
                   const active = i === timelineIdx;
                   return (
-                    <div key={step.key} className="flex items-center gap-0.5 flex-1">
+                    <li key={step.key} aria-current={active ? 'step' : undefined} className="min-w-0 space-y-2">
                       <div className={cn(
                         'w-2 h-2 rounded-full shrink-0 transition-colors',
                         done ? 'bg-primary' : 'bg-muted-foreground/20',
                         active && 'ring-2 ring-primary/30'
                       )} />
-                      {i < TIMELINE_STEPS.length - 1 && (
-                        <div className={cn('h-0.5 flex-1 rounded-full', done ? 'bg-primary' : 'bg-muted-foreground/20')} />
-                      )}
-                    </div>
+                      <span className={cn('block text-xs', done ? 'font-medium text-primary' : 'text-muted-foreground')}>{step.label}</span>
+                    </li>
                   );
                 })}
-              </div>
-              <div className="flex justify-between">
-                {TIMELINE_STEPS.map((step, i) => (
-                  <span key={step.key} className={cn(
-                    'text-[8px] text-center flex-1',
-                    i <= timelineIdx ? 'text-primary font-medium' : 'text-muted-foreground/50'
-                  )}>{step.label}</span>
-                ))}
-              </div>
+              </ol>
             </div>
 
             {selectedOrder.notes && (
@@ -499,28 +538,30 @@ export default function Orders() {
               </>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Actions Footer */}
-        <div className="border-t border-border p-3 space-y-2 bg-background">
+        <div className="shrink-0 border-t border-border bg-background p-3 space-y-2">
           {/* Primary action */}
-          {nextAction && !isIssue && (
+          {nextAction && (
             <Button
-              className="w-full gap-2"
+              className="min-h-11 w-full gap-2"
               size="sm"
+              disabled={updatingId !== null}
               onClick={() => updateStatus(selectedOrder.id, nextAction.status)}
             >
-              <nextAction.icon className="w-4 h-4" />
-              {nextAction.label}
+              {updatingId === selectedOrder.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <nextAction.icon className="w-4 h-4" />}
+              {updatingId === selectedOrder.id ? 'Updating...' : nextAction.label}
             </Button>
           )}
 
           {/* Decline for new orders */}
-          {activeTab === 'new_orders' && (
+          {nextAction?.status === 'accepted' && (
             <Button
               variant="outline"
-              className="w-full gap-2 text-destructive hover:text-destructive"
+              className="min-h-11 w-full gap-2 text-destructive hover:text-destructive"
               size="sm"
+              disabled={updatingId !== null}
               onClick={() => setDeclineDialogOpen(true)}
             >
               <XCircle className="w-4 h-4" />
@@ -531,7 +572,7 @@ export default function Orders() {
           {/* Full details link */}
           <Button
             variant="ghost"
-            className="w-full gap-2 text-xs"
+            className="min-h-11 w-full gap-2 text-sm"
             size="sm"
             onClick={() => navigate(`/demo/orders/${selectedOrder.id}`)}
           >
@@ -544,95 +585,75 @@ export default function Orders() {
 
   return (
     <DashboardLayout>
-      <div className={cn("flex flex-col animate-fade-in", posMode ? "h-[calc(100vh-6rem)]" : "h-[calc(100vh-8rem)]")}>
+      <div className="flex min-w-0 flex-col pb-20 animate-fade-in md:h-[calc(100dvh-9rem)] md:min-h-[560px] md:pb-0">
         {/* ─── Header ─── */}
-        <div className="mb-3 rounded-[28px] border border-black/[0.04] bg-white p-4 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)]">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">POS operations</p>
-            <h1 className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-[#17191c]">Orders</h1>
-            <p className="text-muted-foreground text-xs mt-1">{filtered.length} orders · {queue.length} in current queue</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant={posMode ? "default" : "outline"}
-              size="sm"
-              className="min-h-[44px] gap-1.5"
-              onClick={() => setPosMode((next) => !next)}
-            >
-              <ShoppingCart className="w-4 h-4" />
-              {posMode ? 'POS mode on' : 'POS mode'}
+        <div className="mb-3 shrink-0 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-semibold text-[#17191c] md:text-3xl">Orders</h1>
+              <p className="mt-1 text-xs text-muted-foreground">{orders.length} orders{currentStore ? ` · ${currentStore.name}` : ''}</p>
+            </div>
+            <Button className="min-h-11 shrink-0 gap-1.5" onClick={() => navigate('/demo/orders/new')}>
+              <Plus className="h-4 w-4" /> New order
             </Button>
-            {/* Search (desktop inline) */}
-            <div className="relative hidden sm:block">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          </div>
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search orders..."
+                aria-label="Search orders"
+                placeholder="Order number or customer"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-8 min-h-[44px] text-sm w-56 rounded-full"
+                className="h-11 rounded-full bg-white pl-9 pr-11 text-base md:text-sm"
               />
+              {search && <button type="button" aria-label="Clear search" className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-primary" onClick={() => setSearch('')}><X className="h-4 w-4" /></button>}
             </div>
-
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="min-h-[44px] gap-1.5 text-xs">
-                  <Filter className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Filters</span>
-                  {activeFilterCount > 0 && (
-                    <span className="bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                      {activeFilterCount}
-                    </span>
-                  )}
+                <Button variant="outline" size="icon" className="relative h-11 w-11 shrink-0" aria-label={`Filters${activeFilterCount ? `, ${activeFilterCount} active` : ''}`}>
+                  <Filter className="h-4 w-4" />
+                  {activeFilterCount > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">{activeFilterCount}</span>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-72 p-3" align="end">
+              <PopoverContent className="w-72 max-w-[calc(100vw-2rem)] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto p-4" align="end" collisionPadding={12}>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold">Filters</span>
-                    {activeFilterCount > 0 && (
-                      <button onClick={clearAllFilters} className="text-[10px] text-primary hover:underline">Clear all</button>
-                    )}
-                  </div>
-                  {/* Mobile search */}
-                  <div className="sm:hidden space-y-1.5">
-                    <Label className="text-[11px] text-muted-foreground">Search</Label>
-                    <div className="relative">
-                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-                      <Input placeholder="Order #, customer..." value={search} onChange={e => setSearch(e.target.value)} className="pl-7 h-8 text-xs" />
-                    </div>
+                    <span className="text-sm font-semibold">Filters</span>
+                    {activeFilterCount > 0 && <Button variant="ghost" className="min-h-11 text-xs" onClick={clearAllFilters}>Clear all</Button>}
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-[11px] text-muted-foreground">Channel</Label>
+                    <Label htmlFor="order-channel">Channel</Label>
                     <Select value={channelFilter} onValueChange={setChannelFilter}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectTrigger id="order-channel" className="h-11"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Channels</SelectItem>
+                        <SelectItem value="all">All channels</SelectItem>
                         <SelectItem value="in_store">In-Store</SelectItem>
                         <SelectItem value="website">Website</SelectItem>
                         <SelectItem value="instagram">Instagram</SelectItem>
                         <SelectItem value="whatsapp">WhatsApp</SelectItem>
                         <SelectItem value="marketplace">Marketplace</SelectItem>
+                        <SelectItem value="csv_import">CSV import</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-[11px] text-muted-foreground">Payment</Label>
+                    <Label htmlFor="order-payment">Payment</Label>
                     <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectTrigger id="order-payment" className="h-11"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="all">All payments</SelectItem>
                         <SelectItem value="cod">COD</SelectItem>
                         <SelectItem value="prepaid">Prepaid</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-[11px] text-muted-foreground">Fulfillment Type</Label>
+                    <Label htmlFor="order-fulfillment">Fulfillment type</Label>
                     <Select value={fulfillmentTypeFilter} onValueChange={setFulfillmentTypeFilter}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectTrigger id="order-fulfillment" className="h-11"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="all">All types</SelectItem>
                         <SelectItem value="self_ship">Self Ship</SelectItem>
                         <SelectItem value="marketplace_logistics">Marketplace</SelectItem>
                       </SelectContent>
@@ -641,54 +662,63 @@ export default function Orders() {
                 </div>
               </PopoverContent>
             </Popover>
-
-            <Button variant="outline" size="icon" className="h-11 w-11" onClick={fetchOrders} aria-label="Refresh orders">
-              <RefreshCw className="w-3.5 h-3.5" />
-            </Button>
-            <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
-            <Button variant="outline" size="icon" className="h-11 w-11 hidden sm:flex" onClick={() => fileInputRef.current?.click()} aria-label="Import orders CSV">
-              <Upload className="w-3.5 h-3.5" />
-            </Button>
-            <Button size="sm" className="min-h-[44px] hidden sm:flex gap-1 text-xs" onClick={() => navigate('/demo/orders/new')}>
-              <Plus className="w-3.5 h-3.5" /> New
+            <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" onClick={fetchOrders} disabled={loading} aria-label="Refresh orders">
+              <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
             </Button>
           </div>
-        </div>
+          <div className="flex items-center justify-between gap-2">
+            <Button
+              variant={posMode ? "default" : "outline"}
+              size="sm"
+              className="min-h-[44px] gap-1.5"
+              aria-pressed={posMode}
+              onClick={() => setPosMode((next) => !next)}
+            >
+              <ShoppingCart className="w-4 h-4" />
+              {posMode ? 'POS mode on' : 'POS mode'}
+            </Button>
+            <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
+            <Button variant="ghost" className="h-11 gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()}>
+              <Upload className="h-4 w-4" /> Import CSV
+            </Button>
+          </div>
         </div>
 
         {/* Active filter pills */}
         {activeFilterCount > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 mb-2">
-            {search && (
-              <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
-                Search: {search}
-                <button onClick={() => setSearch('')} className="hover:bg-muted rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>
-              </Badge>
-            )}
+          <div className="mb-2 flex shrink-0 flex-wrap items-center gap-2">
             {channelFilter !== 'all' && (
-              <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
+              <Button variant="secondary" className="min-h-11 gap-2 text-xs" aria-label="Remove channel filter" onClick={() => setChannelFilter('all')}>
                 {CHANNEL_CONFIG[channelFilter as SalesChannel]?.label || channelFilter}
-                <button onClick={() => setChannelFilter('all')} className="hover:bg-muted rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>
-              </Badge>
+                <X className="h-3 w-3" />
+              </Button>
             )}
             {paymentFilter !== 'all' && (
-              <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
+              <Button variant="secondary" className="min-h-11 gap-2 text-xs" aria-label="Remove payment filter" onClick={() => setPaymentFilter('all')}>
                 {paymentFilter === 'cod' ? 'COD' : 'Prepaid'}
-                <button onClick={() => setPaymentFilter('all')} className="hover:bg-muted rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>
-              </Badge>
+                <X className="h-3 w-3" />
+              </Button>
             )}
             {fulfillmentTypeFilter !== 'all' && (
-              <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
+              <Button variant="secondary" className="min-h-11 gap-2 text-xs" aria-label="Remove fulfillment filter" onClick={() => setFulfillmentTypeFilter('all')}>
                 {fulfillmentTypeFilter === 'self_ship' ? 'Self Ship' : 'Marketplace'}
-                <button onClick={() => setFulfillmentTypeFilter('all')} className="hover:bg-muted rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>
-              </Badge>
+                <X className="h-3 w-3" />
+              </Button>
             )}
-            <button onClick={clearAllFilters} className="text-[10px] text-muted-foreground hover:text-foreground">Clear all</button>
+            <Button variant="ghost" className="min-h-11 text-xs" onClick={clearAllFilters}>Clear all</Button>
           </div>
         )}
 
         {/* ─── Status Tabs ─── */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-1 scrollbar-none -mx-1 px-1">
+        <div className="mb-2 md:hidden">
+          <Select value={activeTab} onValueChange={value => { setActiveTab(value); setSelectedId(null); }}>
+            <SelectTrigger aria-label="Order status" className="h-11 bg-white font-semibold"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {STATUS_TABS.map(stage => <SelectItem key={stage.key} value={stage.key} className="min-h-11">{stage.label} ({tabCounts[stage.key] || 0})</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div aria-label="Order status" className="mb-1 hidden shrink-0 items-center gap-1 overflow-x-auto pb-2 md:flex">
           {STATUS_TABS.map(tab => {
             const count = tabCounts[tab.key] || 0;
             const isActive = activeTab === tab.key;
@@ -697,9 +727,10 @@ export default function Orders() {
             return (
               <button
                 key={tab.key}
+                aria-pressed={isActive}
                 onClick={() => { setActiveTab(tab.key); setSelectedId(null); }}
                 className={cn(
-                  'inline-flex min-h-[40px] items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors shrink-0',
+                  'inline-flex min-h-11 items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors shrink-0',
                   isActive
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -722,12 +753,12 @@ export default function Orders() {
         </div>
 
         {/* ─── Queue Summary Bar ─── */}
-        <div className="flex items-center justify-between mb-2">
+        <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <p className="text-xs font-medium text-foreground">
+            <p role="status" className="text-sm font-medium text-foreground">
               {queue.length === 0
-                ? 'Queue clear'
-                : `${queue.length} waiting`}
+                ? 'No orders in view'
+                : `${queue.length} order${queue.length === 1 ? '' : 's'}`}
             </p>
             {queue.length > 0 && (() => {
               const urgentCount = queue.filter(o => getUrgencyScore(o) <= 1).length;
@@ -740,7 +771,7 @@ export default function Orders() {
             })()}
           </div>
           <Select value={sortMode} onValueChange={v => setSortMode(v as SortMode)}>
-            <SelectTrigger className="h-7 text-[11px] w-auto gap-1 border-0 shadow-none px-2">
+            <SelectTrigger aria-label="Sort orders" className="h-11 w-auto gap-1 border-0 px-2 text-xs shadow-none">
               <ArrowUpDown className="w-3 h-3" />
               <SelectValue />
             </SelectTrigger>
@@ -754,13 +785,16 @@ export default function Orders() {
         </div>
 
         {/* ─── Main Content: Queue + Detail ─── */}
-        <div className="flex-1 flex gap-3 min-h-0 overflow-hidden">
+        <div className="grid min-h-0 min-w-0 gap-3 md:flex-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
           {/* Queue List */}
-          <div className={cn(
-            'flex-1 min-w-0 rounded-lg border bg-card overflow-hidden flex flex-col',
-            !isMobile && selectedOrder && 'max-w-[55%]'
-          )}>
-            {loading ? (
+          <div aria-busy={loading} className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border bg-card">
+            {loadError ? (
+              <div role="alert" className="flex flex-col items-center gap-3 px-4 py-12 text-center">
+                <AlertTriangle className="h-8 w-8 text-destructive" />
+                <p className="text-sm">{loadError}</p>
+                <Button variant="outline" className="min-h-11" onClick={fetchOrders}><RefreshCw className="h-4 w-4" /> Retry</Button>
+              </div>
+            ) : loading && orders.length === 0 ? (
               <div className="flex-1 p-4">
                 <PageLoading label="Loading order queue" rows={2} />
               </div>
@@ -768,31 +802,34 @@ export default function Orders() {
               <div className="flex-1 flex flex-col items-center justify-center py-16 px-4 text-center">
                 <Inbox className="w-10 h-10 text-muted-foreground/40 mb-3" />
                 <p className="text-sm font-medium text-muted-foreground">
-                  No {STATUS_TABS.find(t => t.key === activeTab)?.label.toLowerCase()} orders
+                  {hasSearchOrFilters ? 'No matching orders' : activeTab === 'all' ? 'No orders yet' : `No ${STATUS_TABS.find(t => t.key === activeTab)?.label.toLowerCase()} orders`}
                 </p>
-                <p className="text-xs text-muted-foreground/60 mt-1">Orders will appear here when available</p>
-                <Button variant="outline" size="sm" className="mt-4 text-xs gap-1.5" onClick={fetchOrders}>
-                  <RefreshCw className="w-3 h-3" /> Refresh
-                </Button>
+                <p className="mt-1 text-sm text-muted-foreground">{hasSearchOrFilters ? 'Try another search or clear your filters.' : 'New orders will appear here.'}</p>
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  {hasSearchOrFilters && <Button variant="outline" className="min-h-11" onClick={clearAllFilters}>Clear filters</Button>}
+                  {activeTab !== 'all' && <Button variant="outline" className="min-h-11" onClick={() => setActiveTab('all')}>View all orders</Button>}
+                  {!hasSearchOrFilters && activeTab === 'all' && <Button className="min-h-11" onClick={() => navigate('/demo/orders/new')}><Plus className="h-4 w-4" /> New order</Button>}
+                </div>
               </div>
             ) : (
-              <ScrollArea className="flex-1">
+              <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
                 <div className="divide-y divide-border">
                   {queue.map(order => {
                     const chCfg = CHANNEL_CONFIG[order.channel] || CHANNEL_CONFIG.in_store;
                     const ChIcon = CHANNEL_ICONS[order.channel] || Package;
-                    const sla = getSlaStatus(order.sla_deadline);
+                    const sla = getSlaStatus(getNextAction(order) ? order.sla_deadline : null);
                     const urgency = getUrgencyScore(order);
                     const isSelected = order.id === selectedId;
-                    const nextAction = NEXT_STATUS[activeTab];
+                    const nextAction = getNextAction(order);
+                    const ffCfg = FULFILLMENT_CONFIG[order.fulfillment_status];
+                    const orderNumber = order.external_channel_order_number || order.order_number;
 
                     return (
-                      <div
+                      <article
                         key={order.id}
-                        onClick={() => selectOrder(order.id)}
                         className={cn(
-                          'flex items-center gap-2 cursor-pointer transition-all',
-                          posMode ? 'px-4 py-4' : 'px-3 py-2',
+                          'min-w-0 space-y-3',
+                          posMode ? 'p-4' : 'p-3',
                           'border-l-[3px]',
                           isSelected
                             ? 'bg-primary/[0.06] border-l-primary'
@@ -801,91 +838,62 @@ export default function Orders() {
                           urgency === 1 && !isSelected && 'border-l-warning bg-warning/[0.03]',
                         )}
                       >
-                        {/* Urgency / SLA indicator - FIRST visual element */}
-                        <div className="shrink-0 w-12 text-center">
-                          {sla.label !== '-' ? (
-                            <div className={cn(
-                              'text-[10px] font-bold leading-tight',
-                              urgency === 0 && 'text-destructive',
-                              urgency === 1 && 'text-destructive',
-                              urgency === 2 && 'text-warning',
-                              urgency === 3 && 'text-success',
-                            )}>
-                              {urgency <= 1 && <Clock className="w-3 h-3 mx-auto mb-0.5" />}
-                              <span>{sla.label}</span>
-                            </div>
-                          ) : (
-                            <span className="text-[10px] text-muted-foreground leading-tight block">{timeAgo(order.created_at)}</span>
-                          )}
-                        </div>
-
-                        {/* Order info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono font-semibold text-[13px] text-foreground truncate">
-                              {order.external_channel_order_number || order.order_number}
-                            </span>
-                            <span className={cn('inline-flex items-center gap-0.5 px-1 py-px rounded text-[8px] font-semibold uppercase tracking-wider shrink-0', chCfg.color)}>
-                              {chCfg.label}
-                            </span>
+                        <button type="button" aria-label={`View order ${orderNumber}`} aria-pressed={isSelected} onClick={() => selectOrder(order.id)} className="block w-full min-w-0 space-y-2 rounded-md text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="min-w-0 break-words font-mono text-sm font-semibold">{orderNumber}</span>
+                            <span className="shrink-0 text-base font-semibold tabular-nums">{formatCurrency(Number(order.total))}</span>
                           </div>
-                          <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-muted-foreground">
-                            <span className="truncate max-w-[120px]">{order.customers?.name || 'Walk-in'}</span>
-                            <span className="text-muted-foreground/40">·</span>
-                            <span className="shrink-0">{order.items_count} item{order.items_count !== 1 ? 's' : ''}</span>
-                            <span className="text-muted-foreground/40">·</span>
-                            <span className="font-medium text-foreground shrink-0">{formatCurrency(Number(order.total))}</span>
-                            <Badge variant={order.payment_type === 'cod' ? 'outline' : 'secondary'} className="text-[8px] px-1 py-0 h-3.5 shrink-0">
-                              {order.payment_type === 'cod' ? 'COD' : 'Prepaid'}
-                            </Badge>
+                          <div className="flex items-center justify-between gap-3 text-sm">
+                            <span className="min-w-0 break-words">{order.customers?.name || 'Walk-in'}</span>
+                            <span className="shrink-0 text-xs text-muted-foreground">{order.items_count} item{order.items_count !== 1 ? 's' : ''}</span>
                           </div>
-                        </div>
-
-                        {/* Always-visible action button */}
-                        {nextAction && (
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-1', chCfg.color)}><ChIcon className="h-3 w-3" />{chCfg.label}</span>
+                            <span className={cn('rounded-full px-2 py-1', ffCfg?.color || 'bg-muted text-muted-foreground')}>{order.is_voided ? 'Voided' : ffCfg?.label || order.fulfillment_status?.replace(/_/g, ' ') || 'Unfulfilled'}</span>
+                            <span className="text-muted-foreground">{order.payment_type === 'cod' ? 'COD' : 'Prepaid'}</span>
+                          </div>
+                        </button>
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/[0.04] pt-2">
+                          <span className={cn('flex items-center gap-1 text-xs', nextAction && urgency <= 1 ? 'font-medium text-destructive' : 'text-muted-foreground')}>
+                            <Clock className="h-3.5 w-3.5" /> {nextAction && order.sla_deadline ? sla.label : timeAgo(order.created_at)}
+                          </span>
+                          {nextAction ? (
                           <Button
                             size="sm"
-                            variant={urgency <= 1 ? 'default' : 'outline'}
-                            className={cn(
-                              'shrink-0 font-bold',
-                              posMode ? 'min-h-[44px] px-4 text-xs' : 'h-8 px-3 text-[11px]',
-                              urgency <= 1 && 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
-                            )}
-                            onClick={e => { e.stopPropagation(); updateStatus(order.id, nextAction.status); }}
+                            className={cn('min-h-11 gap-2 px-4 text-xs font-semibold', posMode && 'min-h-12 w-full text-sm')}
+                            disabled={updatingId !== null}
+                            onClick={() => updateStatus(order.id, nextAction.status)}
                           >
-                            {nextAction.label}
+                            {updatingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <nextAction.icon className="h-4 w-4" />}
+                            {updatingId === order.id ? 'Updating...' : nextAction.label}
                           </Button>
-                        )}
-                        {!nextAction && (
-                          <ChevronRight className="w-4 h-4 text-muted-foreground/40 shrink-0" />
-                        )}
-                      </div>
+                          ) : <Button variant="outline" className="min-h-11 text-xs" onClick={() => selectOrder(order.id)}>View details <ChevronRight className="h-4 w-4" /></Button>}
+                        </div>
+                      </article>
                     );
                   })}
                 </div>
-              </ScrollArea>
+              </div>
             )}
           </div>
 
           {/* Detail Panel (Desktop only) */}
           {!isMobile && (
-            <div className={cn(
-              'rounded-lg border bg-card overflow-hidden flex flex-col transition-all',
-              selectedOrder ? 'w-[45%] min-w-[340px]' : 'w-[340px]'
-            )}>
-              <DetailPanelContent />
+            <div className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border bg-card">
+              {renderDetailPanel()}
             </div>
           )}
         </div>
 
         {/* Mobile Detail Sheet */}
         {isMobile && (
-          <Sheet open={mobileDetailOpen} onOpenChange={setMobileDetailOpen}>
-            <SheetContent side="bottom" className="max-h-[70vh] p-0">
-              <SheetHeader className="px-4 pt-4 pb-0">
+          <Sheet open={mobileDetailOpen} onOpenChange={open => { setMobileDetailOpen(open); if (!open) setSelectedId(null); }}>
+            <SheetContent side="bottom" className="flex h-[min(42rem,85dvh)] max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 [&>button]:h-11 [&>button]:w-11">
+              <SheetHeader className="shrink-0 border-b px-4 py-4 pr-16 text-left">
                 <SheetTitle className="text-base">Order Details</SheetTitle>
+                <SheetDescription className="sr-only">Review the selected order and update its fulfillment status.</SheetDescription>
               </SheetHeader>
-              <DetailPanelContent />
+              {renderDetailPanel()}
             </SheetContent>
           </Sheet>
         )}
@@ -893,13 +901,13 @@ export default function Orders() {
         {/* Decline Dialog */}
         <Dialog open={declineDialogOpen} onOpenChange={setDeclineDialogOpen}>
           <DialogContent className="max-w-sm">
-            <DialogHeader><DialogTitle>Decline Order</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>Decline Order</DialogTitle><DialogDescription>This order will move to Issues. You can add a reason below.</DialogDescription></DialogHeader>
             <div className="space-y-3">
-              <Label className="text-xs">Reason (optional)</Label>
-              <Input value={declineReason} onChange={e => setDeclineReason(e.target.value)} placeholder="Out of stock, etc." className="text-sm" />
+              <Label htmlFor="decline-reason" className="text-xs">Reason (optional)</Label>
+              <Input id="decline-reason" value={declineReason} onChange={e => setDeclineReason(e.target.value)} placeholder="Out of stock, etc." className="h-11 text-base" />
               <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => setDeclineDialogOpen(false)}>Cancel</Button>
-                <Button variant="destructive" size="sm" onClick={handleDecline}>Decline Order</Button>
+                <Button variant="outline" className="min-h-11" disabled={updatingId !== null} onClick={() => setDeclineDialogOpen(false)}>Cancel</Button>
+                <Button variant="destructive" className="min-h-11" disabled={updatingId !== null} onClick={handleDecline}>{updatingId ? 'Declining...' : 'Decline Order'}</Button>
               </div>
             </div>
           </DialogContent>
@@ -908,7 +916,7 @@ export default function Orders() {
         {/* CSV Import Dialog */}
         <Dialog open={showCSVDialog} onOpenChange={setShowCSVDialog}>
           <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>Import Orders from CSV</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>Import Orders from CSV</DialogTitle><DialogDescription>Review the import before adding orders to the queue.</DialogDescription></DialogHeader>
             {csvErrors.length > 0 && (
               <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
                 <p className="text-sm font-medium text-destructive">Errors:</p>

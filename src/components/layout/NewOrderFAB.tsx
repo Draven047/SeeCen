@@ -8,6 +8,71 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
+type FabPosition = {
+  x: number;
+  y: number;
+};
+
+const MOBILE_FAB_POSITION_KEY = 'seecen:new-order-fab-position';
+const FAB_EDGE_PADDING = 12;
+const FAB_DEFAULT_BOTTOM_OFFSET = 88;
+const FAB_DRAG_THRESHOLD = 6;
+
+function clampFabPosition(position: FabPosition, element: HTMLElement | null): FabPosition {
+  if (typeof window === 'undefined') return position;
+
+  const width = element?.offsetWidth || 128;
+  const height = element?.offsetHeight || 56;
+  const maxX = Math.max(FAB_EDGE_PADDING, window.innerWidth - width - FAB_EDGE_PADDING);
+  const maxY = Math.max(FAB_EDGE_PADDING, window.innerHeight - height - FAB_DEFAULT_BOTTOM_OFFSET);
+
+  return {
+    x: Math.min(Math.max(FAB_EDGE_PADDING, position.x), maxX),
+    y: Math.min(Math.max(FAB_EDGE_PADDING, position.y), maxY),
+  };
+}
+
+function getDefaultFabPosition(element: HTMLElement | null): FabPosition {
+  if (typeof window === 'undefined') return { x: 16, y: 16 };
+
+  const width = element?.offsetWidth || 128;
+  const height = element?.offsetHeight || 56;
+
+  return clampFabPosition(
+    {
+      x: window.innerWidth - width - 16,
+      y: window.innerHeight - height - FAB_DEFAULT_BOTTOM_OFFSET,
+    },
+    element
+  );
+}
+
+function getStoredFabPosition(): FabPosition | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const value = window.localStorage.getItem(MOBILE_FAB_POSITION_KEY);
+    if (!value) return null;
+
+    const parsed = JSON.parse(value) as Partial<FabPosition>;
+    if (typeof parsed.x !== 'number' || typeof parsed.y !== 'number') return null;
+
+    return parsed as FabPosition;
+  } catch {
+    return null;
+  }
+}
+
+function storeFabPosition(position: FabPosition) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(MOBILE_FAB_POSITION_KEY, JSON.stringify(position));
+  } catch {
+    return;
+  }
+}
+
 export function NewOrderFAB() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -15,23 +80,175 @@ export function NewOrderFAB() {
   const [expanded, setExpanded] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [lastScanned, setLastScanned] = useState<string | null>(null);
+  const [isMobileFab, setIsMobileFab] = useState(false);
+  const [mobileFabPosition, setMobileFabPosition] = useState<FabPosition | null>(null);
+  const [isDraggingFab, setIsDraggingFab] = useState(false);
+  const fabRef = useRef<HTMLDivElement>(null);
   const scannerRef = useRef<any>(null);
   const readerRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef({
+    pointerId: null as number | null,
+    startX: 0,
+    startY: 0,
+    originX: 0,
+    originY: 0,
+    hasDragged: false,
+    suppressClick: false,
+  });
 
   const isOnNewOrder = location.pathname === '/demo/orders/new';
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)');
+    const updateMobileState = () => setIsMobileFab(media.matches);
+
+    updateMobileState();
+    media.addEventListener('change', updateMobileState);
+
+    return () => media.removeEventListener('change', updateMobileState);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileFab) {
+      setMobileFabPosition(null);
+      return;
+    }
+
+    setMobileFabPosition(() => {
+      const stored = getStoredFabPosition();
+      return clampFabPosition(stored || getDefaultFabPosition(fabRef.current), fabRef.current);
+    });
+
+    const handleResize = () => {
+      setMobileFabPosition((current) => {
+        const next = clampFabPosition(current || getDefaultFabPosition(fabRef.current), fabRef.current);
+        storeFabPosition(next);
+        return next;
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, [isMobileFab]);
+
+  useEffect(() => {
+    if (!isMobileFab) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      setMobileFabPosition((current) => {
+        if (!current) return current;
+        const next = clampFabPosition(current, fabRef.current);
+        storeFabPosition(next);
+        return next;
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [expanded, isMobileFab, isOnNewOrder]);
+
+  const shouldIgnoreFabClick = () => {
+    if (!dragRef.current.suppressClick) return false;
+    dragRef.current.suppressClick = false;
+    return true;
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isMobileFab || event.button !== 0) return;
+
+    const rect = fabRef.current?.getBoundingClientRect();
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: mobileFabPosition?.x ?? rect?.left ?? 0,
+      originY: mobileFabPosition?.y ?? rect?.top ?? 0,
+      hasDragged: false,
+      suppressClick: false,
+    };
+
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isMobileFab || dragRef.current.pointerId !== event.pointerId) return;
+
+    const dx = event.clientX - dragRef.current.startX;
+    const dy = event.clientY - dragRef.current.startY;
+
+    if (!dragRef.current.hasDragged && Math.hypot(dx, dy) < FAB_DRAG_THRESHOLD) return;
+
+    if (!dragRef.current.hasDragged) event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+    dragRef.current.hasDragged = true;
+    setIsDraggingFab(true);
+    setMobileFabPosition(
+      clampFabPosition(
+        {
+          x: dragRef.current.originX + dx,
+          y: dragRef.current.originY + dy,
+        },
+        fabRef.current
+      )
+    );
+  };
+
+  const endFabDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isMobileFab || dragRef.current.pointerId !== event.pointerId) return;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    if (dragRef.current.hasDragged) {
+      dragRef.current.suppressClick = true;
+      setMobileFabPosition((current) => {
+        const next = clampFabPosition(current || getDefaultFabPosition(fabRef.current), fabRef.current);
+        storeFabPosition(next);
+        return next;
+      });
+      window.setTimeout(() => {
+        dragRef.current.suppressClick = false;
+      }, 0);
+    }
+
+    dragRef.current.pointerId = null;
+    dragRef.current.hasDragged = false;
+    setIsDraggingFab(false);
+  };
 
   return (
     <>
       {/* FAB group */}
       <div
+        ref={fabRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endFabDrag}
+        onPointerCancel={endFabDrag}
+        style={
+          isMobileFab && mobileFabPosition
+            ? {
+                left: mobileFabPosition.x,
+                top: mobileFabPosition.y,
+                touchAction: 'none',
+              }
+            : undefined
+        }
         className={cn(
-          'fixed right-4 z-50 flex flex-col items-end gap-2',
-          'bottom-[calc(4rem+env(safe-area-inset-bottom,0px)+1rem)]'
+          'fixed z-50 flex flex-col items-end gap-2',
+          (!isMobileFab || !mobileFabPosition) && 'right-4 bottom-[calc(4rem+env(safe-area-inset-bottom,0px)+1rem)]',
+          isMobileFab && 'cursor-grab touch-none select-none',
+          isDraggingFab && 'cursor-grabbing'
         )}
       >
         {expanded && !isOnNewOrder && (
           <button
             onClick={() => {
+              if (shouldIgnoreFabClick()) return;
               setExpanded(false);
               setShowScanner(true);
             }}
@@ -50,7 +267,10 @@ export function NewOrderFAB() {
 
         {isOnNewOrder ? (
           <button
-            onClick={() => setShowScanner(true)}
+            onClick={() => {
+              if (shouldIgnoreFabClick()) return;
+              setShowScanner(true);
+            }}
             className={cn(
               'flex items-center gap-2 rounded-full bg-[#17191c] text-white shadow-[0_18px_42px_-24px_rgba(0,0,0,0.75)]',
               'h-14 px-5 text-sm font-semibold',
@@ -65,6 +285,7 @@ export function NewOrderFAB() {
         ) : (
           <button
             onClick={() => {
+              if (shouldIgnoreFabClick()) return;
               if (expanded) {
                 navigate('/demo/orders/new');
                 setExpanded(false);

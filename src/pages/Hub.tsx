@@ -1,557 +1,231 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bot, Boxes, CheckCircle2, Clock3, IndianRupee, Package, Plus, RefreshCw, ShoppingBag, ShoppingCart, Users } from 'lucide-react';
 import { SellerOSLayout } from '@/components/layout/SellerOSLayout';
-import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 import { useStore } from '@/contexts/StoreContext';
-import {
-  Activity, ArrowRight, ArrowUpRight, BarChart3, Bot, Boxes, CalendarDays,
-  ChevronRight, Clock3, IndianRupee, MessageSquareWarning,
-  MoreHorizontal, PackageCheck, RotateCcw, Settings, ShoppingCart, Sparkles,
-  TrendingUp, Truck, Users, Zap,
-} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { FULFILLMENT_CONFIG } from '@/lib/channelConnectors';
+import { getHubMetrics, orderValue, type HubOrder, type HubPeriod } from '@/lib/hubMetrics';
 import { cn } from '@/lib/utils';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 
-interface TodayStats {
-  totalSales: number;
-  totalOrders: number;
-  liveOrders: number;
-  avgOrderValue: number;
-}
-
-interface RecentOrder {
+interface StockItem {
   id: string;
-  order_number: string | null;
-  total: number | string | null;
-  status: string | null;
-  fulfillment_status: string | null;
-  created_at: string | null;
-  customer: { name: string | null } | { name: string | null }[] | null;
+  quantity: number;
+  min_stock_level: number | null;
+  product: { name: string; image_urls: string[] | null } | null;
+  cigar: { name: string; image_url: string | null } | null;
 }
 
-const primaryActions = [
-  { icon: ShoppingCart, label: 'Orders', path: '/demo/orders' },
-  { icon: Boxes, label: 'Inventory', path: '/demo/inventory' },
-  { icon: IndianRupee, label: 'Finance', path: '/demo/finance' },
-  { icon: MessageSquareWarning, label: 'Feedback', path: '/demo/feedback' },
+const actions = [
+  { label: 'Orders', path: '/demo/orders', icon: ShoppingCart, roles: ['admin', 'manager', 'sales', 'operations'] },
+  { label: 'Catalogue', path: '/demo/catalogue', icon: ShoppingBag, roles: ['admin', 'manager', 'sales', 'operations'] },
+  { label: 'Inventory', path: '/demo/inventory', icon: Boxes, roles: ['admin', 'manager', 'operations'] },
+  { label: 'Customers', path: '/demo/customers', icon: Users, roles: ['admin', 'manager', 'sales'] },
+  { label: 'Finance', path: '/demo/finance', icon: IndianRupee, roles: ['admin', 'finance'] },
+  { label: 'Analytics', path: '/demo/analytics', icon: BarChart3, roles: ['admin', 'manager', 'finance'] },
 ];
-
-const moreActions = [
-  { icon: RotateCcw, label: 'Returns', path: '/demo/returns' },
-  { icon: Users, label: 'Customers', path: '/demo/customers' },
-  { icon: Truck, label: 'Shipping', path: '/demo/shipping' },
-  { icon: BarChart3, label: 'Analytics', path: '/demo/analytics' },
-  { icon: Bot, label: 'AI Coach', path: '/demo/ai-coach' },
-  { icon: TrendingUp, label: 'Growth', path: '/demo/growth' },
-  { icon: Settings, label: 'Settings', path: '/demo/settings' },
+const periods: { value: HubPeriod; label: string }[] = [
+  { value: 'today', label: 'Today' }, { value: '7d', label: '7 days' },
+  { value: '30d', label: '30 days' }, { value: 'all', label: 'All time' },
 ];
+const money = (value: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value);
+const compact = (value: number) => new Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+const focus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#563ed5] focus-visible:ring-offset-2';
+const panel = 'min-w-0 rounded-lg border border-black/[0.06] bg-white p-4 sm:p-5';
 
-const activityBars = [28, 32, 37, 48, 66, 88, 72, 58, 41, 34, 31, 29, 26, 25, 30, 34, 37, 52, 66];
-
-function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
+function customerName(order: HubOrder) {
+  return (Array.isArray(order.customer) ? order.customer[0]?.name : order.customer?.name) || 'Walk-in';
 }
 
-function formatCurrency(value: number) {
-  return `₹${Math.round(value).toLocaleString('en-IN')}`;
+function orderDate(value: string | null) {
+  const date = new Date(value || '');
+  return Number.isNaN(date.getTime()) ? 'Date unavailable' : date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export default function Hub() {
-  const navigate = useNavigate();
-  const { currentStore } = useStore();
-  const [stats, setStats] = useState<TodayStats>({ totalSales: 0, totalOrders: 0, liveOrders: 0, avgOrderValue: 0 });
+  const { role } = useAuth();
+  const { currentStore, loading: storesLoading } = useStore();
+  const [period, setPeriod] = useState<HubPeriod>('7d');
+  const [chartMetric, setChartMetric] = useState<'value' | 'orders'>('value');
+  const [refresh, setRefresh] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [stockError, setStockError] = useState(false);
+  const [data, setData] = useState<{ storeId: string | null; orders: HubOrder[]; stock: StockItem[]; updated: Date }>({ storeId: null, orders: [], stock: [], updated: new Date() });
+  const visibleActions = actions.filter(action => action.roles.includes(role || ''));
+  const canOrders = visibleActions.some(action => action.label === 'Orders');
+  const canInventory = visibleActions.some(action => action.label === 'Inventory');
+  const canAnalytics = visibleActions.some(action => action.label === 'Analytics');
+  const canCoach = ['admin', 'manager', 'sales'].includes(role || '');
+  const storeId = currentStore?.id;
 
   useEffect(() => {
-    const fetchStats = async () => {
-      if (!currentStore) {
-        setRecentOrders([]);
-        setStats({ totalSales: 0, totalOrders: 0, liveOrders: 0, avgOrderValue: 0 });
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setLoadError(null);
-      const today = new Date().toISOString().split('T')[0];
-
+    let cancelled = false;
+    setError(null);
+    setStockError(false);
+    if (!storeId) { setLoading(false); return; }
+    setLoading(true);
+    const fetch = async () => {
       try {
-        const [ordersRes, recentRes] = await Promise.all([
-          supabase
-            .from('orders')
-            .select('total, fulfillment_status, status')
-            .eq('store_id', currentStore.id)
-            .gte('created_at', today),
-          supabase
-            .from('orders')
-            .select('id, order_number, total, status, fulfillment_status, created_at, customer:customers(name)')
-            .eq('store_id', currentStore.id)
-            .order('created_at', { ascending: false })
-            .limit(5),
+        const [orders, inventory] = await Promise.all([
+          supabase.from('orders').select('id, order_number, total, status, fulfillment_status, is_voided, created_at, sla_deadline, customer:customers(name)').eq('store_id', storeId).order('created_at', { ascending: false }),
+          canInventory
+            ? supabase.from('store_inventory').select('id, quantity, min_stock_level, product:products(name, image_urls), cigar:cigars(name, image_url)').eq('store_id', storeId)
+            : Promise.resolve({ data: [], error: null }),
         ]);
-
-        if (ordersRes.error) throw ordersRes.error;
-        if (recentRes.error) throw recentRes.error;
-
-        const orders = ordersRes.data || [];
-        const totalOrders = orders.length;
-        const totalSales = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
-        const liveOrders = orders.filter(order =>
-          !['delivered', 'fulfilled', 'cancelled', 'declined'].includes(order.fulfillment_status || '')
-        ).length;
-        const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
-
-        setStats({ totalSales, totalOrders, liveOrders, avgOrderValue });
-        setRecentOrders((recentRes.data || []) as RecentOrder[]);
-      } catch (error) {
-        console.error('Failed to load Hub stats', error);
-        setLoadError('Could not load live store data. Check your connection and refresh.');
+        if (orders.error) throw orders.error;
+        if (cancelled) return;
+        setData({ storeId, orders: (orders.data || []) as HubOrder[], stock: (inventory.data || []) as StockItem[], updated: new Date() });
+        setStockError(!!inventory.error);
+      } catch {
+        if (!cancelled) setError('We could not update this store. Please try again.');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-    fetchStats();
-  }, [currentStore]);
+    void fetch();
+    return () => { cancelled = true; };
+  }, [storeId, refresh, canInventory]);
 
-  const dateStr = new Date().toLocaleDateString('en-IN', {
-    weekday: 'short', day: 'numeric', month: 'short',
-  });
-
-  const pulseMetrics = useMemo(() => [
-    { label: 'Orders', value: loading ? '—' : stats.totalOrders.toString(), helper: 'today', icon: ShoppingCart },
-    { label: 'Live', value: loading ? '—' : stats.liveOrders.toString(), helper: 'needs action', icon: Activity, highlight: stats.liveOrders > 0 },
-    { label: 'Avg order', value: loading ? '—' : formatCurrency(stats.avgOrderValue), helper: 'basket value', icon: IndianRupee },
-  ], [loading, stats.avgOrderValue, stats.liveOrders, stats.totalOrders]);
+  const ready = !!storeId && data.storeId === storeId && !error;
+  const pending = storesLoading || loading || (!!storeId && data.storeId !== storeId && !error);
+  const metrics = useMemo(() => getHubMetrics(ready ? data.orders : [], period, data.updated), [ready, data, period]);
+  const lowStock = useMemo(() => ready ? data.stock.filter(item => item.quantity <= 0 || (item.min_stock_level !== null && item.quantity <= item.min_stock_level)).sort((a, b) => a.quantity - b.quantity) : [], [ready, data.stock]);
+  const priorities = useMemo(() => [...metrics.openOrders].sort((a, b) => {
+    const aDue = a.sla_deadline ? new Date(a.sla_deadline).getTime() : Infinity;
+    const bDue = b.sla_deadline ? new Date(b.sla_deadline).getTime() : Infinity;
+    return aDue - bDue || new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+  }).slice(0, 3), [metrics.openOrders]);
+  const unavailable = !ready || pending;
+  const selectedPeriod = periods.find(item => item.value === period)!.label;
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   return (
     <SellerOSLayout>
-      <div className="mx-auto w-full max-w-[1480px] animate-fade-in space-y-5 pb-8 text-[#191b1f] md:space-y-6">
-        <section className="flex flex-col gap-5 rounded-[28px] border border-black/[0.04] bg-white px-4 py-5 shadow-[0_18px_60px_-45px_rgba(15,23,42,0.45)] md:flex-row md:items-end md:justify-between md:px-8 md:py-7">
+      <div className="mx-auto max-w-[1440px] space-y-5 pb-24 text-[#191b1f] md:space-y-6">
+        <header className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="mb-4 flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#563ed5] text-white shadow-[0_0_26px_rgba(86,62,213,0.28)]">
-                <Sparkles className="h-5 w-5" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-[#1b1d21]">{getGreeting()}, {currentStore?.name || 'SeeCen'}</p>
-                <p className="text-xs font-medium text-[#8b9098]">Seller command center · {dateStr}</p>
+            <p className="text-sm text-muted-foreground">{greeting}</p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-normal sm:text-3xl">Store overview</h1>
+            <p className="mt-1 break-words text-xs text-muted-foreground">{currentStore?.name || 'Hub'} · {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
+          </div>
+          {canOrders && <Button asChild className="min-h-11 shrink-0 gap-2 bg-[#17191c] hover:bg-[#303238] hover:translate-y-0"><Link to="/demo/orders/new"><Plus className="h-4 w-4" /> New order</Link></Button>}
+        </header>
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div role="group" aria-label="Reporting period" className="grid flex-1 grid-cols-4 rounded-full border border-black/[0.05] bg-white p-1 sm:max-w-sm">
+            {periods.map(item => <button key={item.value} type="button" aria-pressed={period === item.value} onClick={() => setPeriod(item.value)} className={cn('min-h-11 whitespace-nowrap rounded-full px-1 text-xs font-semibold sm:px-2 sm:text-sm', focus, period === item.value ? 'bg-[#563ed5] text-white' : 'text-[#6c727b] hover:bg-[#f0f1f3]')}>{item.label}</button>)}
+          </div>
+          <Button variant="outline" size="icon" aria-label="Refresh Hub" title="Refresh Hub" className="h-11 w-11 shrink-0" disabled={pending || !storeId} onClick={() => setRefresh(value => value + 1)}><RefreshCw className={cn('h-4 w-4', pending && 'animate-spin')} /></Button>
+        </div>
+
+        {error && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"><p>{error}</p><Button variant="outline" className="min-h-11" onClick={() => setRefresh(value => value + 1)}>Try again</Button></div>}
+        {!storeId && !storesLoading && <div role="status" className={panel}><p className="font-semibold">No store selected</p><p className="mt-1 text-sm text-muted-foreground">Select a store from the store menu to view its activity.</p></div>}
+
+        <section aria-label="Store metrics" aria-busy={pending} className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <Metric label="Order value" value={money(metrics.total)} helper={`${selectedPeriod} · before refunds`} icon={IndianRupee} unavailable={unavailable} loading={pending} accent />
+          <Metric label="Orders placed" value={String(metrics.count)} helper={selectedPeriod} icon={ShoppingCart} unavailable={unavailable} loading={pending} />
+          <Metric label="Open orders" value={String(metrics.openOrders.length)} helper="Across all dates" icon={Activity} unavailable={unavailable} loading={pending} />
+          <Metric label="Average order" value={money(metrics.average)} helper={selectedPeriod} icon={BarChart3} unavailable={unavailable} loading={pending} />
+        </section>
+
+        {visibleActions.length > 0 && <nav aria-label="Hub shortcuts" className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+          {visibleActions.map(action => <Link key={action.path} to={action.path} className={cn('flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-lg border border-black/[0.05] bg-white px-2 py-2 text-xs font-semibold hover:bg-[#eceef2] sm:px-4 sm:text-sm', focus)}><action.icon className="h-4 w-4 shrink-0 text-[#563ed5]" /><span className="break-words">{action.label}</span></Link>)}
+        </nav>}
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          <section aria-labelledby="attention-title" className={cn(panel, 'lg:order-2')}>
+            <SectionTitle id="attention-title" title="Needs attention" icon={Clock3} />
+            <p className="mt-1 text-xs text-muted-foreground">Open work across all dates</p>
+            {pending ? <LoadingRows /> : !ready ? <Unavailable /> : <>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                <span className={cn('rounded-full px-3 py-1.5 font-semibold', metrics.overdue.length ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700')}>{metrics.overdue.length} overdue</span>
+                <span className="rounded-full bg-[#f1effc] px-3 py-1.5 font-semibold text-[#563ed5]">{metrics.openOrders.length} open</span>
+              </div>
+              {priorities.length ? <div className="mt-3 divide-y divide-black/[0.05]">{priorities.map(order => <OrderLine key={order.id} order={order} canOpen={canOrders} priority />)}</div> : <div className="flex items-center gap-3 py-7"><CheckCircle2 className="h-7 w-7 shrink-0 text-emerald-600" /><div><p className="text-sm font-semibold">Order queue is clear</p><p className="mt-1 text-xs text-muted-foreground">No orders awaiting fulfillment.</p></div></div>}
+              {canOrders && <Link to="/demo/orders" className={cn('mt-3 flex min-h-11 items-center justify-between rounded-lg bg-[#f1effc] px-3 text-sm font-semibold text-[#563ed5] hover:bg-[#e8e4fc]', focus)}>Open order queue <ArrowRight className="h-4 w-4" /></Link>}
+              {canInventory && !stockError && lowStock.length > 0 && <Link to="/demo/inventory" className={cn('mt-2 flex min-h-11 items-center justify-between gap-2 rounded-lg px-3 text-sm font-medium hover:bg-[#f0f1f3]', focus)}><span>{lowStock.length} stock {lowStock.length === 1 ? 'item needs' : 'items need'} attention</span><ArrowUpRight className="h-4 w-4 shrink-0" /></Link>}
+            </>}
+          </section>
+
+          <section aria-labelledby="trend-title" className={cn(panel, 'lg:order-1')}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <SectionTitle id="trend-title" title="Sales activity" icon={BarChart3} />
+              <div role="group" aria-label="Chart metric" className="flex rounded-full bg-[#f4f5f6] p-1">
+                {(['value', 'orders'] as const).map(metric => <button key={metric} aria-pressed={chartMetric === metric} onClick={() => setChartMetric(metric)} className={cn('min-h-11 rounded-full px-3 text-xs font-semibold', focus, chartMetric === metric ? 'bg-[#17191c] text-white' : 'text-muted-foreground hover:bg-[#e8eaee]')}>{metric === 'value' ? 'Order value' : 'Orders'}</button>)}
               </div>
             </div>
-            <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
-              <div>
-                <p className="text-[12px] font-semibold uppercase tracking-[0.24em] text-[#a7adb5]">Today's revenue</p>
-                <h1 className="mt-1 text-[3.1rem] font-semibold leading-none tracking-[-0.04em] text-[#111315] sm:text-[4.6rem]">
-                  {loading ? '—' : formatCurrency(stats.totalSales)}
-                </h1>
-              </div>
-              <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-[#563ed5] px-3 py-1.5 text-xs font-bold text-white">
-                <ArrowUpRight className="h-3.5 w-3.5" />
-                {loading ? 'Live sync' : `${stats.totalOrders} orders`}
-              </span>
+            <div className="mt-4 flex items-baseline gap-3"><p className="break-all text-3xl font-semibold tabular-nums">{unavailable ? '-' : chartMetric === 'value' ? money(metrics.total) : metrics.count}</p><span className="text-xs text-muted-foreground">{selectedPeriod}</span></div>
+            <div className="mt-4 h-[220px] min-w-0 sm:h-[250px]">
+              {pending ? <div role="status" aria-label="Loading sales activity" className="h-full rounded-lg animate-shimmer" /> : !ready ? <Unavailable /> : metrics.count === 0 ? <div className="flex h-full flex-col items-center justify-center border-y border-dashed text-center"><BarChart3 className="h-8 w-8 text-[#969ca5]" /><p className="mt-3 text-sm font-semibold">No orders in this period</p><p className="mt-1 text-xs text-muted-foreground">{data.orders[0] ? `Most recent order: ${orderDate(data.orders[0].created_at)}` : 'Sales activity will appear after your first order.'}</p>{period !== 'all' && data.orders.length > 0 && <Button variant="ghost" className="mt-2 min-h-11 text-[#563ed5]" onClick={() => setPeriod('all')}>View all time <ArrowRight className="h-4 w-4" /></Button>}</div> :
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={metrics.trend} accessibilityLayer margin={{ top: 10, right: 8, left: -8, bottom: 0 }}>
+                    <CartesianGrid vertical={false} stroke="#eceef1" strokeDasharray="3 5" />
+                    <XAxis dataKey="label" tickLine={false} axisLine={false} minTickGap={24} tick={{ fontSize: 11, fill: '#747b85' }} dy={8} />
+                    <YAxis tickLine={false} axisLine={false} width={52} allowDecimals={false} tickFormatter={compact} tick={{ fontSize: 11, fill: '#747b85' }} />
+                    <Tooltip cursor={{ fill: '#f1effc' }} labelFormatter={(_, payload) => payload[0]?.payload.fullLabel || ''} formatter={(value: number) => [chartMetric === 'value' ? money(value) : value, chartMetric === 'value' ? 'Order value' : 'Orders']} contentStyle={{ border: '1px solid #eceef1', borderRadius: 8, fontSize: 12 }} />
+                    <Bar dataKey={chartMetric} fill="#563ed5" radius={[6, 6, 0, 0]} maxBarSize={36} isAnimationActive={false} />
+                  </BarChart>
+                </ResponsiveContainer>}
             </div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-3"><p className="text-xs text-muted-foreground">Voided, cancelled and declined orders excluded.</p>{canAnalytics && <Link to="/demo/analytics" className={cn('inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-[#563ed5]', focus)}>Analytics <ArrowUpRight className="h-4 w-4" /></Link>}</div>
+          </section>
+
+          <section aria-labelledby="recent-title" className={cn(panel, 'lg:order-3')}>
+            <div className="flex items-center justify-between gap-2"><SectionTitle id="recent-title" title="Recent orders" icon={ShoppingCart} />{canOrders && <Link to="/demo/orders" className={cn('inline-flex min-h-11 shrink-0 items-center gap-1 text-xs font-semibold text-[#563ed5]', focus)}>View all <ArrowRight className="h-4 w-4" /></Link>}</div>
+            {pending ? <LoadingRows /> : !ready ? <Unavailable /> : data.orders.length ? <div className="mt-2 divide-y divide-black/[0.05]">{data.orders.slice(0, 5).map(order => <OrderLine key={order.id} order={order} canOpen={canOrders} />)}</div> : <div className="py-8 text-center"><ShoppingCart className="mx-auto h-8 w-8 text-muted-foreground" /><p className="mt-3 text-sm font-semibold">No orders yet</p>{canOrders && <Button asChild className="mt-4 min-h-11"><Link to="/demo/orders/new"><Plus className="h-4 w-4" /> Create order</Link></Button>}</div>}
+          </section>
+
+          <div className="min-w-0 space-y-4 lg:order-4">
+            {canInventory && <section aria-labelledby="stock-title" className={panel}>
+              <div className="flex items-center justify-between gap-2"><SectionTitle id="stock-title" title="Stock watch" icon={Boxes} /><Link to="/demo/inventory" className={cn('flex min-h-11 shrink-0 items-center gap-1 text-xs font-semibold text-[#563ed5]', focus)}>Inventory <ArrowUpRight className="h-4 w-4" /></Link></div>
+              {pending ? <LoadingRows /> : stockError ? <p role="status" className="py-5 text-sm text-muted-foreground">Stock could not be loaded. Refresh to try again.</p> : !ready ? <Unavailable /> : lowStock.length ? <div className="mt-2 divide-y divide-black/[0.05]">{lowStock.slice(0, 3).map(item => {
+                const image = item.product?.image_urls?.[0] || item.cigar?.image_url;
+                return <Link key={item.id} to="/demo/inventory" className={cn('flex min-h-20 items-center gap-3 rounded-md py-3 hover:bg-[#f7f8fa]', focus)}>
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-[#f0f1f3]"><Package aria-hidden="true" className="absolute inset-3 h-6 w-6 text-muted-foreground" />{image && <img src={image} alt="" loading="lazy" className="relative h-full w-full object-cover" onError={event => { event.currentTarget.style.display = 'none'; }} />}</div>
+                  <div className="min-w-0 flex-1"><p className="break-words text-sm font-medium">{item.product?.name || item.cigar?.name || 'Product'}</p><p className={cn('mt-1 text-xs', item.quantity <= 0 ? 'text-red-700' : 'text-amber-700')}>{item.quantity <= 0 ? 'Out of stock' : `${item.quantity} left · minimum ${item.min_stock_level}`}</p></div><ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </Link>;
+              })}</div> : <div className="flex items-center gap-3 py-6"><CheckCircle2 className="h-6 w-6 text-emerald-600" /><p className="text-sm">{data.stock.length ? 'Stock levels are above their minimums.' : 'No inventory at this store yet.'}</p></div>}
+            </section>}
+            {canCoach && <Link to="/demo/ai-coach" className={cn('flex min-h-24 items-center gap-4 rounded-lg bg-[#17191c] p-5 text-white hover:bg-[#292c31]', focus)}><Bot className="h-6 w-6 shrink-0 text-[#c4bafa]" /><div className="min-w-0 flex-1"><p className="font-semibold">Plan your next move</p><p className="mt-1 text-sm text-[#bdc2cb]">Review today's AI recommendations</p></div><ArrowUpRight className="h-5 w-5 shrink-0" /></Link>}
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Pill icon={CalendarDays} label="This week" />
-            <Pill icon={Clock3} label="24h" />
-            <button
-              type="button"
-              onClick={() => navigate('/demo/orders/new')}
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#17191c] px-5 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(0,0,0,0.8)] transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#563ed5]"
-            >
-              New order
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </div>
-        </section>
-
-        <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(260px,0.9fr)_minmax(480px,1.65fr)_minmax(270px,0.9fr)]">
-          <MetricStack loading={loading} stats={stats} />
-          <ActivityPanel metrics={pulseMetrics} />
-          <ProgressPanel navigate={navigate} stats={stats} loading={loading} />
-        </section>
-
-        <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] xl:grid-cols-[minmax(330px,0.75fr)_minmax(0,1.25fr)_minmax(290px,0.7fr)]">
-          <GrowthCard navigate={navigate} />
-          <RecentOrdersSection
-            currentStoreName={currentStore?.name}
-            loadError={loadError}
-            orders={recentOrders}
-            navigate={navigate}
-          />
-          <ActionsPanel navigate={navigate} />
-        </section>
+        </div>
+        {ready && !pending && <p className="text-xs text-muted-foreground">Updated {data.updated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>}
       </div>
     </SellerOSLayout>
   );
 }
 
-function Pill({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
-  return (
-    <span className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-black/[0.05] bg-[#f7f8f5] px-4 text-sm font-semibold text-[#34373c] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-      <Icon className="h-4 w-4 text-[#7f858d]" />
-      {label}
-    </span>
-  );
+function Metric({ label, value, helper, icon: Icon, loading, unavailable, accent }: { label: string; value: string; helper: string; icon: React.ElementType; loading: boolean; unavailable: boolean; accent?: boolean }) {
+  return <div className={cn('min-w-0 rounded-lg border p-3 sm:p-4', accent ? 'border-[#ded8fa] bg-[#f1effc]' : 'border-black/[0.06] bg-white')}>
+    <div className="flex items-center gap-2 text-xs font-medium text-[#646b76]"><Icon className={cn('h-4 w-4 shrink-0', accent && 'text-[#563ed5]')} /><span>{label}</span></div>
+    {loading ? <div className="mt-2 h-8 max-w-32 rounded-md animate-shimmer" /> : <p className="mt-2 break-all text-2xl font-semibold leading-tight tabular-nums sm:text-3xl">{unavailable ? '-' : value}</p>}
+    <p className="mt-1 text-[11px] text-[#747b85]">{helper}</p>
+  </div>;
 }
 
-function MetricStack({ loading, stats }: { loading: boolean; stats: TodayStats }) {
-  return (
-    <div className="rounded-[26px] border border-black/[0.04] bg-[#fbfcf8] p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.6)]">
-      <div className="flex items-center justify-between">
-        <PanelTitle dot="bg-[#563ed5]" title="Sales pulse" />
-        <span className="rounded-full bg-[#17191c] px-2.5 py-1 text-[11px] font-semibold text-white">Now</span>
-      </div>
-      <div className="mt-9">
-        <p className="text-5xl font-semibold leading-none tracking-[-0.05em] text-[#111315]">
-          {loading ? '—' : formatCurrency(stats.totalSales)}
-        </p>
-        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8f959d]">Sales today</p>
-      </div>
-      <div className="mt-12 grid grid-cols-2 divide-x divide-black/[0.06] border-t border-black/[0.06] pt-5">
-        <SmallMetric label="Orders" value={loading ? '—' : stats.totalOrders.toString()} />
-        <SmallMetric label="Live queue" value={loading ? '—' : stats.liveOrders.toString()} align="right" />
-      </div>
-    </div>
-  );
+function SectionTitle({ id, title, icon: Icon }: { id: string; title: string; icon: React.ElementType }) {
+  return <div className="flex min-w-0 items-center gap-2"><Icon className="h-4 w-4 shrink-0 text-[#563ed5]" /><h2 id={id} className="text-sm font-semibold sm:text-base">{title}</h2></div>;
 }
 
-function ActivityPanel({ metrics }: { metrics: { label: string; value: string; helper: string; icon: React.ElementType; highlight?: boolean }[] }) {
-  return (
-    <div className="rounded-[28px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_55px_-42px_rgba(15,23,42,0.55)] md:p-6">
-      <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-        <div>
-          <PanelTitle dot="bg-[#563ed5]" title="Analytics" />
-          <div className="mt-6 flex flex-wrap gap-6 md:gap-10">
-            {metrics.map((metric) => (
-              <div key={metric.label} className="min-w-[88px]">
-                <div className="flex items-center gap-2">
-                  <metric.icon className={cn('h-4 w-4', metric.highlight ? 'text-[#17191c]' : 'text-[#9096a0]')} />
-                  <p className="text-xs font-semibold text-[#777e87]">{metric.label}</p>
-                </div>
-                <p className="mt-1 text-4xl font-semibold leading-none tracking-[-0.05em] text-[#111315]">{metric.value}</p>
-                <p className="mt-1 text-[11px] font-medium text-[#a1a7b0]">{metric.helper}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button type="button" aria-label="Expand analytics" className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4f5f2] text-[#17191c]">
-            <Zap className="h-4 w-4" />
-          </button>
-          <button type="button" aria-label="Analytics options" className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4f5f2] text-[#17191c]">
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-8 flex h-[190px] items-end gap-2 overflow-hidden rounded-[24px] bg-[#fbfcf8] px-4 pb-5 pt-7 sm:gap-3">
-        {activityBars.map((height, index) => {
-          const active = index === 5 || index === 17;
-          return (
-            <div key={index} className="flex h-full min-w-0 flex-1 items-end justify-center">
-              <div
-                className={cn(
-                  'w-full max-w-[26px] rounded-full transition-all',
-                  active ? 'bg-[#563ed5] shadow-[0_0_24px_rgba(86,62,213,0.28)]' : 'bg-[#1d2024]'
-                )}
-                style={{ height: `${height}%` }}
-              />
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
-        {['Tracker', 'Sales', 'Inventory', 'Customers', 'AI Coach'].map((tab, index) => (
-          <button
-            key={tab}
-            type="button"
-            className={cn(
-              'min-h-8 whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition-colors',
-              index === 0 ? 'bg-[#563ed5] text-white' : 'bg-[#f4f5f2] text-[#757b84] hover:text-[#17191c]'
-            )}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+function OrderLine({ order, canOpen, priority = false }: { order: HubOrder; canOpen: boolean; priority?: boolean }) {
+  const status = order.is_voided ? 'Voided' : order.fulfillment_status === 'pending' ? 'New' : FULFILLMENT_CONFIG[order.fulfillment_status || 'new']?.label || order.fulfillment_status?.replace(/_/g, ' ') || 'New';
+  const content = <>
+    <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-x-2 gap-y-1"><span className="break-all font-mono text-xs font-semibold">{order.order_number || `#${order.id.slice(0, 8)}`}</span><span className="rounded-full bg-[#f0f1f3] px-2 py-1 text-[10px] font-medium text-[#646b76]">{status}</span></div><p className="mt-1 break-words text-sm">{customerName(order)}</p><p className="mt-1 text-[11px] text-muted-foreground">{orderDate(order.created_at)}</p></div>
+    <span className="shrink-0 text-sm font-semibold tabular-nums">{money(orderValue(order))}</span>{canOpen && <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+  </>;
+  const className = cn('flex min-h-20 items-center gap-2 rounded-md py-3', canOpen && 'hover:bg-[#f7f8fa]', priority && 'min-h-[88px]', focus);
+  return canOpen ? <Link aria-label={`Open order ${order.order_number || order.id}`} to={`/demo/orders/${order.id}`} className={className}>{content}</Link> : <div className={className}>{content}</div>;
 }
 
-function ProgressPanel({ navigate, stats, loading }: { navigate: (path: string) => void; stats: TodayStats; loading: boolean }) {
-  const progressRows = [
-    { label: 'Packing', value: loading ? '—' : `${Math.max(stats.liveOrders, 1)} open`, active: true },
-    { label: 'Shipping', value: '3 ready' },
-    { label: 'Returns', value: '2 review' },
-  ];
-
-  return (
-    <div className="rounded-[26px] border border-black/[0.04] bg-[#f0f2f0] p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.55)]">
-      <div className="flex items-center justify-between">
-        <PanelTitle dot="bg-[#563ed5]" title="Progress" />
-        <button type="button" aria-label="Progress options" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-[#17191c]">
-          <MoreHorizontal className="h-4 w-4" />
-        </button>
-      </div>
-      <button
-        type="button"
-        onClick={() => navigate('/demo/fulfillment')}
-        className="mt-6 flex w-full items-center gap-4 rounded-[24px] bg-white p-3 text-left transition-transform hover:scale-[1.01]"
-      >
-        <span className="flex h-20 w-24 shrink-0 items-center justify-center rounded-[20px] bg-[#563ed5] text-white">
-          <PackageCheck className="h-9 w-9" />
-        </span>
-        <span className="min-w-0">
-          <span className="block text-xs font-semibold text-[#777e87]">Fulfilment</span>
-          <span className="mt-1 block text-5xl font-semibold leading-none tracking-[-0.06em] text-[#111315]">
-            {loading ? '—' : Math.max(87, 100 - stats.liveOrders * 3)}
-          </span>
-        </span>
-      </button>
-      <div className="mt-5 space-y-2">
-        {progressRows.map((row) => (
-          <button
-            key={row.label}
-            type="button"
-            onClick={() => navigate(row.label === 'Returns' ? '/demo/returns' : '/demo/orders')}
-            className={cn(
-              'flex w-full items-center justify-between rounded-2xl px-3 py-3 text-sm font-semibold transition-colors',
-              row.active ? 'bg-white text-[#17191c]' : 'text-[#8b9098] hover:bg-white/70 hover:text-[#17191c]'
-            )}
-          >
-            <span className="flex items-center gap-2">
-              <span className={cn('h-2.5 w-2.5 rounded-full', row.active ? 'bg-[#17191c]' : 'bg-white')} />
-              {row.label}
-            </span>
-            <span className={cn(row.active && 'rounded-full bg-[#563ed5] px-2 py-1 text-xs text-white')}>{row.value}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+function LoadingRows() {
+  return <div role="status" aria-label="Loading store activity" className="mt-4 space-y-3">{[0, 1, 2].map(i => <div key={i} className="h-16 rounded-lg animate-shimmer" />)}</div>;
 }
 
-function GrowthCard({ navigate }: { navigate: (path: string) => void }) {
-  return (
-    <div className="relative overflow-hidden rounded-[28px] border border-black/[0.04] bg-white p-6 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)]">
-      <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-[#563ed5]/25 blur-2xl" />
-      <PanelTitle dot="bg-[#563ed5]" title="Exposure" />
-      <h2 className="mt-8 max-w-[13rem] text-3xl font-semibold leading-[0.98] tracking-[-0.05em] text-[#17191c]">
-        Monitor growth with precision
-      </h2>
-      <p className="mt-5 max-w-xs text-sm font-medium leading-6 text-[#838993]">
-        Watch revenue, fulfilment, feedback, and channel momentum from one daily operating view.
-      </p>
-      <div className="mt-8 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => navigate('/demo/growth')}
-          className="rounded-full bg-[#17191c] px-5 py-2.5 text-sm font-semibold text-white"
-        >
-          Open growth
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/demo/analytics')}
-          className="inline-flex min-h-[36px] items-center rounded-full px-3 text-sm font-semibold text-[#777e87] hover:bg-[#f4f5f2] hover:text-[#17191c]"
-        >
-          Analytics
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ActionsPanel({ navigate }: { navigate: (path: string) => void }) {
-  return (
-    <div className="space-y-4">
-      <div className="rounded-[26px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.5)]">
-        <PanelTitle dot="bg-[#563ed5]" title="Actions" />
-        <div className="mt-5 grid grid-cols-2 gap-2">
-          {primaryActions.map((action) => (
-            <button
-              key={action.path}
-              type="button"
-              onClick={() => navigate(action.path)}
-              className="flex min-h-[86px] flex-col justify-between rounded-[20px] border border-black/[0.04] bg-[#fbfcf8] p-3 text-left transition-transform hover:scale-[1.02]"
-            >
-              <action.icon className="h-5 w-5 text-[#17191c]" />
-              <span className="text-sm font-bold text-[#17191c]">{action.label}</span>
-            </button>
-          ))}
-        </div>
-        <MoreActionsPopover navigate={navigate} />
-      </div>
-      <div className="rounded-[26px] bg-[#563ed5] p-5 text-white shadow-[0_18px_45px_-34px_rgba(86,62,213,0.45)]">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-bold">AI suggestion</p>
-          <Bot className="h-5 w-5" />
-        </div>
-        <p className="mt-6 text-4xl font-semibold leading-none tracking-[-0.05em]">10.57</p>
-        <p className="mt-2 text-xs font-bold uppercase tracking-[0.18em]">Priority score</p>
-      </div>
-    </div>
-  );
-}
-
-function MoreActionsPopover({ navigate }: { navigate: (path: string) => void }) {
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="mt-3 inline-flex min-h-[42px] w-full items-center justify-center gap-2 rounded-full bg-[#f4f5f2] px-4 text-sm font-bold text-[#5e656f] transition-colors hover:text-[#17191c]"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-          More controls
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-56 rounded-3xl border-black/[0.06] bg-white p-2 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.45)]">
-        {moreActions.map(a => (
-          <button
-            key={a.path}
-            type="button"
-            onClick={() => navigate(a.path)}
-            className="flex min-h-[42px] w-full items-center gap-3 rounded-2xl px-3 text-sm font-semibold text-[#30343a] transition-colors hover:bg-[#f4f5f2]"
-          >
-            <a.icon className="h-4 w-4 text-[#7d838c]" />
-            {a.label}
-          </button>
-        ))}
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function getCustomerName(customer: RecentOrder['customer']) {
-  if (Array.isArray(customer)) return customer[0]?.name || 'Walk-in';
-  return customer?.name || 'Walk-in';
-}
-
-function RecentOrdersSection({
-  currentStoreName,
-  loadError,
-  orders,
-  navigate,
-}: {
-  currentStoreName?: string;
-  loadError: string | null;
-  orders: RecentOrder[];
-  navigate: (path: string) => void;
-}) {
-  return (
-    <div className="rounded-[28px] border border-black/[0.04] bg-white p-5 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.55)] md:p-6">
-      <div className="flex items-center justify-between gap-4">
-        <PanelTitle dot="bg-[#563ed5]" title="Recent orders" />
-        <button
-          type="button"
-          onClick={() => navigate('/demo/orders')}
-          className="inline-flex items-center gap-1 rounded-full bg-[#f4f5f2] px-3 py-2 text-xs font-bold text-[#737a83] transition-colors hover:text-[#17191c]"
-        >
-          View all <ArrowRight className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
-      {loadError ? (
-        <div className="mt-5 rounded-[22px] border border-[#563ed5]/25 bg-[#563ed5]/10 px-4 py-5 text-sm font-semibold text-[#2f2377]">
-          {loadError}
-        </div>
-      ) : orders.length === 0 ? (
-        <div className="mt-5 rounded-[24px] border border-dashed border-black/[0.08] bg-[#fbfcf8] px-5 py-10 text-center">
-          <ShoppingCart className="mx-auto mb-3 h-9 w-9 text-[#b7bdc5]" />
-          <p className="text-sm font-bold text-[#17191c]">
-            {currentStoreName ? 'No recent orders yet' : 'Choose a store to see live orders'}
-          </p>
-          <p className="mx-auto mt-1 max-w-xs text-xs font-medium leading-5 text-[#8b9098]">
-            {currentStoreName
-              ? 'Create a demo order or wait for channel orders to land here.'
-              : 'Once a store is active, today’s queue and revenue will stay in view.'}
-          </p>
-          {currentStoreName && (
-            <button
-              type="button"
-              onClick={() => navigate('/demo/orders/new')}
-              className="mt-5 inline-flex min-h-[40px] items-center justify-center rounded-full bg-[#17191c] px-5 text-xs font-bold text-white"
-            >
-              Create order
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="mt-5 space-y-2">
-          {orders.map((order) => {
-            const customerName = getCustomerName(order.customer);
-            const statusLabel = order.fulfillment_status?.replace('_', ' ') || 'new';
-            const isDelivered = order.fulfillment_status === 'delivered';
-            const isUnfulfilled = order.fulfillment_status === 'unfulfilled' || order.fulfillment_status === 'new';
-            const orderNumber = order.order_number || `#${order.id.slice(0, 8)}`;
-
-            return (
-              <button
-                key={order.id}
-                type="button"
-                onClick={() => navigate(`/demo/orders/${order.id}`)}
-                className="group flex min-h-[74px] w-full items-center rounded-[22px] bg-[#fbfcf8] px-4 text-left transition-colors hover:bg-[#f4f5f2]"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-sm font-bold tracking-tight text-[#17191c]">{orderNumber}</span>
-                    <span className={cn(
-                      'rounded-full px-2 py-1 text-[10px] font-bold capitalize',
-                      isDelivered && 'bg-emerald-100 text-emerald-700',
-                      isUnfulfilled && 'bg-[#563ed5] text-white',
-                      !isDelivered && !isUnfulfilled && 'bg-[#ecefeb] text-[#747b84]',
-                    )}>
-                      {statusLabel}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs font-semibold text-[#8c929a]">{customerName}</p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-sm font-bold tabular-nums text-[#17191c]">
-                    ₹{Number(order.total || 0).toLocaleString('en-IN')}
-                  </p>
-                  <p className="mt-0.5 text-[11px] font-medium text-[#9aa0a8]">
-                    {order.created_at
-                      ? new Date(order.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-                      : 'Just now'}
-                  </p>
-                </div>
-                <ChevronRight className="ml-2 h-4 w-4 shrink-0 text-[#b7bdc5] transition-transform group-hover:translate-x-0.5" />
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PanelTitle({ dot, title }: { dot: string; title: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className={cn('h-4 w-4 rounded-[5px]', dot)} />
-      <h2 className="text-sm font-bold text-[#17191c]">{title}</h2>
-    </div>
-  );
-}
-
-function SmallMetric({ label, value, align = 'left' }: { label: string; value: string; align?: 'left' | 'right' }) {
-  return (
-    <div className={cn('px-1', align === 'right' && 'pl-5 text-right')}>
-      <p className="text-4xl font-semibold leading-none tracking-[-0.05em] text-[#111315]">{value}</p>
-      <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-[#8f959d]">{label}</p>
-    </div>
-  );
+function Unavailable() {
+  return <p className="py-8 text-center text-sm text-muted-foreground">Store activity is unavailable.</p>;
 }

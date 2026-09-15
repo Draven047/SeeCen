@@ -13,6 +13,7 @@ import { Package, Edit2, Plus, ChevronDown, Minus, ToggleLeft, ToggleRight, Sear
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useStore } from '@/contexts/StoreContext';
 
 interface Store { id: string; name: string; }
 interface ProductOption { id: string; name: string; base_price: number; category: string; brand: string | null; }
@@ -32,8 +33,9 @@ interface InventoryItem {
 
 export default function InventoryManagement() {
   const isMobile = useIsMobile();
+  const { currentStore } = useStore();
   const [stores, setStores] = useState<Store[]>([]);
-  const [selectedStore, setSelectedStore] = useState('');
+  const [selectedStore, setSelectedStore] = useState(currentStore?.id || '');
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +64,9 @@ export default function InventoryManagement() {
   const fetchStores = async () => {
     const { data } = await supabase.from('stores').select('*').order('name');
     setStores(data || []);
-    if (data && data.length > 0) setSelectedStore(data[0].id);
+    if (data && data.length > 0) {
+      setSelectedStore(selected => data.some(store => store.id === selected) ? selected : data[0].id);
+    }
     setLoading(false);
   };
 

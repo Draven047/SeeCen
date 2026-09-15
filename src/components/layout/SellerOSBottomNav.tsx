@@ -48,22 +48,23 @@ export function SellerOSBottomNav() {
               to={item.path}
               aria-label={item.label}
               aria-current={active ? 'page' : undefined}
-              className="relative flex min-h-[48px] flex-1 flex-col items-center justify-center gap-0.5 transition-colors"
+              className="group flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#563ed5]"
             >
-              {active && (
-                <span className="absolute top-2 h-9 w-9 rounded-full bg-[#563ed5]" />
-              )}
-              <item.icon
+              <span
+                aria-hidden="true"
                 className={cn(
-                  'relative h-[21px] w-[21px] transition-colors',
-                  active ? 'text-white' : 'text-[#9aa0a8]'
+                  'flex h-8 w-14 max-w-full shrink-0 items-center justify-center rounded-full',
+                  active
+                    ? 'bg-[#563ed5] text-white'
+                    : 'text-[#727780] group-hover:bg-[#f0f1f3] group-hover:text-[#17191c]'
                 )}
-                strokeWidth={active ? 2.2 : 1.75}
-              />
+              >
+                <item.icon className="h-5 w-5" strokeWidth={active ? 2.2 : 1.75} />
+              </span>
               <span
                 className={cn(
-                  'relative text-[10px] font-bold transition-colors',
-                  active ? 'text-[#563ed5]' : 'text-[#8f959d]'
+                  'max-w-full text-center text-[11px] font-semibold leading-[14px]',
+                  active ? 'text-[#563ed5]' : 'text-[#727780]'
                 )}
               >
                 {item.label}
