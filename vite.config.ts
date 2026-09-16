@@ -13,7 +13,12 @@ export default defineConfig(() => ({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "apple-touch-icon.png", "robots.txt", "sitemap.xml"],
+      includeAssets: [
+        "favicon.svg",
+        "apple-touch-icon.png",
+        "robots.txt",
+        "sitemap.xml",
+      ],
       manifest: {
         name: "SeeCen — Seller command center",
         short_name: "SeeCen",
@@ -27,12 +32,30 @@ export default defineConfig(() => ({
         icons: [
           { src: "/pwa-192.png", sizes: "192x192", type: "image/png" },
           { src: "/pwa-512.png", sizes: "512x512", type: "image/png" },
-          { src: "/pwa-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          {
+            src: "/pwa-maskable-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
         ],
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
-        // landing screenshots are large; keep them cacheable
+        // Landing media and optional 3D must not compete with the first app load.
+        globIgnores: ["**/ProductScene-*.js", "landing/v2/**", "landing-*.png"],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url, sameOrigin }) =>
+              sameOrigin && /^\/landing\/v2\/.*\.png$/.test(url.pathname),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "seecen-landing-v2",
+              expiration: { maxEntries: 12, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+        ],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: "/index.html",
       },

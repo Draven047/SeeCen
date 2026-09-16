@@ -1,0 +1,41 @@
+{
+  "version": "v2",
+  "capturedAt": "2026-09-16",
+  "applicationCommit": "fdf6516ec3a925ba7957fe856664b7f409495a33",
+  "source": "Local browser demo, synthetic SeeCen Delhi data; no real customer records",
+  "desktopViewport": { "width": 1422, "height": 800 },
+  "mobileViewport": { "width": 390, "height": 844 },
+  "captureNote": "Mobile capture tool rasterized at reduced resolution with extra padding; padding removed without changing the app content.",
+  "screens": [
+    {
+      "route": "/demo/dashboard",
+      "desktop": "hub-desktop.png",
+      "mobile": "hub-mobile.png"
+    },
+    {
+      "route": "/demo/orders",
+      "desktop": "orders-desktop.png",
+      "mobile": "orders-mobile.png"
+    },
+    {
+      "route": "/demo/inventory",
+      "desktop": "inventory-desktop.png",
+      "mobile": "inventory-mobile.png"
+    },
+    {
+      "route": "/demo/fulfillment",
+      "desktop": "fulfillment-desktop.png",
+      "mobile": "fulfillment-mobile.png"
+    },
+    {
+      "route": "/demo/analytics",
+      "desktop": "analytics-desktop.png",
+      "mobile": "analytics-mobile.png"
+    },
+    {
+      "route": "/demo/finance",
+      "desktop": "finance-desktop.png",
+      "mobile": "finance-mobile.png"
+    }
+  ]
+}
