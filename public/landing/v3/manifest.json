@@ -1,0 +1,17 @@
+{
+  "version": "v3",
+  "capturedAt": "2026-09-19",
+  "applicationCommit": "c1e13470b149c1fd25155302c07a08f798efa488",
+  "source": "Isolated local browser demo with synthetic SeeCen Delhi data; no real customer records",
+  "desktopViewport": { "width": 1422, "height": 800 },
+  "mobileViewport": { "width": 390, "height": 844 },
+  "captureNote": "Base application commit plus working-tree brand-logo changes. Native viewport captures, including the refreshed mobile header; no image compositing.",
+  "screens": [
+    { "route": "/demo/dashboard", "desktop": "hub-desktop.png", "mobile": "hub-mobile.png" },
+    { "route": "/demo/orders", "desktop": "orders-desktop.png", "mobile": "orders-mobile.png" },
+    { "route": "/demo/inventory", "desktop": "inventory-desktop.png", "mobile": "inventory-mobile.png" },
+    { "route": "/demo/fulfillment", "desktop": "fulfillment-desktop.png", "mobile": "fulfillment-mobile.png" },
+    { "route": "/demo/analytics", "desktop": "analytics-desktop.png", "mobile": "analytics-mobile.png" },
+    { "route": "/demo/finance", "desktop": "finance-desktop.png", "mobile": "finance-mobile.png" }
+  ]
+}

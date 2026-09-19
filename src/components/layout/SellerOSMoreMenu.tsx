@@ -7,6 +7,8 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreSwitcher } from './StoreSwitcher';
 import { cn } from '@/lib/utils';
+import { CommandPalette } from './CommandPalette';
+import { HelpSheet } from './HelpSheet';
 
 interface NavGroup {
   label: string;
@@ -89,7 +91,7 @@ export function SellerOSMoreMenu({ onClose }: { onClose: () => void }) {
       <div className="border-b border-black/[0.04] bg-white p-4">
         <StoreSwitcher collapsed={false} />
       </div>
-      <div className="flex-1 overflow-y-auto py-3">
+      <div className="min-h-0 flex-1 overflow-y-auto py-3">
         {menuGroups.map((group) => {
           const visible = group.items.filter(i => canAccess(role, i.path));
           if (visible.length === 0) return null;
@@ -117,7 +119,10 @@ export function SellerOSMoreMenu({ onClose }: { onClose: () => void }) {
           );
         })}
       </div>
-      <div className="border-t border-black/[0.04] bg-white p-3" />
+      <div className="flex shrink-0 items-center gap-2 border-t border-black/[0.04] bg-white p-3">
+        <CommandPalette />
+        <HelpSheet />
+      </div>
     </div>
   );
 }

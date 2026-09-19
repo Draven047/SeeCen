@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, Download, Languages, Rocket, Sparkles, Store } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Download, Languages, Rocket, Store } from 'lucide-react';
+import { BrandMark } from '@/components/BrandMark';
 import { isDemoMode, setupMyStore, SETUP_MARKER_KEY } from '@/integrations/supabase/client';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { useTranslation } from 'react-i18next';
@@ -63,9 +64,7 @@ export function FirstRunWizard() {
       <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-[0_40px_120px_-40px_rgba(0,0,0,0.8)] sm:p-8">
         {/* Brand mark */}
         <div className="mb-6 flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#563ed5] text-white shadow-[0_0_26px_rgba(86,62,213,0.35)]">
-            <Sparkles className="h-5 w-5" />
-          </span>
+          <BrandMark className="h-11 w-11" />
           <div>
             <p className="text-base font-bold text-[#17191c]">{brand.name}</p>
             <p className="text-xs font-medium text-[#8b9098]">{t('Your store, on your computer')}</p>

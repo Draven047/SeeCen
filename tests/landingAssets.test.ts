@@ -6,7 +6,7 @@ import {
   insights,
   productGroups,
 } from "../src/components/landing/content";
-import manifest from "../public/landing/v2/manifest.json";
+import manifest from "../public/landing/v3/manifest.json";
 
 describe("Landing product evidence", () => {
   test("every screen has a real PNG desktop and mobile capture", () => {
@@ -54,6 +54,6 @@ describe("Landing product evidence", () => {
       "utf8",
     );
     expect(html).not.toContain("/landing-hub.png");
-    expect(html).toContain("/landing/v2/hub-desktop.png");
+    expect(html).toContain("/landing/v3/hub-desktop.png");
   });
 });

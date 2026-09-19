@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { Link } from "react-router-dom";
+import { BrandMark } from "@/components/BrandMark";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowDown,
@@ -454,6 +455,7 @@ export default function Landing() {
       </a>
       <header className="lp-header">
         <a href="#home" className="lp-brand" aria-label="SeeCen home">
+          <BrandMark className="lp-brand-mark" />
           SeeCen<span>.</span>
         </a>
         <nav className="lp-desktop-nav" aria-label="Landing navigation">
@@ -500,7 +502,7 @@ export default function Landing() {
               </button>
             </SheetTrigger>
             <SheetContent side="right" className="lp-menu">
-              <SheetTitle>SeeCen</SheetTitle>
+              <SheetTitle className="flex items-center gap-3"><BrandMark />SeeCen</SheetTitle>
               <nav aria-label="Mobile landing navigation">
                 {nav.map(([label, href]) => (
                   <SheetClose asChild key={href}>
@@ -691,6 +693,7 @@ export default function Landing() {
       </section>
       <footer className="lp-footer lp-container">
         <a className="lp-brand" href="#home">
+          <BrandMark className="lp-brand-mark" />
           SeeCen<span>.</span>
         </a>
         <p>Open-source seller operations.</p>

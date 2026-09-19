@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ShoppingCart, Boxes, LayoutGrid, MessageSquareWarning, IndianRupee,
-  TrendingUp, Link2, UserCog, Store, Settings, ShoppingBag,
+  TrendingUp, Link2, UserCog, Store, Settings,
   ChevronLeft, BarChart3, Bot, UserCheck, Package, Truck, Users,
   RotateCcw, PackageCheck, AlertTriangle,
 } from 'lucide-react';
@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { brand } from '@/config/brand';
+import { BrandMark } from '@/components/BrandMark';
 
 interface NavItem {
   icon: React.ElementType;
@@ -159,9 +160,9 @@ export function SellerOSSidebar() {
                 type="button"
                 onClick={toggle}
                 aria-label="Expand navigation"
-                className="flex h-11 w-11 items-center justify-center rounded-[18px] bg-[#17191c] text-white shadow-[0_14px_28px_-22px_rgba(0,0,0,0.9)] transition-colors hover:bg-[#2b2f35]"
+                className="flex h-11 w-11 items-center justify-center rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
               >
-                <ShoppingBag className="h-5 w-5" />
+                <BrandMark className="h-11 w-11" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="right">Expand</TooltipContent>
@@ -169,9 +170,7 @@ export function SellerOSSidebar() {
         ) : (
           <>
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] bg-[#17191c] text-white shadow-[0_14px_28px_-22px_rgba(0,0,0,0.9)]">
-              <ShoppingBag className="h-5 w-5" />
-              </div>
+              <BrandMark className="h-11 w-11" />
               <div className="min-w-0">
                 <p className="truncate text-[15px] font-black leading-5 tracking-[-0.03em] text-[#17191c]">{brand.name}</p>
                 <p className="truncate text-[10px] font-bold uppercase tracking-[0.18em] text-[#9aa0a8]">{brand.tagline}</p>

@@ -13,7 +13,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 
-export function DemoModeControl() {
+export function DemoModeControl({ compact = false }: { compact?: boolean }) {
   const { t, i18n } = useTranslation();
   const [confirming, setConfirming] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -44,10 +44,11 @@ export function DemoModeControl() {
         <button
           type="button"
           aria-label="About demo mode"
-          className="flex min-h-[44px] items-center gap-1.5 rounded-full bg-white px-3.5 text-xs font-bold text-[#563ed5] shadow-[0_14px_36px_-30px_rgba(15,23,42,0.65)] transition-transform hover:scale-[1.02]"
+          title="About demo mode"
+          className={`flex min-h-[44px] items-center gap-1.5 rounded-full bg-white text-xs font-bold text-[#563ed5] shadow-[0_14px_36px_-30px_rgba(15,23,42,0.65)] transition-transform hover:scale-[1.02] ${compact ? 'w-11 justify-center' : 'px-3.5'}`}
         >
           <FlaskConical className="h-4 w-4" />
-          Demo
+          {!compact && 'Demo'}
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 rounded-3xl border-black/[0.06] bg-white p-4 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.45)]">

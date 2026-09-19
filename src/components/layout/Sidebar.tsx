@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingCart, Truck, Package, Boxes,
   RotateCcw, Users, UserCog, BarChart3, DollarSign, Store,
-  Link2, Settings, LogOut, ShoppingBag, ChevronLeft, PackageCheck,
+  Link2, Settings, LogOut, ChevronLeft, PackageCheck,
   Palette, ChevronDown, Bot, UserCheck,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { BrandMark } from '@/components/BrandMark';
 
 interface NavItem {
   icon: React.ElementType;
@@ -191,8 +192,8 @@ export function Sidebar() {
         {collapsed ? (
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
-              <button onClick={toggle} className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <ShoppingBag className="h-4 w-4 text-primary-foreground" />
+              <button onClick={toggle} aria-label="Expand sidebar" className="flex h-8 w-8 items-center justify-center rounded-lg">
+                <BrandMark className="h-8 w-8" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="right">Expand sidebar</TooltipContent>
@@ -200,9 +201,7 @@ export function Sidebar() {
         ) : (
           <div className="flex flex-1 items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <ShoppingBag className="h-4 w-4 text-primary-foreground" />
-              </div>
+              <BrandMark className="h-8 w-8" />
               <div>
                 <h1 className="text-sm font-bold text-foreground leading-none">SeeCen</h1>
                 <p className="text-[10px] text-sidebar-muted mt-0.5">SellerOS</p>

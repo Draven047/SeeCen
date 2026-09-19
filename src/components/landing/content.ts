@@ -17,8 +17,8 @@ export const assets = Object.fromEntries(
   Object.entries(descriptions).map(([name, alt]) => [
     name,
     {
-      desktop: `/landing/v2/${name}-desktop.png`,
-      mobile: `/landing/v2/${name}-mobile.png`,
+      desktop: `/landing/v3/${name}-desktop.png`,
+      mobile: `/landing/v3/${name}-mobile.png`,
       alt,
     },
   ]),

@@ -7,6 +7,7 @@ import { DemoModeControl } from './DemoModeControl';
 import { CommandPalette } from './CommandPalette';
 import { HelpSheet } from './HelpSheet';
 import { brand } from '@/config/brand';
+import { BrandMark } from '@/components/BrandMark';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { Menu, ShoppingBag } from 'lucide-react';
@@ -59,14 +60,15 @@ export function SellerOSHeader() {
   return (
     <header className="sticky top-0 z-30 flex h-[76px] items-center justify-between bg-[#f6f7f3]/90 px-3 backdrop-blur-xl md:px-6">
       {/* Left: Store info */}
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex flex-1 items-center gap-2 min-w-0 pr-2">
         {isMobile ? (
           <button
             type="button"
             onClick={() => setStoreStatusOpen(true)}
             aria-label="Open store status"
-            className="flex min-h-[44px] items-center gap-2 rounded-full border border-black/[0.04] bg-white px-3 shadow-[0_14px_36px_-30px_rgba(15,23,42,0.65)]"
+            className="flex min-h-[44px] min-w-0 items-center gap-2 rounded-full border border-black/[0.04] bg-white pl-1.5 pr-3 shadow-[0_14px_36px_-30px_rgba(15,23,42,0.65)]"
           >
+            <BrandMark className="h-8 w-8 min-w-8" />
             <div className="flex items-center gap-1.5 min-w-0">
               <span className={cn(
                 'w-2 h-2 rounded-full shrink-0',
@@ -111,7 +113,7 @@ export function SellerOSHeader() {
       </div>
 
       {/* Right: actions */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1.5">
         {/* Pending orders badge */}
         {pendingOrders > 0 && (
           <div className="relative flex h-11 w-11 animate-pulse items-center justify-center rounded-full bg-white text-[#17191c] shadow-[0_14px_36px_-30px_rgba(15,23,42,0.65)]">
@@ -121,9 +123,9 @@ export function SellerOSHeader() {
             </span>
           </div>
         )}
-        <CommandPalette />
-        <HelpSheet />
-        <DemoModeControl />
+        {!isMobile && <CommandPalette />}
+        {!isMobile && <HelpSheet />}
+        <DemoModeControl compact={isMobile} />
         <NotificationsDropdown />
 
         {/* More menu — mobile only */}

@@ -64,9 +64,16 @@ html:has(.lp) {
   backdrop-filter: blur(12px);
 }
 .lp-brand {
+  display: inline-flex;
+  align-items: center;
   font-size: 25px;
   font-weight: 750;
   white-space: nowrap;
+}
+.lp-brand-mark {
+  width: 36px;
+  height: 36px;
+  margin-right: 10px;
 }
 .lp-brand span {
   color: #a698ff;
@@ -788,7 +795,12 @@ html:has(.lp) {
     gap: 8px;
   }
   .lp-brand {
-    font-size: 23px;
+    font-size: 20px;
+  }
+  .lp-brand-mark {
+    width: 28px;
+    height: 28px;
+    margin-right: 6px;
   }
   .lp-desktop-nav,
   .lp-header-github {
@@ -999,6 +1011,13 @@ html:has(.lp) {
   }
 }
 @media (max-width: 359px) {
+  .lp-header {
+    padding-inline: 10px;
+    gap: 4px;
+  }
+  .lp-header .lp-brand {
+    font-size: 18px;
+  }
   .lp-header .lp-button-small svg {
     display: none;
   }

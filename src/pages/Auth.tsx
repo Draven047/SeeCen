@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ShoppingBag, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { BrandMark } from '@/components/BrandMark';
 import { toast } from 'sonner';
 import { getSafeErrorMessage } from '@/lib/errorUtils';
 
@@ -43,9 +44,7 @@ export default function Auth() {
     <div className="min-h-screen hero-gradient flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-4">
-            <ShoppingBag className="w-8 h-8 text-primary" />
-          </div>
+          <BrandMark className="mx-auto mb-4 h-16 w-16" />
           <h1 className="font-display text-3xl font-bold text-foreground">SeeCen</h1>
           <p className="text-muted-foreground mt-2">Seller command center</p>
         </div>

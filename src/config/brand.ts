@@ -3,6 +3,7 @@
 
 export const brand = {
   name: 'SeeCen',
+  logo: '/brand/seecen-mark-v1.svg',
   tagline: 'Seller OS',
   description: 'Open-source seller command center',
   currency: 'INR',

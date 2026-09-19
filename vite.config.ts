@@ -30,10 +30,10 @@ export default defineConfig(() => ({
         start_url: "/demo/dashboard",
         scope: "/",
         icons: [
-          { src: "/pwa-192.png", sizes: "192x192", type: "image/png" },
-          { src: "/pwa-512.png", sizes: "512x512", type: "image/png" },
+          { src: "/brand/pwa-192-v1.png", sizes: "192x192", type: "image/png" },
+          { src: "/brand/pwa-512-v1.png", sizes: "512x512", type: "image/png" },
           {
-            src: "/pwa-maskable-512.png",
+            src: "/brand/pwa-maskable-512-v1.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
@@ -43,14 +43,14 @@ export default defineConfig(() => ({
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
         // Landing media and optional 3D must not compete with the first app load.
-        globIgnores: ["**/ProductScene-*.js", "landing/v2/**", "landing-*.png"],
+        globIgnores: ["**/ProductScene-*.js", "landing/**", "landing-*.png"],
         runtimeCaching: [
           {
             urlPattern: ({ url, sameOrigin }) =>
-              sameOrigin && /^\/landing\/v2\/.*\.png$/.test(url.pathname),
+              sameOrigin && /^\/landing\/v3\/.*\.png$/.test(url.pathname),
             handler: "CacheFirst",
             options: {
-              cacheName: "seecen-landing-v2",
+              cacheName: "seecen-landing-v3",
               expiration: { maxEntries: 12, maxAgeSeconds: 30 * 24 * 60 * 60 },
               cacheableResponse: { statuses: [200] },
             },

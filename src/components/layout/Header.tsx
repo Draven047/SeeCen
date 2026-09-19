@@ -9,6 +9,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { BrandMark } from '@/components/BrandMark';
 
 export function Header() {
   const { user, role } = useAuth();
@@ -48,7 +49,7 @@ export function Header() {
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-card/80 backdrop-blur-sm px-4 md:px-6">
       {/* Left: Breadcrumbs (desktop) or Page title (mobile) */}
       {isMobile ? (
-        <h2 className="text-sm font-semibold text-foreground truncate">SeeCen</h2>
+        <div className="flex min-w-0 items-center gap-2"><BrandMark className="h-8 w-8" /><h2 className="text-sm font-semibold text-foreground truncate">SeeCen</h2></div>
       ) : (
         <Breadcrumbs />
       )}
